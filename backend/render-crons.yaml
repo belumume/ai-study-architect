@@ -1,0 +1,103 @@
+# Render Cron Jobs Configuration for Backups
+# Note: Cron jobs require a paid Render plan ($7/month minimum)
+# 
+# To deploy:
+# 1. Upgrade to Render Starter plan or higher
+# 2. In Render Dashboard > New > Background Worker
+# 3. Connect your GitHub repo
+# 4. Use these configurations
+
+services:
+  # Daily backup to Cloudflare R2 (Primary)
+  - type: cron
+    name: backup-primary-r2
+    runtime: python
+    region: oregon
+    plan: starter  # Requires paid plan
+    repo: https://github.com/YOUR_USERNAME/YOUR_REPO
+    branch: main
+    rootDir: backend
+    buildCommand: |
+      pip install --upgrade pip
+      pip install boto3 cryptography pg8000
+    schedule: "0 2 * * *"  # 2 AM UTC daily
+    command: python scripts/backup_database.py --r2
+    envVars:
+      - key: DATABASE_URL
+        sync: false  # Copy from main service
+      - key: ENVIRONMENT
+        value: production
+      - key: R2_ACCOUNT_ID
+        sync: false  # Add manually
+      - key: R2_ACCESS_KEY
+        sync: false  # Add manually
+      - key: R2_SECRET_KEY
+        sync: false  # Add manually
+      - key: R2_BUCKET
+        value: ai-study-architect-backups
+      - key: BACKUP_ENCRYPTION_KEY
+        sync: false  # Add manually
+      - key: PYTHONPATH
+        value: /opt/render/project/src/backend
+
+  # Weekly backup to AWS S3 (Secondary)
+  - type: cron
+    name: backup-secondary-s3
+    runtime: python
+    region: oregon
+    plan: starter  # Requires paid plan
+    repo: https://github.com/YOUR_USERNAME/YOUR_REPO
+    branch: main
+    rootDir: backend
+    buildCommand: |
+      pip install --upgrade pip
+      pip install boto3 cryptography pg8000
+    schedule: "0 3 * * 0"  # 3 AM UTC on Sundays
+    command: python scripts/backup_database.py --s3
+    envVars:
+      - key: DATABASE_URL
+        sync: false  # Copy from main service
+      - key: ENVIRONMENT
+        value: production
+      - key: AWS_ACCESS_KEY_ID
+        sync: false  # Add manually
+      - key: AWS_SECRET_ACCESS_KEY
+        sync: false  # Add manually
+      - key: AWS_REGION
+        value: us-west-2
+      - key: AWS_BACKUP_BUCKET
+        value: ai-study-architect-backup-secondary
+      - key: BACKUP_ENCRYPTION_KEY
+        sync: false  # Copy from R2 backup
+      - key: PYTHONPATH
+        value: /opt/render/project/src/backend
+
+  # Monthly backup verification (optional)
+  - type: cron
+    name: backup-verification
+    runtime: python
+    region: oregon
+    plan: starter
+    repo: https://github.com/YOUR_USERNAME/YOUR_REPO
+    branch: main
+    rootDir: backend
+    buildCommand: |
+      pip install --upgrade pip
+      pip install boto3 cryptography pg8000
+    schedule: "0 4 1 * *"  # 4 AM UTC on 1st of month
+    command: python scripts/backup_database.py --verify latest
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: ENVIRONMENT
+        value: production
+      - key: R2_ACCOUNT_ID
+        sync: false
+      - key: R2_ACCESS_KEY
+        sync: false
+      - key: R2_SECRET_KEY
+        sync: false
+      - key: BACKUP_ENCRYPTION_KEY
+        sync: false
+      - key: PYTHONPATH
+        value: /opt/render/project/src/backend

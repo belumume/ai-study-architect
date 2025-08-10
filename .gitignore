@@ -1,0 +1,742 @@
+################################################################################
+# AI Study Architect - Security & Privacy Focused .gitignore
+# 
+# This file ensures NO sensitive data, user content, or credentials are committed
+# Following GDPR, FERPA, and security best practices for educational AI systems
+################################################################################
+
+#==============================================================================
+# CRITICAL: Development/Debugging Scripts (Added 2025-07-23)
+#==============================================================================
+# Prevent accumulation of debugging scripts
+*debug*.py
+*test_*.py
+diagnose_*.py
+verify_*.py
+check_*.py
+start_*.py
+fix_*.py
+kill_*.py
+minimal_*.py
+final_*.py
+force_*.py
+restart_*.py
+cleanup_*.py
+*_debug.py
+*_test.py
+
+# Temporary documentation from debugging sessions
+*_SERVER.md
+*_SOLUTION.md
+*_ENDPOINT.md
+RESTART_*.md
+SOLUTION_*.md
+
+# OpenAPI debug files
+openapi_debug.json
+openapi_*.json
+
+# Windows batch files (unless explicitly needed)
+*.bat
+
+# PostgreSQL diagnostic scripts
+*postgres*.py
+*connection*.py
+comprehensive_*.py
+find_*.py
+setup_*.py
+test_env*.py
+
+# Exclude legitimate test directories
+!tests/
+!tests/**/*.py
+!frontend/src/test/
+!ml/tests/
+
+#==============================================================================
+# CRITICAL: User-Generated Content (NEVER commit student data!)
+#==============================================================================
+# Student uploads and personal content
+uploads/
+user_uploads/
+backend/uploads/
+uploaded_content/
+backend/uploaded_content/
+student_files/
+study_materials/
+lecture_recordings/
+handwritten_notes/
+*.pdf
+*.docx
+*.pptx
+*.mp3
+*.mp4
+*.wav
+*.jpg
+*.jpeg
+*.png
+!frontend/public/**/*.png
+!frontend/public/**/*.jpg
+!docs/**/*.png
+!docs/**/*.jpg
+
+# User study sessions and progress
+study_sessions/
+user_progress/
+learning_analytics/
+collaboration_data/
+study_groups/
+student_data/
+*.grades
+*.transcript
+
+#==============================================================================
+# AI/ML Artifacts (May contain extracted user information)
+#==============================================================================
+# Model files and checkpoints
+models/
+model_checkpoints/
+fine_tuned_models/
+*.onnx
+*.pt
+*.pth
+*.pkl
+*.h5
+*.safetensors
+*.ckpt
+*.bin
+*.gguf
+*.ggml
+
+# Ollama local models (can be several GB each)
+ollama_models/
+.ollama/
+ollama/
+ollama_cache/
+
+# Vector databases (contain embeddings of user content)
+vector_db/
+qdrant_storage/
+qdrant/
+qdrant_local/
+collection/
+chroma/
+chromadb/
+faiss_index/
+*.faiss
+*.idx
+*.vec
+weaviate/
+pinecone_cache/
+milvus/
+
+# LangChain/LangGraph specific
+.langchain/
+langchain_cache/
+agent_checkpoints/
+graph_checkpoints/
+langgraph_state/
+memory_store/
+conversation_store/
+chains/
+*.chain
+*.graph
+
+# AI processing artifacts
+embeddings/
+cached_responses/
+llm_cache/
+agent_memory/
+conversation_history/
+*.jsonl
+processed_documents/
+extracted_text/
+ocr_output/
+transcriptions/
+audio_processing/
+
+# Fine-tuning and training data
+training_data/
+fine_tuning_datasets/
+synthetic_data/
+evaluation_results/
+benchmark_results/
+model_evaluations/
+
+#==============================================================================
+# Databases & State Management
+#==============================================================================
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+*.postgresql
+*.mysql
+
+# Database dumps and backups (may contain all user data!)
+*.dump
+*.sql
+!migrations/*.sql
+!schema/*.sql
+backups/
+db_backups/
+postgres_dumps/
+
+# Redis dumps
+dump.rdb
+redis_dump/
+*.rdb
+
+# Celery beat schedule
+celerybeat-schedule
+celerybeat-schedule.db
+celerybeat.pid
+celery_worker.log
+
+# Alembic
+alembic.ini.local
+alembic/versions/*_local.py
+
+# FastAPI specific
+.fastapi_cache/
+hypercorn-access.log
+hypercorn-error.log
+uvicorn-access.log
+uvicorn-error.log
+
+#==============================================================================
+# Authentication & Secrets
+#==============================================================================
+# Environment files
+.env
+.env.*
+!.env.example
+!.env.template
+.env.local
+.env.development
+.env.production
+.env.staging
+.env.test
+
+# Keys and certificates
+*.pem
+*.key
+*.crt
+*.cer
+*.pfx
+*.p12
+private_key*
+public_key*
+jwt_keys/
+certificates/
+ssl/
+app/core/keys/
+backend/app/core/keys/
+
+# OAuth and API credentials
+oauth_tokens/
+refresh_tokens/
+api_keys/
+service_accounts/
+*.json
+!package.json
+!tsconfig.json
+!tsconfig.node.json
+!.prettierrc.json
+credentials/
+gcp_credentials/
+aws_credentials/
+
+# Secrets directory
+secrets/
+.secrets/
+
+#==============================================================================
+# Compliance & Audit (May contain PII)
+#==============================================================================
+# Audit logs
+audit_logs/
+access_logs/
+security_logs/
+compliance_reports/
+gdpr_exports/
+data_deletion_logs/
+
+# User activity logs
+user_activity/
+analytics_raw/
+event_logs/
+tracking_data/
+
+#==============================================================================
+# Development & Testing
+#==============================================================================
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+.venv
+venv/
+env/
+ENV/
+virtualenv/
+.pytest_cache/
+.coverage
+.coverage.*
+.mypy_cache/
+.dmypy.json
+dmypy.json
+.ruff_cache/
+.hypothesis/
+.pytype/
+
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+.pnpm-debug.log*
+.npm
+.yarn/
+.pnp.*
+dist/
+build/
+.next/
+out/
+.nuxt/
+.cache/
+.parcel-cache/
+.turbo/
+
+# Testing artifacts
+coverage/
+htmlcov/
+test-results/
+test-reports/
+cypress/videos/
+cypress/screenshots/
+playwright-report/
+test-artifacts/
+__snapshots__/
+.nyc_output/
+jest-results.json
+vitest-results.json
+lighthouse-report/
+storybook-static/
+
+# React/TypeScript specific
+*.tsbuildinfo
+.eslintcache
+.stylelintcache
+.next/
+.nuxt/
+.vite/
+.vitest/
+dist-ssr/
+*.local
+
+# Development databases
+dev.db
+test.db
+local.db
+development.sqlite
+
+#==============================================================================
+# IDE & Tools
+#==============================================================================
+# VS Code
+.vscode/
+!.vscode/extensions.json
+!.vscode/settings.json.template
+
+# JetBrains
+.idea/
+*.iml
+*.iws
+*.ipr
+
+# Other editors
+*.swp
+*.swo
+*.swn
+*~
+.project
+.classpath
+.settings/
+nbproject/
+.nb-gradle/
+
+#==============================================================================
+# System & Temporary Files
+#==============================================================================
+# OS files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.temp
+*.log
+logs/
+*.cache
+.cache/
+
+# Lock files (keep package-lock.json and poetry.lock)
+*.lock
+!package-lock.json
+!poetry.lock
+!Pipfile.lock
+!yarn.lock
+!pnpm-lock.yaml
+
+#==============================================================================
+# Infrastructure & Deployment
+#==============================================================================
+# Docker volumes
+docker_volumes/
+postgres_data/
+redis_data/
+
+# Terraform
+*.tfstate
+*.tfstate.*
+.terraform/
+.terraform.lock.hcl
+
+# Kubernetes
+kubeconfig
+*.kubeconfig
+
+# CI/CD
+.gitlab-ci-local/
+.github/workflows/local/
+
+#==============================================================================
+# Claude & Development Tools
+#==============================================================================
+# Claude local settings
+.claude/local/
+CLAUDE.local.md
+.claude/cache/
+
+# ngrok
+ngrok
+ngrok.yml
+.ngrok2/
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb
+!docs/examples/*.ipynb
+
+#==============================================================================
+# Media & Large Files
+#==============================================================================
+# Compressed files (might contain user data)
+*.zip
+*.tar
+*.tar.gz
+*.rar
+*.7z
+!frontend/public/assets/*.zip
+
+# Large data files
+*.csv
+!test/fixtures/*.csv
+*.xlsx
+*.xls
+data/
+datasets/
+raw_data/
+
+#==============================================================================
+# Project-Specific Patterns
+#==============================================================================
+# Session storage
+sessions/
+flask_session/
+user_sessions/
+active_sessions/
+
+# Background job artifacts
+celery_tasks/
+job_results/
+task_queue/
+scheduled_tasks/
+task_results/
+
+# Export directories
+exports/
+user_exports/
+data_exports/
+study_exports/
+progress_reports/
+
+# Import staging
+import_staging/
+upload_temp/
+processing_temp/
+conversion_temp/
+
+# Processing queues
+processing_queue/
+pending_uploads/
+ocr_queue/
+transcription_queue/
+
+# WebSocket session data
+websocket_sessions/
+socketio_sessions/
+rtc_sessions/
+
+# Real-time collaboration
+collaboration_sessions/
+shared_workspaces/
+study_rooms/
+peer_sessions/
+
+# Agent workspaces
+agent_workspace/
+agent_outputs/
+agent_logs/
+tool_outputs/
+
+# Study materials cache
+materials_cache/
+pdf_cache/
+video_cache/
+audio_cache/
+thumbnail_cache/
+
+# Analytics and metrics
+analytics_cache/
+metrics_export/
+user_metrics/
+performance_metrics/
+
+#==============================================================================
+# Backup & Recovery
+#==============================================================================
+*.bak
+*.backup
+*.old
+*.orig
+backup/
+backups/
+restore_points/
+
+#==============================================================================
+# Production Artifacts
+#==============================================================================
+*.pid
+*.seed
+*.pid.lock
+pm2.json
+ecosystem.config.js
+
+# Monitoring
+prometheus_data/
+grafana_data/
+metrics/
+
+# Error dumps
+*.stackdump
+core.*
+crash.log
+error_reports/
+crash_dumps/
+
+#==============================================================================
+# Cloud Provider Specific
+#==============================================================================
+# AWS
+.aws/
+aws_credentials
+.boto
+.s3cfg
+sam-app/
+
+# Google Cloud
+.gcloud/
+gcloud_credentials.json
+service-account-key.json
+.firebase/
+firebase-debug.log
+
+# Azure
+.azure/
+azure_credentials
+local.settings.json
+
+# Vercel
+.vercel/
+.vercel_build_output/
+
+#==============================================================================
+# Additional Security Patterns
+#==============================================================================
+# Security scanning results
+security_scan_results/
+vulnerability_reports/
+penetration_test_results/
+owasp_scan/
+
+# Encryption keys and certificates
+encryption_keys/
+ssl_certificates/
+tls/
+*.p8
+*.jks
+*.keystore
+*.truststore
+
+# Biometric data (if implementing biometric auth)
+biometric_data/
+fingerprints/
+face_recognition_data/
+
+# Payment/billing info (if implementing paid features)
+payment_data/
+billing_info/
+stripe_webhooks/
+payment_logs/
+
+#==============================================================================
+# Development Tools & Experiments
+#==============================================================================
+# Notebook experiments with user data
+experiments/
+research/
+*.experiment
+sandbox/
+
+# Performance profiling
+profiling_results/
+*.prof
+*.pstats
+flame_graphs/
+
+# Load testing
+load_test_results/
+locust_reports/
+k6_results/
+
+# Database migration rollbacks
+migration_rollbacks/
+db_snapshots/
+
+# Temporary AI experiments
+model_experiments/
+prompt_experiments/
+fine_tuning_experiments/
+
+#==============================================================================
+# PostgreSQL Debugging Scripts (from cleanup)
+#==============================================================================
+# Prevent accidental commit of debugging scripts
+debug_*.py
+test_*.py
+fix_*.py
+setup_*.py
+diagnose_*.py
+find_*.py
+solve_*.py
+simplify_*.py
+show_*.py
+check_*.py
+verify_*.py
+comprehensive_*.py
+*_backup.py
+*_fixed.py
+*_complete.py
+*_simple.py
+force_*.py
+reset_*.py
+sync_*.py
+final_*.py
+alternative_*.py
+
+# PostgreSQL scripts
+*postgres*.py
+*postgres*.ps1
+*postgres*.sh
+*postgres*.bat
+!migrations/*postgres*.py
+
+# Password-related scripts
+*password*.py
+*password*.ps1
+*password*.sh
+
+# Configuration variants
+**/config_*.py
+!**/config.py
+**/main_*.py
+!**/main.py
+**/database_*.py
+!**/database.py
+**/*_async.py
+!**/dependencies.py
+!**/auth.py
+
+# Code review artifacts
+CODE_REVIEW_REPORT.md
+code_review_*.md
+security_assessment_*.md
+performance_analysis_*.md
+
+# Windows-specific temporary files (from debugging session)
+*.bat.tmp
+*.ps1.tmp
+powershell_history.txt
+ps_history.txt
+
+# AI development artifacts (specific to our project)
+agent_test_outputs/
+llm_experiment_results/
+prompt_testing/
+model_comparison/
+ollama_logs/
+langchain_debug/
+
+# Specific patterns from our debugging session
+test_server_start.py
+debug_limiter.py
+start_server_no_reload.bat
+clear_pycache.bat
+test_content_api.py
+test_content_api_windows.bat
+start_server.bat
+
+# Never commit these development helpers
+comprehensive_*.py
+diagnostic_*.py
+windows_*.py
+sync_*.py
