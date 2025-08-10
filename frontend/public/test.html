@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>AI Study Architect - System Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; background: #f0f0f0; }
+        .test { margin: 10px 0; padding: 10px; background: white; border-radius: 5px; }
+        .success { border-left: 5px solid #4CAF50; }
+        .error { border-left: 5px solid #f44336; }
+        .pending { border-left: 5px solid #ff9800; }
+        button { padding: 10px 20px; margin: 5px; cursor: pointer; }
+        #results { margin-top: 20px; }
+        pre { background: #e0e0e0; padding: 10px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>AI Study Architect - Complete System Test</h1>
+    
+    <div class="test pending" id="cache-test">
+        <h3>1. Browser Cache Test</h3>
+        <p>Testing if browser is serving fresh code...</p>
+        <button onclick="testCache()">Run Cache Test</button>
+    </div>
+    
+    <div class="test pending" id="api-test">
+        <h3>2. API Connection Test</h3>
+        <p>Testing if frontend can reach backend...</p>
+        <button onclick="testAPI()">Run API Test</button>
+    </div>
+    
+    <div class="test pending" id="auth-test">
+        <h3>3. Authentication Test</h3>
+        <p>Testing login functionality...</p>
+        <button onclick="testAuth()">Run Auth Test</button>
+    </div>
+    
+    <div class="test pending" id="content-test">
+        <h3>4. Content Test</h3>
+        <p>Testing if AI can read uploaded content...</p>
+        <button onclick="testContent()">Run Content Test</button>
+    </div>
+    
+    <div id="results">
+        <h2>Test Results</h2>
+        <pre id="output"></pre>
+    </div>
+    
+    <script>
+    const log = (msg) => {
+        const output = document.getElementById('output');
+        output.textContent += new Date().toISOString() + ' - ' + msg + '\n';
+    };
+    
+    const updateTestStatus = (testId, status, message) => {
+        const test = document.getElementById(testId);
+        test.className = 'test ' + status;
+        const p = test.querySelector('p');
+        p.textContent = message;
+    };
+    
+    async function testCache() {
+        log('Testing browser cache...');
+        const testUrl = '/api/v1/health';
+        
+        try {
+            const response = await fetch(testUrl);
+            const finalUrl = response.url;
+            
+            if (finalUrl.includes('localhost:8000')) {
+                updateTestStatus('cache-test', 'success', 
+                    'SUCCESS: Browser is using fresh code with proxy!');
+                log('Cache test passed - requests are being proxied correctly');
+            } else {
+                updateTestStatus('cache-test', 'error', 
+                    'ERROR: Browser still using cached code!');
+                log('Cache test failed - URL: ' + finalUrl);
+            }
+        } catch (error) {
+            updateTestStatus('cache-test', 'error', 
+                'ERROR: ' + error.message);
+            log('Cache test error: ' + error);
+        }
+    }
+    
+    async function testAPI() {
+        log('Testing API connection...');
+        
+        try {
+            const response = await fetch('/api/v1/health');
+            if (response.ok) {
+                const data = await response.json();
+                updateTestStatus('api-test', 'success', 
+                    'SUCCESS: API is reachable! Status: ' + data.status);
+                log('API test passed: ' + JSON.stringify(data));
+            } else {
+                updateTestStatus('api-test', 'error', 
+                    'ERROR: API returned status ' + response.status);
+                log('API test failed with status: ' + response.status);
+            }
+        } catch (error) {
+            updateTestStatus('api-test', 'error', 
+                'ERROR: Cannot reach API - ' + error.message);
+            log('API connection error: ' + error);
+        }
+    }
+    
+    async function testAuth() {
+        log('Testing authentication...');
+        
+        try {
+            // Get CSRF token first
+            const csrfResponse = await fetch('/api/v1/csrf/token');
+            const csrfData = await csrfResponse.json();
+            const csrfToken = csrfData.token;
+            
+            // Try login
+            const response = await fetch('/api/v1/auth/login', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': csrfToken
+                },
+                body: JSON.stringify({
+                    username: 'test@example.com',
+                    password: 'test123'
+                })
+            });
+            
+            if (response.ok) {
+                updateTestStatus('auth-test', 'success', 
+                    'SUCCESS: Authentication endpoint working!');
+                log('Auth test passed');
+            } else {
+                updateTestStatus('auth-test', 'error', 
+                    'Auth endpoint returned: ' + response.status);
+                log('Auth test status: ' + response.status);
+            }
+        } catch (error) {
+            updateTestStatus('auth-test', 'error', 
+                'ERROR: Auth test failed - ' + error.message);
+            log('Auth test error: ' + error);
+        }
+    }
+    
+    async function testContent() {
+        log('Testing content AI integration...');
+        updateTestStatus('content-test', 'pending', 
+            'Login first, then run this test with valid auth token');
+        log('Content test requires authentication - login first');
+    }
+    
+    // Auto-run cache test on load
+    window.addEventListener('load', () => {
+        log('Page loaded - starting automatic tests...');
+        setTimeout(testCache, 1000);
+    });
+    </script>
+</body>
+</html>

@@ -1,0 +1,71 @@
+# Core FastAPI dependencies
+fastapi==0.109.0
+uvicorn==0.27.0
+python-multipart==0.0.6
+slowapi==0.1.9
+email-validator==2.1.0.post1
+
+# Database (using pg8000 for Windows compatibility)
+sqlalchemy==2.0.35
+alembic==1.13.1
+pg8000==1.31.2
+psycopg2-binary==2.9.9  # For Render deployment
+
+# Redis & Caching
+redis==5.0.1
+
+# Authentication & Security
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+cryptography==42.0.2
+python-dotenv==1.0.0
+pydantic==2.9.0  # Core validation library
+pydantic-settings==2.4.0  # Configuration management
+
+# AI/ML dependencies
+langchain==0.3.27
+langchain-core==0.3.72
+langchain-community==0.3.27
+langgraph==0.2.60
+
+# Vector store and embeddings
+numpy==1.26.3  # Last version compatible with Python 3.12
+
+# HTTP client
+httpx==0.27.0  # Modern HTTP client for async operations
+
+# AI Service SDKs (optional - only needed if API keys are configured)
+anthropic==0.39.0  # Claude API integration - latest stable version
+openai==1.35.0  # OpenAI fallback service - compatible with Python 3.12
+
+# Development dependencies
+pytest==7.4.4
+pytest-asyncio==0.23.3
+pytest-cov==4.1.0
+mypy==1.8.0
+ruff==0.1.11
+types-redis==4.6.0.11
+types-requests==2.31.0.10
+
+# Monitoring and logging
+structlog==24.1.0
+python-json-logger==2.0.7
+
+# Additional utilities
+python-dateutil==2.8.2
+pytz==2023.3.post1
+
+# System monitoring
+psutil==5.9.8  # Stable version for Python 3.12
+
+# File processing
+python-magic==0.4.27  # For Linux/Render deployment
+# python-magic-bin==0.4.14  # For Windows only - uncomment for local development
+PyPDF2==3.0.1
+python-docx==1.1.0
+python-pptx==0.6.23
+Pillow==10.2.0
+pytesseract==0.3.10  # Stable version
+
+# Cloud storage for backups
+boto3==1.34.23  # AWS S3 SDK for backup uploads
