@@ -14,6 +14,7 @@ jobs:
     - name: Test backup configuration
       run: |
         echo "Testing backup configuration..."
+        # BACKUP_TOKEN configured in repo settings
         response=$(curl -X POST \
           -H "X-Backup-Token: ${{ secrets.BACKUP_TOKEN }}" \
           -H "Content-Type: application/json" \
@@ -26,6 +27,7 @@ jobs:
     - name: Trigger backup via API
       run: |
         echo "Triggering backup..."
+        # BACKUP_TOKEN configured in repo settings
         response=$(curl -X POST \
           -H "X-Backup-Token: ${{ secrets.BACKUP_TOKEN }}" \
           -H "Content-Type: application/json" \
