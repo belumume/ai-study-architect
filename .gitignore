@@ -93,10 +93,10 @@ student_data/
 #==============================================================================
 # AI/ML Artifacts (May contain extracted user information)
 #==============================================================================
-# Model files and checkpoints
-models/
-model_checkpoints/
-fine_tuned_models/
+# Model files and checkpoints (ML models, not app/models)
+/models/
+/model_checkpoints/
+/fine_tuned_models/
 *.onnx
 *.pt
 *.pth
