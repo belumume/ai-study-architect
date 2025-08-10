@@ -1,0 +1,37 @@
+# Dockerfile for Render deployment with PostgreSQL 17 client
+FROM python:3.12-slim
+
+# Install PostgreSQL 17 client (matching database version)
+RUN apt-get update && \
+    apt-get install -y wget gnupg lsb-release && \
+    wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add - && \
+    echo "deb http://apt.postgresql.org/pub/repos/apt/ $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list && \
+    apt-get update && \
+    apt-get install -y postgresql-client-17 && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+# Verify PostgreSQL client version
+RUN pg_dump --version
+
+WORKDIR /app
+
+# Copy requirements first for better caching
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir boto3 cryptography psycopg2-binary
+
+# Copy application code
+COPY . .
+
+# Fix migration state if needed
+RUN python scripts/fix_alembic_state.py || echo "Migration state fix skipped"
+
+# Generate RSA keys
+RUN python scripts/generate_rsa_keys.py || echo "RSA keys generation skipped"
+
+# Make scripts executable
+RUN chmod +x *.sh
+
+# Start command
+CMD ["./start_render.sh"]

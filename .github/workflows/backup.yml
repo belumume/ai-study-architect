@@ -1,0 +1,49 @@
+name: Automated Database Backups
+
+on:
+  schedule:
+    # Daily at 2 AM UTC
+    - cron: '0 2 * * *'
+  workflow_dispatch:  # Allow manual trigger
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Test backup configuration
+      run: |
+        echo "Testing backup configuration..."
+        response=$(curl -X POST \
+          -H "X-Backup-Token: ${{ secrets.BACKUP_TOKEN }}" \
+          -H "Content-Type: application/json" \
+          --fail-with-body \
+          --show-error \
+          --max-time 30 \
+          "https://ai-study-architect.onrender.com/api/v1/backup/test")
+        echo "Test response: $response"
+    
+    - name: Trigger backup via API
+      run: |
+        echo "Triggering backup..."
+        response=$(curl -X POST \
+          -H "X-Backup-Token: ${{ secrets.BACKUP_TOKEN }}" \
+          -H "Content-Type: application/json" \
+          --show-error \
+          --max-time 300 \
+          -w "\nHTTP Status: %{http_code}\n" \
+          "https://ai-study-architect.onrender.com/api/v1/backup/trigger")
+        echo "Backup response: $response"
+        
+        # Check if status was 500 and show error
+        if echo "$response" | grep -q "HTTP Status: 500"; then
+          echo "Error details from response:"
+          echo "$response" | head -n -1  # Show everything except status line
+          exit 1
+        fi
+    
+    - name: Notify on failure
+      if: failure()
+      run: |
+        echo "Backup failed! Check GitHub Actions logs."
+        # Add Slack/Discord webhook here if you want
