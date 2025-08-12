@@ -5,7 +5,7 @@ set -e
 
 echo "Starting AI Study Architect on Render..."
 
-# Since rootDir is set to project/backend in render.yaml,
+# Since rootDir is set to backend in render.yaml,
 # we should already be in the backend directory
 # Just add the current directory to PYTHONPATH
 export PYTHONPATH="$(pwd):${PYTHONPATH}"
@@ -27,16 +27,7 @@ else
     exit 1
 fi
 
-# One-time fix for Alembic state (if needed)
-if [ ! -f ".alembic_fixed" ]; then
-    echo "First-time setup: Fixing Alembic state..."
-    if python scripts/fix_alembic_state.py; then
-        touch .alembic_fixed
-        echo "✅ Alembic state fixed"
-    else
-        echo "⚠️ Could not fix Alembic state - will try migrations anyway"
-    fi
-fi
+# Alembic state fix no longer needed - database tables already exist
 
 # Run database migrations
 echo "Running database migrations..."

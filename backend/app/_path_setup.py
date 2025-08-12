@@ -16,7 +16,7 @@ if _backend_dir not in sys.path:
     print(f"[PATH_SETUP] Added to sys.path: {_backend_dir}")
 
 # Also add Render's specific path if we're on Render
-render_path = "/opt/render/project/src/project/backend"
+render_path = "/opt/render/project/src/backend"
 if os.path.exists(render_path) and render_path not in sys.path:
     sys.path.insert(0, render_path)
     print(f"[PATH_SETUP] Added Render path: {render_path}")
