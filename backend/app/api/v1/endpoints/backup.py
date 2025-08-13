@@ -42,28 +42,17 @@ async def verify_backup_token(
     user_agent = request.headers.get("user-agent", "") if request else ""
     logger.info(f"Backup attempt from IP: {client_ip}, User-Agent: {user_agent}")
     
-    # Check for valid tokens
-    github_token = os.getenv("GITHUB_BACKUP_TOKEN")
-    is_github_actions = False
-    
-    # Check if it's GitHub Actions token or regular backup token
-    if github_token and x_backup_token == github_token:
-        # This is GitHub Actions with its special token
-        is_github_actions = True
-        logger.info(f"GitHub Actions backup authenticated from IP: {client_ip}")
-    elif x_backup_token == BACKUP_TOKEN:
-        # Regular backup token - apply rate limiting
-        logger.info(f"Regular backup token authenticated from IP: {client_ip}")
-    else:
-        # Invalid token
+    # Check token
+    if not x_backup_token or x_backup_token != BACKUP_TOKEN:
         logger.warning(f"Invalid backup token attempt from IP: {client_ip}")
         raise HTTPException(status_code=403, detail="Forbidden")
     
-    # Check test mode
+    # During testing phase, we'll be more lenient with rate limiting
+    # After testing is complete, remove BACKUP_TEST_MODE and increase MIN_BACKUP_INTERVAL to 3600
     is_test_mode = os.getenv("BACKUP_TEST_MODE", "false").lower() == "true"
     
-    # Apply rate limiting appropriately
-    if not is_github_actions and not is_test_mode:
+    # Apply rate limiting (unless in test mode)
+    if not is_test_mode:
         # Check rate limiting for manual triggers
         current_time = time.time()
         if last_backup_time and (current_time - last_backup_time) < MIN_BACKUP_INTERVAL:
@@ -74,7 +63,7 @@ async def verify_backup_token(
                 detail=f"Rate limit: wait {remaining_seconds:.0f} seconds before next backup"
             )
     else:
-        logger.info("GitHub Actions backup detected - bypassing rate limit")
+        logger.info("Test mode enabled - rate limiting bypassed")
     
     return True
 
@@ -200,7 +189,7 @@ async def backup_status(authorized: bool = Depends(verify_backup_token)):
         },
         "encryption": "enabled" if os.getenv("BACKUP_ENCRYPTION_KEY") else "WARNING: disabled",
         "last_backup": datetime.fromtimestamp(last_backup_time).isoformat() if last_backup_time else None,
-        "rate_limit": f"{MIN_BACKUP_INTERVAL} seconds (bypassed for GitHub Actions{' and TEST MODE' if test_mode else ''})",
+        "rate_limit": f"{MIN_BACKUP_INTERVAL} seconds{' (DISABLED - test mode active)' if test_mode else ''}",
         "test_mode": test_mode,
         "retention_policies": {
             "r2": "30 days, min 7 backups (controlled by our code)",
