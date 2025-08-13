@@ -1,0 +1,79 @@
+# Staging Deployment Pipeline
+name: Deploy to Staging
+
+on:
+  push:
+    branches: [develop, staging]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.12'
+    
+    - name: Install backend dependencies
+      run: |
+        cd backend
+        pip install -r requirements.txt
+    
+    - name: Run backend tests
+      run: |
+        cd backend
+        pytest tests/ -v
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '20'
+    
+    - name: Install frontend dependencies
+      run: |
+        cd frontend
+        npm ci
+    
+    - name: Run frontend tests
+      run: |
+        cd frontend
+        npm test
+    
+    - name: Build frontend
+      run: |
+        cd frontend
+        npm run build
+    
+  deploy-staging:
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/develop'
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Deploy to Staging
+      env:
+        RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+        STAGING_SERVICE_ID: ${{ secrets.STAGING_SERVICE_ID }}
+      run: |
+        # Trigger staging deployment
+        curl -X POST "https://api.render.com/v1/services/${STAGING_SERVICE_ID}/deploys" \
+          -H "Authorization: Bearer ${RENDER_API_KEY}" \
+          -H "Content-Type: application/json" \
+          -d '{"clearCache": "clear"}'
+    
+    - name: Wait for deployment
+      run: sleep 60
+    
+    - name: Health check
+      run: |
+        curl -f https://ai-study-architect-staging.onrender.com/health || exit 1
+    
+    - name: Notify success
+      run: echo "✅ Staging deployment successful!"
