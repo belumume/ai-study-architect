@@ -41,32 +41,13 @@ After careful consideration and expert consultation:
 # 1. Download a recent backup
 aws s3 cp s3://ai-study-architect-backup-2025/backups/production/s3/[recent-backup].enc test-backup.enc
 
-# 2. Decrypt locally
-python -c "
-from cryptography.fernet import Fernet
-import base64
-import hashlib
+# 2. Decrypt using the provided script
+# Option A: Use the decrypt script in the repo
+python backend/scripts/decrypt_backup.py test-backup.enc test-backup.sql
 
-# Get key from Render dashboard
-encryption_key = 'YOUR_BACKUP_ENCRYPTION_KEY'
-key_bytes = hashlib.sha256(encryption_key.encode()).digest()
-fernet_key = base64.urlsafe_b64encode(key_bytes)
-f = Fernet(fernet_key)
-
-with open('test-backup.enc', 'rb') as file:
-    encrypted = file.read()
-    
-# Decrypt in chunks (same as encryption)
-decrypted_chunks = []
-chunk_size = 4096 * 1024
-for i in range(0, len(encrypted), chunk_size):
-    chunk = encrypted[i:i+chunk_size]
-    decrypted_chunks.append(f.decrypt(chunk))
-
-with open('test-backup.sql', 'wb') as file:
-    for chunk in decrypted_chunks:
-        file.write(chunk)
-"
+# Option B: Set environment variable first
+export BACKUP_ENCRYPTION_KEY='your-key-from-render'
+python backend/scripts/decrypt_backup.py test-backup.enc test-backup.sql
 
 # 3. Verify SQL is valid
 head -n 100 test-backup.sql  # Should see valid PostgreSQL dump
