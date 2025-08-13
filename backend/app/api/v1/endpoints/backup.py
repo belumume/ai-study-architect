@@ -10,10 +10,15 @@ import time
 from datetime import datetime, timedelta
 from fastapi import APIRouter, HTTPException, Depends, Header, Request
 from typing import Optional
+from pydantic import BaseModel
 import logging
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
+
+# Pydantic model for backup request
+class BackupRequest(BaseModel):
+    provider: str = "s3"
 
 # Generate a secure backup token on startup
 BACKUP_TOKEN = os.getenv("BACKUP_TOKEN")
@@ -34,7 +39,8 @@ async def verify_backup_token(
     
     # Log attempt for security monitoring
     client_ip = request.client.host if request else "unknown"
-    logger.info(f"Backup attempt from IP: {client_ip}")
+    user_agent = request.headers.get("user-agent", "") if request else ""
+    logger.info(f"Backup attempt from IP: {client_ip}, User-Agent: {user_agent}")
     
     # Check token
     if not x_backup_token or x_backup_token != BACKUP_TOKEN:
@@ -42,33 +48,42 @@ async def verify_backup_token(
         # Don't reveal if token exists or not
         raise HTTPException(status_code=403, detail="Forbidden")
     
-    # Check rate limiting
-    current_time = time.time()
-    if last_backup_time and (current_time - last_backup_time) < MIN_BACKUP_INTERVAL:
-        remaining_seconds = MIN_BACKUP_INTERVAL - (current_time - last_backup_time)
-        logger.warning(f"Rate limit hit from IP: {client_ip}. Wait {remaining_seconds:.0f}s")
-        raise HTTPException(
-            status_code=429, 
-            detail=f"Rate limit: wait {remaining_seconds:.0f} seconds before next backup"
-        )
+    # Check if this is from GitHub Actions (scheduled backup)
+    is_github_actions = "github-actions" in user_agent.lower() or "actions.githubusercontent.com" in client_ip
+    
+    # Skip rate limiting for scheduled GitHub Actions backups
+    if not is_github_actions:
+        # Check rate limiting for manual triggers
+        current_time = time.time()
+        if last_backup_time and (current_time - last_backup_time) < MIN_BACKUP_INTERVAL:
+            remaining_seconds = MIN_BACKUP_INTERVAL - (current_time - last_backup_time)
+            logger.warning(f"Rate limit hit from IP: {client_ip}. Wait {remaining_seconds:.0f}s")
+            raise HTTPException(
+                status_code=429, 
+                detail=f"Rate limit: wait {remaining_seconds:.0f} seconds before next backup"
+            )
+    else:
+        logger.info("GitHub Actions backup detected - bypassing rate limit")
     
     return True
 
 @router.post("/trigger")
 async def trigger_backup(
-    provider: str = "s3",
+    backup_request: BackupRequest,
     authorized: bool = Depends(verify_backup_token),
     request: Request = None
 ):
     """
     Trigger a database backup.
-    Protected by secret token and rate limiting.
+    Protected by secret token and rate limiting (except for GitHub Actions).
     """
     global last_backup_time
     
+    provider = backup_request.provider
+    
     # Validate provider
-    if provider not in ["s3", "r2"]:
-        raise HTTPException(status_code=400, detail="Invalid provider. Use 's3' or 'r2'")
+    if provider not in ["s3", "r2", "both"]:
+        raise HTTPException(status_code=400, detail="Invalid provider. Use 's3', 'r2', or 'both'")
     
     try:
         # Update last backup time
@@ -83,43 +98,72 @@ async def trigger_backup(
             # Fallback to current directory
             work_dir = os.getcwd()
             
-        logger.info(f"Starting {provider.upper()} backup from {work_dir}...")
-        
         # Ensure script exists
         script_path = os.path.join(work_dir, "scripts", "backup_database.py")
         if not os.path.exists(script_path):
             logger.error(f"Backup script not found at {script_path}")
             raise HTTPException(status_code=500, detail="Backup configuration error")
         
-        # Run the backup script
-        result = subprocess.run(
-            ["python", script_path, f"--{provider}"],
-            cwd=work_dir,
-            capture_output=True,
-            text=True,
-            timeout=300,  # 5 minute timeout
-            env={**os.environ, "PYTHONDONTWRITEBYTECODE": "1"}
-        )
+        # Handle "both" provider option
+        providers_to_run = ["r2", "s3"] if provider == "both" else [provider]
+        results = []
         
-        if result.returncode != 0:
-            logger.error(f"Backup failed with code {result.returncode}")
-            logger.error(f"STDOUT: {result.stdout}")
-            logger.error(f"STDERR: {result.stderr}")
+        for current_provider in providers_to_run:
+            logger.info(f"Starting {current_provider.upper()} backup from {work_dir}...")
             
-            # Return actual error for debugging
-            raise HTTPException(status_code=500, detail={
-                "error": "Backup failed",
-                "stdout": result.stdout[-1000:] if result.stdout else None,
-                "stderr": result.stderr[-1000:] if result.stderr else None,
-                "return_code": result.returncode
-            })
+            # Run the backup script
+            result = subprocess.run(
+                ["python", script_path, f"--{current_provider}"],
+                cwd=work_dir,
+                capture_output=True,
+                text=True,
+                timeout=300,  # 5 minute timeout
+                env={**os.environ, "PYTHONDONTWRITEBYTECODE": "1"}
+            )
+            
+            if result.returncode != 0:
+                logger.error(f"{current_provider.upper()} backup failed with code {result.returncode}")
+                logger.error(f"STDOUT: {result.stdout}")
+                logger.error(f"STDERR: {result.stderr}")
+                
+                # For "both", continue with next provider even if one fails
+                if provider == "both":
+                    results.append({
+                        "provider": current_provider,
+                        "status": "failed",
+                        "error": result.stderr[-500:] if result.stderr else "Unknown error"
+                    })
+                    continue
+                else:
+                    # Return actual error for debugging
+                    raise HTTPException(status_code=500, detail={
+                        "error": f"{current_provider.upper()} backup failed",
+                        "stdout": result.stdout[-1000:] if result.stdout else None,
+                        "stderr": result.stderr[-1000:] if result.stderr else None,
+                        "return_code": result.returncode
+                    })
+            else:
+                logger.info(f"Backup to {current_provider.upper()} completed successfully")
+                results.append({
+                    "provider": current_provider,
+                    "status": "success"
+                })
         
-        logger.info(f"Backup to {provider.upper()} completed successfully")
-        return {
-            "status": "success",
-            "message": f"Backup completed",
-            "timestamp": datetime.utcnow().isoformat()
-        }
+        # Return results
+        if provider == "both":
+            success_count = sum(1 for r in results if r["status"] == "success")
+            return {
+                "status": "partial" if 0 < success_count < len(results) else ("success" if success_count == len(results) else "failed"),
+                "message": f"Backup completed: {success_count}/{len(results)} successful",
+                "details": results,
+                "timestamp": datetime.utcnow().isoformat()
+            }
+        else:
+            return {
+                "status": "success",
+                "message": f"{provider.upper()} backup completed",
+                "timestamp": datetime.utcnow().isoformat()
+            }
     except subprocess.TimeoutExpired:
         logger.error("Backup operation timed out")
         raise HTTPException(status_code=504, detail="Operation timed out")
@@ -138,9 +182,13 @@ async def backup_status(authorized: bool = Depends(verify_backup_token)):
     """Check if backup service is ready"""
     return {
         "status": "ready",
+        "providers": {
+            "aws_s3": "configured" if os.getenv("AWS_ACCESS_KEY_ID") else "not configured",
+            "cloudflare_r2": "configured" if (os.getenv("R2_ACCESS_KEY") and os.getenv("R2_SECRET_KEY")) else "not configured"
+        },
         "encryption": "enabled" if os.getenv("BACKUP_ENCRYPTION_KEY") else "WARNING: disabled",
         "last_backup": datetime.fromtimestamp(last_backup_time).isoformat() if last_backup_time else None,
-        "rate_limit": f"{MIN_BACKUP_INTERVAL} seconds"
+        "rate_limit": f"{MIN_BACKUP_INTERVAL} seconds (bypassed for GitHub Actions)"
     }
 
 @router.post("/test")
@@ -153,6 +201,7 @@ async def test_backup_setup(
     checks = {
         "token_configured": bool(os.getenv("BACKUP_TOKEN")),
         "aws_configured": bool(os.getenv("AWS_ACCESS_KEY_ID")),
+        "r2_configured": bool(os.getenv("R2_ACCESS_KEY") and os.getenv("R2_SECRET_KEY")),
         "encryption_configured": bool(os.getenv("BACKUP_ENCRYPTION_KEY")),
         "database_url_configured": bool(os.getenv("DATABASE_URL")),
         "pg_dump_available": bool(shutil.which("pg_dump")),
@@ -178,6 +227,20 @@ async def test_backup_setup(
     try:
         import boto3
         checks["boto3_installed"] = True
+        
+        # Test R2 client creation if configured
+        if os.getenv("R2_ACCESS_KEY") and os.getenv("R2_SECRET_KEY"):
+            try:
+                r2_client = boto3.client(
+                    "s3",
+                    endpoint_url=f"https://{os.getenv('R2_ACCOUNT_ID', '')}.r2.cloudflarestorage.com",
+                    aws_access_key_id=os.getenv("R2_ACCESS_KEY"),
+                    aws_secret_access_key=os.getenv("R2_SECRET_KEY"),
+                    region_name="auto"
+                )
+                checks["r2_client_creation"] = "success"
+            except Exception as e:
+                checks["r2_client_creation"] = f"failed: {str(e)[:100]}"
     except ImportError:
         checks["boto3_installed"] = False
     
