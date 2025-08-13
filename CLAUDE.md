@@ -4,21 +4,162 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-AI Study Architect - A 7-agent educational system that builds cognitive strength, not cognitive debt. Uses Claude (primary) and OpenAI (fallback) to provide Socratic questioning and deep understanding of uploaded course materials.
+AI Study Architect - A 7-agent educational system that builds cognitive strength through Socratic questioning and guided discovery learning. Uses Claude API (primary) and OpenAI (fallback) to help students learn from their own course materials.
 
 **Live Application**: https://ai-study-architect.onrender.com  
 **Repository**: https://github.com/belumume/ai-study-architect  
-**Core Principle**: Students upload their materials, AI asks questions (not answers), building understanding through guided discovery.
+**Core Philosophy**: "Build cognitive strength, not cognitive debt"
 
-## Repository Migration Notice
+## Common Development Commands
 
-**This project has been migrated to its own repository**: https://github.com/belumume/ai-study-architect  
-The project is no longer nested in the CS50 repository. All paths have been updated from `project/backend` to `backend`.
+### Backend Development
+```bash
+cd backend
+# Local development
+python -m venv venv
+venv\Scripts\activate                          # Windows
+source venv/bin/activate                       # Linux/Mac
+pip install -r requirements.txt
+uvicorn app.main:app --reload                  # Start dev server (port 8000)
 
-## Deployment Configuration (CRITICAL - READ FIRST)
+# Testing
+pytest tests/                                   # Run all tests
+pytest tests/test_auth.py                      # Run specific test file
+pytest -v -s                                    # Verbose output with print statements
+venv\Scripts\python.exe tests/scripts/quick_socratic_test.py  # Test Socratic mode (Windows)
 
-### Render Dashboard Settings (Must Match Exactly)
-**Source of Truth**: `backend/RENDER_SETTINGS.md`
+# Code quality
+ruff check app/                                # Lint code
+ruff check app/ --fix                          # Auto-fix linting issues
+coverage run -m pytest                         # Run tests with coverage
+coverage report                                # Show coverage report
+
+# Database
+alembic upgrade head                           # Run migrations (fails in production)
+alembic revision --autogenerate -m "message"  # Create new migration
+```
+
+### Frontend Development
+```bash
+cd frontend
+# Setup and development
+npm install                                    # Install dependencies
+npm run dev                                    # Start dev server (port 5173)
+
+# Testing and validation
+npm test                                       # Run tests with Vitest
+npm run test:ui                               # Run tests with UI
+npm run test:coverage                         # Generate coverage report
+npm run typecheck                             # Check TypeScript types
+npm run lint                                  # Lint code with ESLint
+
+# Production build
+npm run build                                 # Build for production
+npm run preview                               # Preview production build
+```
+
+### Health Checks
+```bash
+# Production
+curl https://ai-study-architect.onrender.com/api/v1/health
+curl https://ai-study-architect.onrender.com/docs
+
+# Local
+curl http://localhost:8000/api/v1/health
+curl http://localhost:8000/docs
+```
+
+### Backup Operations
+```bash
+# Test backup configuration
+curl -X POST -H "X-Backup-Token: YOUR_TOKEN" \
+  https://ai-study-architect.onrender.com/api/v1/backup/test
+
+# Trigger manual backup (rate limited to 1/hour)
+curl -X POST -H "X-Backup-Token: YOUR_TOKEN" \
+  https://ai-study-architect.onrender.com/api/v1/backup/trigger
+
+# Check backup status
+curl -X GET -H "X-Backup-Token: YOUR_TOKEN" \
+  https://ai-study-architect.onrender.com/api/v1/backup/status
+```
+
+## High-Level Architecture
+
+### 7-Agent System
+The project implements seven specialized agents that work together to create personalized learning experiences:
+
+1. **Lead Tutor** (`/api/v1/agents/chat`) - Orchestrates Socratic questioning
+2. **Content Understanding** - Processes course materials (PDFs, notes, lectures)
+3. **Knowledge Synthesis** (`/api/v1/agents/explain`) - Creates personalized explanations
+4. **Practice Generation** (`/api/v1/agents/study-plan`) - Generates adaptive problems
+5. **Progress Tracking** (`/api/v1/agents/status`) - Monitors learning patterns
+6. **Assessment** (`/api/v1/agents/check-understanding`) - Evaluates comprehension
+7. **Collaboration** (`/api/v1/agents/clear-memory`) - Enables collective intelligence
+
+### Backend Architecture (FastAPI)
+
+**Core Components:**
+- `app/main.py` - FastAPI application with comprehensive middleware stack
+- `app/agents/` - Agent implementations with Redis caching for state management
+- `app/services/claude_service.py` - Claude API integration with streaming support
+- `app/core/security.py` - JWT authentication with RS256 algorithm
+- `app/core/csrf.py` - CSRF protection with strategic exemptions
+- `app/models/` - SQLAlchemy models for users, content, sessions, and practice
+- `app/api/v1/endpoints/` - RESTful API endpoints organized by feature
+
+**Key Design Patterns:**
+- Dependency injection for database sessions and authentication
+- Service layer pattern for AI integrations
+- Repository pattern for data access
+- Middleware pipeline for cross-cutting concerns
+- Streaming responses for real-time AI interactions
+
+### Frontend Architecture (React + TypeScript)
+
+**Component Structure:**
+- `src/components/auth/` - Authentication forms with JWT handling
+- `src/components/chat/` - Real-time chat interface with streaming
+- `src/components/content/` - File upload with drag-and-drop support
+- `src/contexts/AuthContext.tsx` - Global authentication state
+- `src/services/api.ts` - Axios client with interceptors for auth/CSRF
+
+**State Management:**
+- React Query for server state and caching
+- Context API for global auth state
+- Local state for component-specific data
+
+### Database Architecture
+
+**PostgreSQL 17** with SQLAlchemy ORM:
+- `users` - Authentication and profiles
+- `content` - Uploaded study materials with extracted text
+- `study_sessions` - Learning sessions and progress tracking
+- `practice_problems` - Generated exercises with difficulty levels
+- `chat_messages` - Conversation history with context
+
+**Migration Strategy:**
+- Alembic for schema versioning
+- Pre-existing tables require empty Pre-Deploy command
+- Migrations handled in `start_render.sh` with error handling
+
+### AI Integration Architecture
+
+**Multi-Provider Strategy:**
+1. **Claude API** (Primary) - Superior educational performance (93.7% HumanEval)
+2. **OpenAI API** (Fallback) - Automatic failover for reliability
+3. **LangChain** - Orchestration and prompt management
+
+**Key Features:**
+- Server-sent events (SSE) for streaming responses
+- Token counting and usage tracking
+- Context window management
+- Prompt template system for consistency
+
+## Deployment Configuration
+
+### Render Platform Settings
+**Critical**: These must match exactly in Render dashboard
 
 ```
 Root Directory: backend
@@ -28,19 +169,14 @@ Start Command: chmod +x start_render.sh && ./start_render.sh
 Instance Type: Starter ($7/month)
 ```
 
-**IMPORTANT**: 
-- Pre-Deploy MUST be empty (database has existing tables, Alembic fails with "relation exists")
-- We're on Starter plan, NOT free tier (has SSH access, no spin-down)
-- Build uses `build_starter.sh` (attempts PostgreSQL 17 install for Starter plan)
-
-### Required Environment Variables on Render
+### Required Environment Variables
 ```bash
-# Database (auto-configured)
-DATABASE_URL=postgresql://...  # From Render database
+# Database (auto-configured by Render)
+DATABASE_URL=postgresql://...
 
 # AI Services (REQUIRED)
-ANTHROPIC_API_KEY=sk-ant-xxx   # Primary AI
-OPENAI_API_KEY=sk-xxx          # Fallback AI
+ANTHROPIC_API_KEY=sk-ant-xxx
+OPENAI_API_KEY=sk-xxx
 
 # Backup System
 BACKUP_TOKEN=<match GitHub secret>
@@ -54,208 +190,66 @@ SECRET_KEY=<auto-generated>
 JWT_SECRET_KEY=<auto-generated>
 ```
 
-## Backup System
+### Backup System
+- **Trigger**: GitHub Actions (daily 2 AM UTC) → API endpoint
+- **Storage**: AWS S3 with AES-256 encryption
+- **Rate Limit**: 1 hour between manual backups
+- **Fallback**: Python-based backup for PostgreSQL version mismatch
 
-### Architecture
-- **Trigger**: GitHub Actions (daily 2 AM UTC) → API endpoint → Backup runs on Render
-- **Storage**: AWS S3 bucket (encrypted)
-- **Rate Limit**: 1 hour between backups
-- **Authentication**: Token-based (X-Backup-Token header)
-
-### Key Files
-- `scripts/backup_database.py` - Main backup script (Python fallback for pg_dump version mismatch)
-- `app/api/v1/endpoints/backup.py` - API endpoint with rate limiting
-- `.github/workflows/backup.yml` - GitHub Actions workflow
-
-### Known Issues & Solutions
-- **PostgreSQL Version Mismatch**: Database is v17, client is v16 on Render
-  - Solution: Python-based backup using psycopg2 (automatic fallback in backup script)
-- **Alembic "relation exists"**: Database created before Alembic was added
-  - Solution: Leave Pre-Deploy command empty, tables are created on startup
-- **Models directory excluded by .gitignore**: Pattern `models/` was too broad
-  - Solution: Changed to `/models/` to only exclude root-level ML model directories
-
-### Testing Backup
-```bash
-# Test backup manually (rate limited to 1/hour)
-curl -X POST -H "X-Backup-Token: YOUR_TOKEN" \
-  https://ai-study-architect.onrender.com/api/v1/backup/trigger
-
-# Check backup configuration
-curl -X POST -H "X-Backup-Token: YOUR_TOKEN" \
-  https://ai-study-architect.onrender.com/api/v1/backup/test
-
-# Check backup status (GET request)
-curl -X GET -H "X-Backup-Token: YOUR_TOKEN" \
-  https://ai-study-architect.onrender.com/api/v1/backup/status
-```
-
-## Common Development Commands
-
-### Backend (FastAPI)
-```bash
-cd backend
-uvicorn app.main:app --reload  # Start dev server
-pytest tests/                   # Run tests
-ruff check app/                  # Lint code
-alembic upgrade head            # Run migrations (fails in production due to existing tables)
-venv\Scripts\python.exe quick_socratic_test.py  # Test Socratic mode (Windows)
-```
-
-### Frontend (React/TypeScript)
-```bash
-cd frontend
-npm run dev          # Start dev server
-npm test            # Run tests
-npm run typecheck   # Check types
-npm run lint        # Lint code
-npm run build       # Production build
-```
-
-### Quick Health Check
-```bash
-curl https://ai-study-architect.onrender.com/api/v1/health
-curl http://localhost:8000/api/v1/health  # Local
-```
-
-## Architecture
-
-### Tech Stack
-- **Backend**: FastAPI (sync mode for Windows), PostgreSQL 17, JWT auth (RS256)
-- **Frontend**: React 18, TypeScript, Material-UI, React Query, Axios
-- **AI**: Claude API (primary, 93.7% HumanEval), OpenAI (fallback), LangChain
-- **Deployment**: Render Starter plan (backend), Vercel (frontend planned)
-- **Backups**: AWS S3 with encryption, Python-based (pg_dump fallback)
-
-### 7-Agent System
-1. **Lead Tutor** (`/api/v1/agents/chat`) - Socratic questioning ✅
-2. **Content Understanding** - Multimodal processing (planned)
-3. **Knowledge Synthesis** (`/api/v1/agents/explain`) - Personalized materials ✅
-4. **Practice Generation** (`/api/v1/agents/study-plan`) - Adaptive problems ✅
-5. **Progress Tracking** (`/api/v1/agents/status`) - Difficulty adjustment ✅
-6. **Assessment** (`/api/v1/agents/check-understanding`) - True comprehension ✅
-7. **Collaboration** (`/api/v1/agents/clear-memory`) - Collective intelligence ✅
-
-### Project Structure
-```
-project/
-├── backend/
-│   ├── app/
-│   │   ├── api/v1/       # API endpoints
-│   │   │   └── endpoints/
-│   │   │       └── backup.py  # Backup API endpoint
-│   │   ├── agents/       # 7-agent implementations
-│   │   ├── core/         # Config, security, database
-│   │   │   └── csrf.py   # CSRF protection with exemptions
-│   │   ├── models/       # SQLAlchemy models
-│   │   ├── schemas/      # Pydantic schemas
-│   │   └── services/     # AI services, processors
-│   ├── scripts/
-│   │   ├── backup_database.py    # Main backup script
-│   │   ├── generate_rsa_keys.py  # JWT key generation
-│   │   └── fix_alembic_state.py  # One-time fix (can be removed)
-│   ├── alembic/          # Database migrations
-│   ├── tests/            # Pytest suite
-│   ├── RENDER_SETTINGS.md  # Render config source of truth
-│   ├── build_starter.sh    # Build script for Starter plan
-│   ├── start_render.sh     # Production start script
-│   └── .gitattributes     # Force Unix line endings
-└── frontend/
-    ├── src/
-    │   ├── components/   # React components
-    │   ├── services/     # API clients
-    │   ├── hooks/        # Custom React hooks
-    │   └── types/        # TypeScript definitions
-    └── public/           # Static assets
-```
-
-## Platform-Specific Notes
+## Platform-Specific Considerations
 
 ### Windows Development
-- **PostgreSQL**: Default port 5433 (not 5432)
-- **Python**: Use `venv\Scripts\python.exe` explicitly
-- **Line Endings**: .gitattributes enforces LF for shell scripts
-- **Passwords**: Special chars need `quote_plus()` encoding
+- PostgreSQL runs on port 5433 (not standard 5432)
+- Use `venv\Scripts\python.exe` for virtual environment
+- Line endings enforced as LF via `.gitattributes`
+- Database passwords with special chars need `quote_plus()` encoding
 
 ### Render Platform Constraints
-- **No root access**: Cannot install system packages in build
-- **PostgreSQL client**: Version 16 installed (database is v17)
-- **Build restrictions**: Use Python packages, not apt-get
-- **Starter plan benefits**: SSH access, no spin-down, persistent disk
+- No root access (use Python packages, not apt-get)
+- PostgreSQL client v16, database v17 (handled by Python fallback)
+- Starter plan benefits: SSH access, no spin-down, persistent disk
 
 ## Common Issues & Solutions
 
 | Issue | Solution |
 |-------|----------|
 | PostgreSQL version mismatch | Python backup using psycopg2 (automatic fallback) |
-| Alembic "relation exists" | Leave Pre-Deploy empty, use start_render.sh |
-| bash\r: No such file or directory | .gitattributes enforces Unix line endings |
-| CSRF 403 on backup | Backup endpoint exempt in csrf.py |
-| Build fails on apt-get | Render has no root; use Python alternatives |
-| Rate limit on backup | Wait 1 hour between manual triggers |
-| S3 bucket not found | Set AWS_BACKUP_BUCKET env var |
+| Alembic "relation exists" error | Leave Pre-Deploy empty in Render dashboard |
+| CSRF 403 on backup endpoint | Backup endpoint exempted in `app/core/csrf.py` |
+| Build fails on system packages | Render has no root; use Python alternatives |
+| bash\r: command not found | `.gitattributes` enforces Unix line endings |
+| Rate limit exceeded on backup | Wait 1 hour between manual triggers |
 
 ## Security Configuration
 
 ### CSRF Protection
-Exempted paths (in `app/core/csrf.py`):
-- `/api/v1/backup/` - Uses token authentication
+Exempted paths configured in `app/core/csrf.py`:
+- `/api/v1/backup/` - Token authentication
 - `/api/v1/auth/*` - Login/register endpoints
 - `/api/v1/content/upload` - File upload with JWT
-- `/docs`, `/redoc`, `/openapi.json` - Documentation
+- `/docs`, `/redoc`, `/openapi.json` - API documentation
 
-### Authentication Methods
-- **User endpoints**: JWT (RS256) with auto-generated keys
-- **Backup endpoint**: Token in X-Backup-Token header
-- **Rate limiting**: All endpoints, backup limited to 1/hour
-
-## Testing Scripts to Keep
-- `tests/scripts/quick_socratic_test.py` - Socratic mode testing
-- `tests/scripts/test_requirements.py` - Dependency checking
-
-## Files to Clean Up (Safe to Remove)
-- `start.sh` - Obsolete, use start_render.sh
-- `start_render_simple.sh` - Obsolete simplified version
-- `scripts/one_time_fix.sh` - Already executed
-- `scripts/fix_alembic_state.py` - Already executed
-- `alembic/env_original.py` - Backup no longer needed
+### Authentication
+- JWT with RS256 algorithm (auto-generated RSA keys)
+- Token rotation with refresh tokens
+- Rate limiting on all endpoints
+- Input validation with Pydantic schemas
 
 ## Critical Reminders
 
-- **Pre-Deploy MUST be empty** - Any migration command fails
-- **Use start_render.sh** - Has error handling for existing tables
-- **PostgreSQL mismatch is OK** - Python backup handles it
-- **Check RENDER_SETTINGS.md** - Before changing Render dashboard
-- **Backup token in BOTH places** - GitHub secrets AND Render env
-- **Port 5433** not 5432 on Windows PostgreSQL
-- **7 agents** always (not 5 or 6)
-
-## Deployment Process
-
-```bash
-# Any code change
-git add -A
-git commit -m "Description"
-git push origin main
-# Render auto-deploys from main branch
-
-# After deployment
-curl https://ai-study-architect.onrender.com/api/v1/health
-```
-
-## Session History
-
-Key milestones:
-- Session 18-20: MIT cognitive debt research
-- Session 21-23: Claude integration, initial deployment
-- Session 24: Removed Ollama, fixed models/ git issue
-- Session 25: Backup system implementation, PostgreSQL workarounds
-- Session 26+: Production hardening, rate limiting, documentation
+- **7 agents always** - Not 5 or 6, the system is designed for 7 specialized agents
+- **Pre-Deploy MUST be empty** - Any migration command will fail
+- **Port 5433 on Windows** - PostgreSQL uses non-standard port
+- **Check RENDER_SETTINGS.md** - Before changing Render dashboard settings
+- **Backup token in BOTH places** - GitHub secrets AND Render environment variables
 
 ## Project Philosophy
 
-**Problem**: AI Learning Paradox - students use AI but perform worse without it (78% recall failure - MIT study)
-**Solution**: 7-agent system that builds thinking skills through Socratic method
-**Difference**: Uses YOUR materials, builds cognitive strength, discovers patterns
+The project addresses the "AI Learning Paradox" - 86% of students use AI for homework, but MIT research shows they perform 78% worse when AI is removed. Our solution: Build cognitive strength through Socratic questioning rather than providing direct answers.
 
-"AI Study Architect builds cognitive strength, not cognitive debt"
+Key principles:
+- Questions over answers
+- Understanding over correctness
+- Personalized to student's actual materials
+- Progressive difficulty based on comprehension
+- Privacy-preserving collective intelligence
