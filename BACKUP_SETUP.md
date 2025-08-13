@@ -13,8 +13,8 @@ The AI Study Architect implements a **dual-provider backup strategy** for maximu
 
 ### Core Configuration (Already Set ✅)
 ```bash
-BACKUP_TOKEN=<your-secure-token>              # For manual backups (rate limited)
-GITHUB_BACKUP_TOKEN=<different-token>         # For GitHub Actions (no rate limit) - OPTIONAL
+BACKUP_TOKEN=<your-secure-token>              # Used everywhere (GitHub & manual)
+BACKUP_TEST_MODE=true                         # TEMPORARY: Disables rate limiting for testing
 BACKUP_ENCRYPTION_KEY=<your-encryption-key>   # Already configured - DO NOT CHANGE
 DATABASE_URL=postgresql://...                 # Auto-configured by Render
 ```
