@@ -28,7 +28,7 @@ if not BACKUP_TOKEN:
 
 # Rate limiting: track last backup time
 last_backup_time = None
-MIN_BACKUP_INTERVAL = 3600  # 1 hour minimum between backups
+MIN_BACKUP_INTERVAL = 300  # 5 minutes for testing (TODO: change back to 3600 after testing)
 
 async def verify_backup_token(
     x_backup_token: Optional[str] = Header(None),
@@ -48,11 +48,12 @@ async def verify_backup_token(
         # Don't reveal if token exists or not
         raise HTTPException(status_code=403, detail="Forbidden")
     
-    # Check if this is from GitHub Actions (scheduled backup)
+    # Check if this is from GitHub Actions (scheduled backup) or test mode
     is_github_actions = "github-actions" in user_agent.lower() or "actions.githubusercontent.com" in client_ip
+    is_test_mode = os.getenv("BACKUP_TEST_MODE", "false").lower() == "true"
     
-    # Skip rate limiting for scheduled GitHub Actions backups
-    if not is_github_actions:
+    # Skip rate limiting for scheduled GitHub Actions backups or test mode
+    if not is_github_actions and not is_test_mode:
         # Check rate limiting for manual triggers
         current_time = time.time()
         if last_backup_time and (current_time - last_backup_time) < MIN_BACKUP_INTERVAL:
@@ -180,6 +181,7 @@ async def trigger_backup(
 @router.get("/status")
 async def backup_status(authorized: bool = Depends(verify_backup_token)):
     """Check if backup service is ready"""
+    test_mode = os.getenv("BACKUP_TEST_MODE", "false").lower() == "true"
     return {
         "status": "ready",
         "providers": {
@@ -188,7 +190,12 @@ async def backup_status(authorized: bool = Depends(verify_backup_token)):
         },
         "encryption": "enabled" if os.getenv("BACKUP_ENCRYPTION_KEY") else "WARNING: disabled",
         "last_backup": datetime.fromtimestamp(last_backup_time).isoformat() if last_backup_time else None,
-        "rate_limit": f"{MIN_BACKUP_INTERVAL} seconds (bypassed for GitHub Actions)"
+        "rate_limit": f"{MIN_BACKUP_INTERVAL} seconds (bypassed for GitHub Actions{' and TEST MODE' if test_mode else ''})",
+        "test_mode": test_mode,
+        "retention_policies": {
+            "r2": "30 days, min 7 backups (controlled by our code)",
+            "s3": "14 days, min 3 backups (controlled by our code)"
+        }
     }
 
 @router.post("/test")
