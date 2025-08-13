@@ -14,7 +14,6 @@ The AI Study Architect implements a **dual-provider backup strategy** for maximu
 ### Core Configuration (Already Set ✅)
 ```bash
 BACKUP_TOKEN=<your-secure-token>              # Used everywhere (GitHub & manual)
-BACKUP_TEST_MODE=true                         # TEMPORARY: Disables rate limiting for testing
 BACKUP_ENCRYPTION_KEY=<your-encryption-key>   # Already configured - DO NOT CHANGE
 DATABASE_URL=postgresql://...                 # Auto-configured by Render
 ```
@@ -101,7 +100,7 @@ GitHub Actions automatically triggers backups:
 | 2:00 AM UTC | Sunday | R2 | Daily |
 | 3:00 AM UTC | Sunday | S3 | Weekly |
 
-**Note**: GitHub Actions bypasses rate limiting. Manual triggers are limited to once per hour.
+**Note**: Manual backup triggers are rate-limited to once per hour for security.
 
 ## 🔍 Monitoring Backups
 
