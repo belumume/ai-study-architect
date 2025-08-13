@@ -28,7 +28,7 @@ if not BACKUP_TOKEN:
 
 # Rate limiting: track last backup time
 last_backup_time = None
-MIN_BACKUP_INTERVAL = 300  # 5 minutes for testing (TODO: change back to 3600 after testing)
+MIN_BACKUP_INTERVAL = 3600  # 1 hour minimum between manual backups
 
 async def verify_backup_token(
     x_backup_token: Optional[str] = Header(None),
