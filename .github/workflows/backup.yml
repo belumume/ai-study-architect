@@ -2,19 +2,44 @@ name: Automated Database Backups
 
 on:
   schedule:
-    # Daily at 2 AM UTC
+    # Daily at 2 AM UTC - Cloudflare R2 (Primary)
     - cron: '0 2 * * *'
+    # Weekly on Sundays at 3 AM UTC - AWS S3 (Secondary)
+    - cron: '0 3 * * 0'
   workflow_dispatch:  # Allow manual trigger
+    inputs:
+      provider:
+        description: 'Backup provider (r2, s3, or both)'
+        required: false
+        default: 'both'
+        type: choice
+        options:
+          - r2
+          - s3
+          - both
 
 jobs:
   backup:
     runs-on: ubuntu-latest
     
     steps:
+    - name: Determine backup provider
+      id: provider
+      run: |
+        # Manual trigger - use input
+        if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+          echo "provider=${{ github.event.inputs.provider }}" >> $GITHUB_OUTPUT
+        # Daily schedule - R2
+        elif [ "$(date +%u)" != "7" ]; then
+          echo "provider=r2" >> $GITHUB_OUTPUT
+        # Sunday - both providers
+        else
+          echo "provider=both" >> $GITHUB_OUTPUT
+        fi
+    
     - name: Test backup configuration
       run: |
         echo "Testing backup configuration..."
-        # BACKUP_TOKEN configured in repo settings
         response=$(curl -X POST \
           -H "X-Backup-Token: ${{ secrets.BACKUP_TOKEN }}" \
           -H "Content-Type: application/json" \
@@ -24,23 +49,43 @@ jobs:
           "https://ai-study-architect.onrender.com/api/v1/backup/test")
         echo "Test response: $response"
     
-    - name: Trigger backup via API
+    - name: Trigger R2 backup (Primary)
+      if: steps.provider.outputs.provider == 'r2' || steps.provider.outputs.provider == 'both'
       run: |
-        echo "Triggering backup..."
-        # BACKUP_TOKEN configured in repo settings
+        echo "Triggering Cloudflare R2 backup (PRIMARY)..."
         response=$(curl -X POST \
           -H "X-Backup-Token: ${{ secrets.BACKUP_TOKEN }}" \
           -H "Content-Type: application/json" \
+          -d '{"provider": "r2"}' \
           --show-error \
           --max-time 300 \
           -w "\nHTTP Status: %{http_code}\n" \
           "https://ai-study-architect.onrender.com/api/v1/backup/trigger")
-        echo "Backup response: $response"
+        echo "R2 backup response: $response"
         
-        # Check if status was 500 and show error
         if echo "$response" | grep -q "HTTP Status: 500"; then
           echo "Error details from response:"
-          echo "$response" | head -n -1  # Show everything except status line
+          echo "$response" | head -n -1
+          exit 1
+        fi
+    
+    - name: Trigger S3 backup (Secondary)
+      if: steps.provider.outputs.provider == 's3' || steps.provider.outputs.provider == 'both'
+      run: |
+        echo "Triggering AWS S3 backup (SECONDARY)..."
+        response=$(curl -X POST \
+          -H "X-Backup-Token: ${{ secrets.BACKUP_TOKEN }}" \
+          -H "Content-Type: application/json" \
+          -d '{"provider": "s3"}' \
+          --show-error \
+          --max-time 300 \
+          -w "\nHTTP Status: %{http_code}\n" \
+          "https://ai-study-architect.onrender.com/api/v1/backup/trigger")
+        echo "S3 backup response: $response"
+        
+        if echo "$response" | grep -q "HTTP Status: 500"; then
+          echo "Error details from response:"
+          echo "$response" | head -n -1
           exit 1
         fi
     
