@@ -1,282 +1,236 @@
-# Complete Backup Setup Guide
+# AI Study Architect - Complete Backup System Documentation
 
-This guide will help you set up enterprise-grade backups with Cloudflare R2 (primary) and AWS S3 (secondary).
+## 🚀 Overview
 
-## Prerequisites
+The AI Study Architect implements a **dual-provider backup strategy** for maximum reliability:
 
-- Render Starter plan ($7/month) - Required for cron jobs
-- Cloudflare account (you have this ✅)
-- AWS account with credits (you have this ✅)
-- PostgreSQL client tools (for local testing)
+| Provider | Schedule | Retention | Purpose |
+|----------|----------|-----------|---------|
+| **Cloudflare R2** (Primary) | Daily at 2 AM UTC | 30 days, min 7 backups | Cost-effective daily backups |
+| **AWS S3** (Secondary) | Weekly (Sundays) at 3 AM UTC | 14 days, min 3 backups | Redundant weekly snapshots |
 
-## Step 1: Cloudflare R2 Setup (Primary Backup)
+## 🔑 Required Environment Variables in Render
 
-### 1.1 Create R2 Bucket
-
-1. Go to [Cloudflare Dashboard](https://dash.cloudflare.com)
-2. Click **R2** in the left sidebar
-3. Click **Create bucket**
-4. Name: `ai-study-architect-backups`
-5. Location: Automatic (will use closest to your users)
-6. Click **Create bucket**
-
-### 1.2 Create API Token
-
-1. In R2 dashboard, click **Manage R2 API Tokens**
-2. Click **Create API token**
-3. Configure token:
-   - **Token name**: `ai-study-architect-backup`
-   - **Permissions**: Select `Object Read & Write`
-   - **Specify bucket**: Select `ai-study-architect-backups`
-   - **TTL**: Leave blank (permanent)
-4. Click **Create API Token**
-5. **IMPORTANT**: Copy these values immediately:
-   ```
-   Access Key ID: [Save this]
-   Secret Access Key: [Save this]
-   ```
-6. Find your Account ID:
-   - Go to Cloudflare Dashboard home
-   - Right sidebar shows Account ID
-   - Copy this value
-
-### 1.3 Add to Render Environment
-
-1. Go to [Render Dashboard](https://dashboard.render.com)
-2. Select your `ai-study-architect` service
-3. Go to **Environment** tab
-4. Add these variables:
-   ```
-   R2_ACCOUNT_ID=your-cloudflare-account-id
-   R2_ACCESS_KEY=your-r2-access-key-id
-   R2_SECRET_KEY=your-r2-secret-access-key
-   R2_BUCKET=ai-study-architect-backups
-   ```
-
-## Step 2: AWS S3 Setup (Secondary Backup)
-
-### 2.1 Create S3 Bucket
-
-1. Go to [AWS S3 Console](https://s3.console.aws.amazon.com)
-2. Click **Create bucket**
-3. Configure:
-   - **Bucket name**: `ai-study-architect-backup-secondary`
-   - **Region**: `us-west-2` (different from Render's oregon/us-west-1)
-   - **Object Ownership**: ACLs disabled
-   - **Block Public Access**: Block all public access ✅
-   - **Versioning**: Enable (for extra safety)
-   - **Encryption**: Enable with SSE-S3
-4. Click **Create bucket**
-
-### 2.2 Create IAM User for Backups
-
-1. Go to [IAM Console](https://console.aws.amazon.com/iam)
-2. Click **Users** → **Add users**
-3. User name: `ai-study-architect-backup`
-4. Select **Programmatic access**
-5. Click **Next: Permissions**
-6. Click **Create policy** (opens new tab):
-   ```json
-   {
-     "Version": "2012-10-17",
-     "Statement": [
-       {
-         "Effect": "Allow",
-         "Action": [
-           "s3:PutObject",
-           "s3:GetObject",
-           "s3:DeleteObject",
-           "s3:ListBucket"
-         ],
-         "Resource": [
-           "arn:aws:s3:::ai-study-architect-backup-secondary",
-           "arn:aws:s3:::ai-study-architect-backup-secondary/*"
-         ]
-       }
-     ]
-   }
-   ```
-7. Name policy: `AIStudyArchitectBackupPolicy`
-8. Back in user creation, select this policy
-9. Create user and **save credentials**:
-   ```
-   Access key ID: [Save this]
-   Secret access key: [Save this]
-   ```
-
-### 2.3 Add to Render Environment
-
-Add these to your Render environment variables:
-```
-AWS_ACCESS_KEY_ID=your-aws-access-key
-AWS_SECRET_ACCESS_KEY=your-aws-secret-key
-AWS_REGION=us-west-2
-AWS_BACKUP_BUCKET=ai-study-architect-backup-secondary
-```
-
-## Step 3: Generate Encryption Key
-
-1. On your local machine (Git Bash, WSL, or Linux):
-   ```bash
-   openssl rand -base64 32
-   ```
-2. Copy the output
-3. Add to Render environment:
-   ```
-   BACKUP_ENCRYPTION_KEY=the-generated-key
-   ```
-
-## Step 4: Set Up Cron Jobs in Render
-
-### Option A: Using Render Dashboard (Easier)
-
-1. Go to Render Dashboard
-2. Click **New +** → **Background Worker**
-3. Connect your GitHub repository
-4. Configure Daily R2 Backup:
-   - **Name**: `backup-primary-r2`
-   - **Environment**: Python 3
-   - **Build Command**: `cd backend && pip install boto3 cryptography`
-   - **Start Command**: `cd backend && python scripts/backup_database.py --r2`
-5. After creation, go to Settings:
-   - Change type to **Cron Job**
-   - Set schedule: `0 2 * * *` (2 AM UTC daily)
-   - Copy all environment variables from main service
-
-6. Repeat for Weekly S3 Backup:
-   - **Name**: `backup-secondary-s3`
-   - **Start Command**: `cd backend && python scripts/backup_database.py --s3`
-   - **Schedule**: `0 3 * * 0` (3 AM UTC Sundays)
-
-### Option B: Using render.yaml (Infrastructure as Code)
-
-Use the `render-crons.yaml` file we created, but note that cron jobs in render.yaml are still in beta.
-
-## Step 5: Test Backups Manually
-
-### Test R2 Backup
+### Core Configuration (Already Set ✅)
 ```bash
-cd backend
-python scripts/backup_database.py --r2
+BACKUP_TOKEN=<your-secure-token>              # Already configured
+BACKUP_ENCRYPTION_KEY=<your-encryption-key>   # Already configured - DO NOT CHANGE
+DATABASE_URL=postgresql://...                 # Auto-configured by Render
 ```
 
-### Test S3 Backup
+### AWS S3 Configuration (Already Working ✅)
 ```bash
-cd backend
-python scripts/backup_database.py --s3
+AWS_ACCESS_KEY_ID=<your-aws-key>             # Already configured
+AWS_SECRET_ACCESS_KEY=<your-aws-secret>      # Already configured  
+AWS_BACKUP_BUCKET=ai-study-architect-backup-2025  # Already configured
+AWS_REGION=us-west-2                         # Optional, defaults to us-west-2
 ```
 
-### Show Setup Instructions
+### Cloudflare R2 Configuration (Add These Now 🔴)
 ```bash
-python scripts/backup_database.py --setup
+R2_ACCOUNT_ID=364ef23a3db274c2248c90746f777     # Your Cloudflare Account ID
+R2_ACCESS_KEY=<from-cloudflare-dashboard>       # From R2 API token creation
+R2_SECRET_KEY=<from-cloudflare-dashboard>       # From R2 API token creation
+R2_BUCKET=ai-study-architect-backups            # Your R2 bucket name
 ```
 
-## Step 6: Set Up Monitoring (Optional)
+## 📋 Step-by-Step R2 Setup
 
-### Sentry Integration
-1. Sign up at [Sentry.io](https://sentry.io) (free)
-2. Create a Python project
-3. Add to Render environment:
-   ```
-   SENTRY_DSN=https://xxx@xxx.ingest.sentry.io/xxx
-   ```
+### Step 1: Add R2 Credentials to Render
 
-### Slack/Discord Alerts
-1. Create webhook URL in your Slack/Discord
-2. Add to Render environment:
-   ```
-   BACKUP_ALERT_WEBHOOK=https://hooks.slack.com/services/xxx
-   ```
+1. Go to [Render Dashboard](https://dashboard.render.com/web/srv-ctgfttbtq21c73b0pd60/env)
+2. Click **Add Environment Variable** for each:
+   - `R2_ACCOUNT_ID` = `364ef23a3db274c2248c90746f777`
+   - `R2_ACCESS_KEY` = (from your Cloudflare R2 API token)
+   - `R2_SECRET_KEY` = (from your Cloudflare R2 API token)  
+   - `R2_BUCKET` = `ai-study-architect-backups`
+3. Click **Save Changes**
+4. Wait for automatic redeploy (takes ~2-3 minutes)
 
-## Step 7: Verify Everything Works
+### Step 2: Test R2 Configuration
 
-1. Check R2 bucket:
-   - Go to Cloudflare Dashboard > R2
-   - Click your bucket
-   - Should see backup files after first run
+After Render redeploys, test the configuration:
 
-2. Check S3 bucket:
-   - Go to AWS S3 Console
-   - Click your bucket
-   - Check `backups/production/aws_s3/` folder
+```bash
+# Test configuration (checks if all settings are correct)
+curl -X POST -H "X-Backup-Token: YOUR_BACKUP_TOKEN" \
+  https://ai-study-architect.onrender.com/api/v1/backup/test
 
-3. Check Render logs:
-   - Go to Render Dashboard
-   - Select cron job service
-   - Check Logs tab for execution history
+# Check backup status
+curl -X GET -H "X-Backup-Token: YOUR_BACKUP_TOKEN" \
+  https://ai-study-architect.onrender.com/api/v1/backup/status
+```
 
-## Backup Schedule
+Expected response should show:
+```json
+{
+  "r2_configured": true,
+  "r2_client_creation": "success",
+  "aws_configured": true
+}
+```
 
-- **Daily at 2 AM UTC**: Cloudflare R2 (Primary)
-- **Weekly on Sunday at 3 AM UTC**: AWS S3 (Secondary)
-- **Retention**: 30 days for R2, 14 days for S3
-- **Minimum kept**: 7 backups for R2, 3 for S3
+### Step 3: Test Manual R2 Backup
 
-## Cost Breakdown
+```bash
+# Trigger R2 backup manually
+curl -X POST -H "X-Backup-Token: YOUR_BACKUP_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"provider": "r2"}' \
+  https://ai-study-architect.onrender.com/api/v1/backup/trigger
+```
 
-### Monthly Costs
-- **Render Cron Jobs**: Included in $7/month Starter plan
-- **Cloudflare R2**: FREE (under 10GB)
-- **AWS S3**: ~$0.02/month (using credits first 3 months)
-- **Total**: $7.02/month
+### Step 4: Test Both Providers
 
-### Storage Usage (Estimated)
-- Database size: ~10MB initially
-- Daily backups: 10MB × 30 = 300MB
-- Weekly backups: 10MB × 4 = 40MB
-- **Total**: ~340MB (well under free tiers)
+```bash
+# Trigger both providers simultaneously
+curl -X POST -H "X-Backup-Token: YOUR_BACKUP_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"provider": "both"}' \
+  https://ai-study-architect.onrender.com/api/v1/backup/trigger
+```
 
-## Troubleshooting
+## 🔄 Automated Backup Schedule
 
-### "pg_dump not found"
-- Render includes PostgreSQL client tools
-- For local testing, install: `apt-get install postgresql-client`
+GitHub Actions automatically triggers backups:
 
-### "Access Denied" errors
-- Double-check API keys are correct
-- Ensure bucket names match exactly
-- Verify IAM permissions (AWS) or token permissions (R2)
+| Time | Day | Provider | Frequency |
+|------|-----|----------|-----------|
+| 2:00 AM UTC | Mon-Sat | R2 | Daily |
+| 2:00 AM UTC | Sunday | R2 | Daily |
+| 3:00 AM UTC | Sunday | S3 | Weekly |
 
-### Backup seems to hang
-- Normal for first backup (building indices)
-- Check DATABASE_URL is accessible
-- Timeout is set to 5 minutes
+**Note**: GitHub Actions bypasses rate limiting. Manual triggers are limited to once per hour.
 
-### Encryption key lost
-- Generate new one, but old backups won't be restorable
-- Keep key in password manager
+## 🔍 Monitoring Backups
 
-## Recovery Process
+### View Recent Backup Logs
 
-### From Cloudflare R2
-1. Download backup from R2 dashboard
-2. Decrypt using your encryption key
-3. Restore using pg_restore
+1. **GitHub Actions**: [View Workflow Runs](https://github.com/belumume/ai-study-architect/actions/workflows/backup.yml)
+2. **Render Logs**: Dashboard → ai-study-architect → Logs
 
-### From AWS S3
-1. Download from S3 console
-2. Decrypt using your encryption key
-3. Restore using pg_restore
+### Check Backup Files
 
-### Emergency Contacts
-- **Your email**: For backup alerts
-- **Render Support**: support@render.com
-- **Status Pages**: 
-  - https://status.render.com
-  - https://www.cloudflarestatus.com
-  - https://status.aws.amazon.com
+**Cloudflare R2:**
+1. Go to [Cloudflare R2 Dashboard](https://dash.cloudflare.com/?to=/:account/r2/buckets)
+2. Click on `ai-study-architect-backups` bucket
+3. Files are organized by date: `backup_20250113_020000.sql.enc`
 
-## Next Steps
+**AWS S3:**
+1. Go to [AWS S3 Console](https://s3.console.aws.amazon.com/s3/buckets)
+2. Click on `ai-study-architect-backup-2025` bucket
+3. Files are organized by date: `backup_20250113_030000.sql.enc`
 
-1. ✅ Complete R2 setup
-2. ✅ Complete S3 setup
-3. ✅ Add encryption key
-4. ✅ Deploy cron jobs
-5. ✅ Test manual backups
-6. ⏰ Wait for first automated backup
-7. 📊 Monitor for a week
-8. 🎉 Sleep better knowing your data is safe!
+## 🔐 Security Features
+
+- ✅ **Token Authentication**: All backup endpoints require `X-Backup-Token` header
+- ✅ **AES-256 Encryption**: All backups encrypted before upload
+- ✅ **Rate Limiting**: 1-hour cooldown for manual triggers (bypassed for GitHub Actions)
+- ✅ **Automatic Cleanup**: Old backups deleted based on retention policy
+- ✅ **Private Buckets**: Both R2 and S3 buckets are private, no public access
+
+## 🛠️ Troubleshooting
+
+### Common Issues
+
+| Issue | Solution |
+|-------|----------|
+| "R2 not configured" | Add R2 environment variables to Render |
+| "Invalid credentials" | Check R2_ACCESS_KEY and R2_SECRET_KEY are correct |
+| "Bucket not found" | Ensure R2_BUCKET matches your Cloudflare bucket name |
+| "Rate limit exceeded" | Wait 1 hour between manual backups |
+| "Backup failed" | Check Render logs for detailed error messages |
+
+### Debug Commands
+
+```bash
+# Detailed configuration test
+curl -X POST -H "X-Backup-Token: YOUR_BACKUP_TOKEN" \
+  https://ai-study-architect.onrender.com/api/v1/backup/debug
+
+# Check which backup script locations exist
+curl -X POST -H "X-Backup-Token: YOUR_BACKUP_TOKEN" \
+  https://ai-study-architect.onrender.com/api/v1/backup/test
+```
+
+## 🔄 Backup Retention Policies
+
+### Cloudflare R2 (Primary)
+- **Retention**: 30 days
+- **Minimum backups**: 7 (keeps last week even if older than 30 days)
+- **Storage cost**: ~$0.015/GB/month
+- **Frequency**: Daily
+
+### AWS S3 (Secondary)  
+- **Retention**: 14 days
+- **Minimum backups**: 3
+- **Storage cost**: ~$0.023/GB/month (S3 Standard)
+- **Frequency**: Weekly
+
+### Automatic Cleanup
+The backup script automatically deletes old backups when:
+1. Backup is older than retention period AND
+2. More than minimum number of backups exist
+
+## 📊 Cost Estimation
+
+For a 100MB database:
+
+| Provider | Monthly Storage | Egress | API Calls | Total |
+|----------|----------------|--------|-----------|-------|
+| R2 | $0.015 | $0 (free) | $0.01 | ~$0.03 |
+| S3 | $0.002 | $0.09/GB | $0.01 | ~$0.10 |
+
+**Total monthly cost**: ~$0.13 for dual-provider redundancy
+
+## 🚨 Manual Recovery Process
+
+If you need to restore from backup:
+
+```bash
+# 1. List available backups
+aws s3 ls s3://ai-study-architect-backup-2025/
+# or for R2
+aws s3 ls s3://ai-study-architect-backups/ --endpoint-url https://364ef23a3db274c2248c90746f777.r2.cloudflarestorage.com
+
+# 2. Download backup
+aws s3 cp s3://bucket-name/backup_20250113_020000.sql.enc backup.sql.enc
+
+# 3. Decrypt backup
+python -c "
+from cryptography.fernet import Fernet
+import sys
+key = 'YOUR_BACKUP_ENCRYPTION_KEY'
+f = Fernet(key.encode())
+with open('backup.sql.enc', 'rb') as file:
+    encrypted = file.read()
+decrypted = f.decrypt(encrypted)
+with open('backup.sql', 'wb') as file:
+    file.write(decrypted)
+print('Decrypted successfully')
+"
+
+# 4. Restore to database
+psql YOUR_DATABASE_URL < backup.sql
+```
+
+## 📈 Future Enhancements
+
+- [ ] Slack/Discord notifications on backup failure
+- [ ] Prometheus metrics for backup monitoring
+- [ ] Point-in-time recovery with WAL archiving
+- [ ] Cross-region replication for R2/S3
+- [ ] Automated restore testing
+
+## 💡 Best Practices
+
+1. **Never change BACKUP_ENCRYPTION_KEY** - You'll lose ability to decrypt old backups
+2. **Test recovery process quarterly** - Ensure backups are actually restorable
+3. **Monitor GitHub Actions** - Set up email alerts for workflow failures
+4. **Keep credentials secure** - Use GitHub Secrets and Render environment variables
+5. **Document everything** - Update this file when making changes
 
 ---
 
-Remember: The best backup is the one you never need, but when you need it, you'll be glad it's there!
+*Last updated: January 2025*
+*Backup system version: 2.0 (Dual-provider with R2 + S3)*
