@@ -13,7 +13,8 @@ The AI Study Architect implements a **dual-provider backup strategy** for maximu
 
 ### Core Configuration (Already Set ✅)
 ```bash
-BACKUP_TOKEN=<your-secure-token>              # Already configured
+BACKUP_TOKEN=<your-secure-token>              # For manual backups (rate limited)
+GITHUB_BACKUP_TOKEN=<different-token>         # For GitHub Actions (no rate limit) - OPTIONAL
 BACKUP_ENCRYPTION_KEY=<your-encryption-key>   # Already configured - DO NOT CHANGE
 DATABASE_URL=postgresql://...                 # Auto-configured by Render
 ```
@@ -28,7 +29,7 @@ AWS_REGION=us-west-2                         # Optional, defaults to us-west-2
 
 ### Cloudflare R2 Configuration (Add These Now 🔴)
 ```bash
-R2_ACCOUNT_ID=364ef23a3db274c2248c90746f777     # Your Cloudflare Account ID
+R2_ACCOUNT_ID=<your-cloudflare-account-id>      # Your Cloudflare Account ID
 R2_ACCESS_KEY=<from-cloudflare-dashboard>       # From R2 API token creation
 R2_SECRET_KEY=<from-cloudflare-dashboard>       # From R2 API token creation
 R2_BUCKET=ai-study-architect-backups            # Your R2 bucket name
@@ -40,7 +41,7 @@ R2_BUCKET=ai-study-architect-backups            # Your R2 bucket name
 
 1. Go to [Render Dashboard](https://dashboard.render.com/web/srv-ctgfttbtq21c73b0pd60/env)
 2. Click **Add Environment Variable** for each:
-   - `R2_ACCOUNT_ID` = `364ef23a3db274c2248c90746f777`
+   - `R2_ACCOUNT_ID` = (your actual Cloudflare Account ID)
    - `R2_ACCESS_KEY` = (from your Cloudflare R2 API token)
    - `R2_SECRET_KEY` = (from your Cloudflare R2 API token)  
    - `R2_BUCKET` = `ai-study-architect-backups`
@@ -191,7 +192,7 @@ If you need to restore from backup:
 # 1. List available backups
 aws s3 ls s3://ai-study-architect-backup-2025/
 # or for R2
-aws s3 ls s3://ai-study-architect-backups/ --endpoint-url https://364ef23a3db274c2248c90746f777.r2.cloudflarestorage.com
+aws s3 ls s3://ai-study-architect-backups/ --endpoint-url https://YOUR_ACCOUNT_ID.r2.cloudflarestorage.com
 
 # 2. Download backup
 aws s3 cp s3://bucket-name/backup_20250113_020000.sql.enc backup.sql.enc

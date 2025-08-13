@@ -40,8 +40,10 @@ jobs:
     - name: Test backup configuration
       run: |
         echo "Testing backup configuration..."
+        # Use GITHUB_BACKUP_TOKEN if available, otherwise fall back to BACKUP_TOKEN
+        TOKEN="${{ secrets.GITHUB_BACKUP_TOKEN || secrets.BACKUP_TOKEN }}"
         response=$(curl -X POST \
-          -H "X-Backup-Token: ${{ secrets.BACKUP_TOKEN }}" \
+          -H "X-Backup-Token: $TOKEN" \
           -H "Content-Type: application/json" \
           --fail-with-body \
           --show-error \
@@ -53,8 +55,9 @@ jobs:
       if: steps.provider.outputs.provider == 'r2' || steps.provider.outputs.provider == 'both'
       run: |
         echo "Triggering Cloudflare R2 backup (PRIMARY)..."
+        TOKEN="${{ secrets.GITHUB_BACKUP_TOKEN || secrets.BACKUP_TOKEN }}"
         response=$(curl -X POST \
-          -H "X-Backup-Token: ${{ secrets.BACKUP_TOKEN }}" \
+          -H "X-Backup-Token: $TOKEN" \
           -H "Content-Type: application/json" \
           -d '{"provider": "r2"}' \
           --show-error \
@@ -73,8 +76,9 @@ jobs:
       if: steps.provider.outputs.provider == 's3' || steps.provider.outputs.provider == 'both'
       run: |
         echo "Triggering AWS S3 backup (SECONDARY)..."
+        TOKEN="${{ secrets.GITHUB_BACKUP_TOKEN || secrets.BACKUP_TOKEN }}"
         response=$(curl -X POST \
-          -H "X-Backup-Token: ${{ secrets.BACKUP_TOKEN }}" \
+          -H "X-Backup-Token: $TOKEN" \
           -H "Content-Type: application/json" \
           -d '{"provider": "s3"}' \
           --show-error \
