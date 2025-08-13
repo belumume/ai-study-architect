@@ -338,7 +338,7 @@ class BackupOrchestrator:
             return False
     
     def _encrypt_file(self, filepath: str):
-        """Encrypt file using Fernet symmetric encryption"""
+        """Encrypt file using Fernet (AES-128-CBC + HMAC) for secure authenticated encryption"""
         try:
             from cryptography.fernet import Fernet
             import base64

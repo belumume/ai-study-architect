@@ -124,8 +124,8 @@ GitHub Actions automatically triggers backups:
 ## 🔐 Security Features
 
 - ✅ **Token Authentication**: All backup endpoints require `X-Backup-Token` header
-- ✅ **AES-256 Encryption**: All backups encrypted before upload
-- ✅ **Rate Limiting**: 1-hour cooldown for manual triggers (bypassed for GitHub Actions)
+- ✅ **Fernet Encryption (AES-128 + HMAC)**: All backups encrypted AND authenticated before upload
+- ✅ **Rate Limiting**: 1-hour cooldown for manual triggers for security
 - ✅ **Automatic Cleanup**: Old backups deleted based on retention policy
 - ✅ **Private Buckets**: Both R2 and S3 buckets are private, no public access
 
