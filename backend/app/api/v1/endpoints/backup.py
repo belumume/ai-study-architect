@@ -42,17 +42,27 @@ async def verify_backup_token(
     user_agent = request.headers.get("user-agent", "") if request else ""
     logger.info(f"Backup attempt from IP: {client_ip}, User-Agent: {user_agent}")
     
-    # Check token
-    if not x_backup_token or x_backup_token != BACKUP_TOKEN:
+    # Check for valid tokens
+    github_token = os.getenv("GITHUB_BACKUP_TOKEN")
+    is_github_actions = False
+    
+    # Check if it's GitHub Actions token or regular backup token
+    if github_token and x_backup_token == github_token:
+        # This is GitHub Actions with its special token
+        is_github_actions = True
+        logger.info(f"GitHub Actions backup authenticated from IP: {client_ip}")
+    elif x_backup_token == BACKUP_TOKEN:
+        # Regular backup token - apply rate limiting
+        logger.info(f"Regular backup token authenticated from IP: {client_ip}")
+    else:
+        # Invalid token
         logger.warning(f"Invalid backup token attempt from IP: {client_ip}")
-        # Don't reveal if token exists or not
         raise HTTPException(status_code=403, detail="Forbidden")
     
-    # Check if this is from GitHub Actions (scheduled backup) or test mode
-    is_github_actions = "github-actions" in user_agent.lower() or "actions.githubusercontent.com" in client_ip
+    # Check test mode
     is_test_mode = os.getenv("BACKUP_TEST_MODE", "false").lower() == "true"
     
-    # Skip rate limiting for scheduled GitHub Actions backups or test mode
+    # Apply rate limiting appropriately
     if not is_github_actions and not is_test_mode:
         # Check rate limiting for manual triggers
         current_time = time.time()
