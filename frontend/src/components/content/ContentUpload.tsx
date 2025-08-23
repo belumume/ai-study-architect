@@ -19,6 +19,9 @@ import {
   IconButton,
   Chip,
   Stack,
+  useTheme,
+  useMediaQuery,
+  Grid,
 } from '@mui/material'
 import {
   CloudUpload,
@@ -62,6 +65,11 @@ export function ContentUpload({ onUploadComplete }: { onUploadComplete?: () => v
   const [error, setError] = useState<string>('')
   const [success, setSuccess] = useState<string>('')
   const [uploading, setUploading] = useState(false)
+  
+  // Responsive design hooks
+  const theme = useTheme()
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'))
+  const isTablet = useMediaQuery(theme.breakpoints.down('md'))
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
     const newFiles = acceptedFiles.map(file => ({
@@ -234,8 +242,8 @@ export function ContentUpload({ onUploadComplete }: { onUploadComplete?: () => v
   }
 
   return (
-    <Paper elevation={3} sx={{ p: 4 }}>
-      <Typography variant="h5" component="h2" gutterBottom>
+    <Paper elevation={3} sx={{ p: { xs: 2, sm: 3, md: 4 } }}>
+      <Typography variant={isMobile ? "h6" : "h5"} component="h2" gutterBottom>
         Upload Study Materials
       </Typography>
 
@@ -251,54 +259,63 @@ export function ContentUpload({ onUploadComplete }: { onUploadComplete?: () => v
         </Alert>
       )}
 
-      <Box sx={{ mb: 3 }}>
-        <FormControl fullWidth sx={{ mb: 2 }}>
-          <InputLabel>Content Type</InputLabel>
-          <Select
-            value={contentType}
-            onChange={(e) => setContentType(e.target.value)}
-            label="Content Type"
-          >
-            <MenuItem value="pdf">PDF Document</MenuItem>
-            <MenuItem value="document">Text Document (Word, TXT, Markdown)</MenuItem>
-            <MenuItem value="presentation">Presentation (PowerPoint)</MenuItem>
-            <MenuItem value="image">Image (JPG, PNG)</MenuItem>
-            <MenuItem value="video">Video Lecture</MenuItem>
-            <MenuItem value="audio">Audio Recording</MenuItem>
-            <MenuItem value="note">Text Note</MenuItem>
-          </Select>
-          <FormHelperText>Content type will be auto-detected from file extension</FormHelperText>
-        </FormControl>
-
-        <TextField
-          fullWidth
-          label="Subject (Optional)"
-          value={subject}
-          onChange={(e) => setSubject(e.target.value)}
-          sx={{ mb: 2 }}
-          helperText="e.g., Computer Science, Mathematics, Biology"
-        />
-
-        <TextField
-          fullWidth
-          label="Description"
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          multiline
-          rows={3}
-          sx={{ mb: 2 }}
-          helperText="Optional: Describe the content"
-        />
-
-        <TextField
-          fullWidth
-          label="Tags"
-          value={tags}
-          onChange={(e) => setTags(e.target.value)}
-          sx={{ mb: 2 }}
-          helperText="Optional: Comma-separated tags (e.g., midterm, chapter3, algorithms)"
-        />
-      </Box>
+      <Grid container spacing={2} sx={{ mb: 3 }}>
+        <Grid item xs={12} md={6}>
+          <FormControl fullWidth>
+            <InputLabel>Content Type</InputLabel>
+            <Select
+              value={contentType}
+              onChange={(e) => setContentType(e.target.value)}
+              label="Content Type"
+              size={isMobile ? "small" : "medium"}
+            >
+              <MenuItem value="pdf">PDF Document</MenuItem>
+              <MenuItem value="document">Text Document (Word, TXT, Markdown)</MenuItem>
+              <MenuItem value="presentation">Presentation (PowerPoint)</MenuItem>
+              <MenuItem value="image">Image (JPG, PNG)</MenuItem>
+              <MenuItem value="video">Video Lecture</MenuItem>
+              <MenuItem value="audio">Audio Recording</MenuItem>
+              <MenuItem value="note">Text Note</MenuItem>
+            </Select>
+            <FormHelperText>Content type will be auto-detected from file extension</FormHelperText>
+          </FormControl>
+        </Grid>
+        
+        <Grid item xs={12} md={6}>
+          <TextField
+            fullWidth
+            label="Subject (Optional)"
+            value={subject}
+            onChange={(e) => setSubject(e.target.value)}
+            helperText="e.g., Computer Science, Mathematics, Biology"
+            size={isMobile ? "small" : "medium"}
+          />
+        </Grid>
+        
+        <Grid item xs={12}>
+          <TextField
+            fullWidth
+            label="Description"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            multiline
+            rows={isMobile ? 2 : 3}
+            helperText="Optional: Describe the content"
+            size={isMobile ? "small" : "medium"}
+          />
+        </Grid>
+        
+        <Grid item xs={12}>
+          <TextField
+            fullWidth
+            label="Tags"
+            value={tags}
+            onChange={(e) => setTags(e.target.value)}
+            helperText="Optional: Comma-separated tags (e.g., midterm, chapter3, algorithms)"
+            size={isMobile ? "small" : "medium"}
+          />
+        </Grid>
+      </Grid>
 
       <Box
         {...getRootProps()}
@@ -306,11 +323,16 @@ export function ContentUpload({ onUploadComplete }: { onUploadComplete?: () => v
           border: '2px dashed',
           borderColor: isDragActive ? 'primary.main' : 'grey.400',
           borderRadius: 2,
-          p: 4,
+          p: { xs: 3, sm: 4 },
           textAlign: 'center',
           bgcolor: isDragActive ? 'action.hover' : 'background.paper',
           cursor: 'pointer',
           transition: 'all 0.3s',
+          minHeight: { xs: 150, sm: 200 },
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'center',
+          alignItems: 'center',
           '&:hover': {
             borderColor: 'primary.main',
             bgcolor: 'action.hover',
@@ -318,13 +340,13 @@ export function ContentUpload({ onUploadComplete }: { onUploadComplete?: () => v
         }}
       >
         <input {...getInputProps()} />
-        <CloudUpload sx={{ fontSize: 48, color: 'action.active', mb: 2 }} />
-        <Typography variant="h6" gutterBottom>
+        <CloudUpload sx={{ fontSize: { xs: 36, sm: 48 }, color: 'action.active', mb: 2 }} />
+        <Typography variant={isMobile ? "body1" : "h6"} gutterBottom>
           {isDragActive
             ? 'Drop the files here...'
-            : 'Drag & drop files here, or click to select'}
+            : isMobile ? 'Tap to upload files' : 'Drag & drop files here, or click to select'}
         </Typography>
-        <Typography variant="body2" color="text.secondary">
+        <Typography variant="body2" color="text.secondary" sx={{ px: 2 }}>
           Supported formats: PDF, Images, Videos, Audio, Text, Word, PowerPoint
         </Typography>
         <Typography variant="caption" color="text.secondary">
