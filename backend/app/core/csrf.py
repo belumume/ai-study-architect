@@ -250,10 +250,18 @@ class CSRFProtect:
             "/openapi.json"
         ]
         
-        # Special handling for main chat endpoint (JWT protected)
-        # Note: The main chat endpoint is at /api/v1/chat after router prefix fix
-        if path == "/api/v1/chat" or path.startswith("/api/v1/chat/") or path.startswith("/api/v1/agents/"):
-            return True
+        # Special handling for JWT-protected endpoints
+        # These use Bearer token authentication, not cookie-based sessions
+        jwt_protected_paths = [
+            "/api/v1/chat",
+            "/api/v1/chat/",
+            "/api/v1/agents/",
+            "/api/v1/content/"  # Content operations use JWT auth
+        ]
+        
+        for jwt_path in jwt_protected_paths:
+            if path == jwt_path.rstrip('/') or path.startswith(jwt_path):
+                return True
         
         return any(path.startswith(p) for p in exempt_paths)
 
