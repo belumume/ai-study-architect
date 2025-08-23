@@ -22,7 +22,7 @@ from app.services.ai_service_manager import ai_service_manager
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/chat")
+router = APIRouter()
 
 
 class ChatMessage(BaseModel):
