@@ -60,7 +60,7 @@ class Settings(BaseSettings):
     
     # CORS - Use str and parse in validator
     BACKEND_CORS_ORIGINS: Union[str, List[str]] = Field(
-        default="http://localhost:3000,http://localhost:5173",
+        default="http://localhost:3000,http://localhost:5173,https://www.aistudyarchitect.com,https://aistudyarchitect.com,https://ai-study-architect.vercel.app",
         description="Comma-separated list of allowed origins"
     )
     
