@@ -54,14 +54,39 @@ export function ChatInterface({ selectedContent = [] }: ChatInterfaceProps) {
   const [conversationContent, setConversationContent] = useState<typeof selectedContent>([])  // Content for entire conversation
   const messagesEndRef = useRef<null | HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
+  const messagesContainerRef = useRef<HTMLDivElement>(null)
+  const isStreamingRef = useRef(false)
+  const userHasScrolledUp = useRef(false)
 
   // Auto-scroll to bottom when new messages arrive
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  const scrollToBottom = (behavior: ScrollBehavior = 'smooth') => {
+    messagesEndRef.current?.scrollIntoView({ behavior })
+  }
+
+  // Check if user has scrolled up from the bottom
+  const checkUserScroll = () => {
+    if (messagesContainerRef.current) {
+      const { scrollTop, scrollHeight, clientHeight } = messagesContainerRef.current
+      // Consider user has scrolled up if they're more than 100px from bottom
+      userHasScrolledUp.current = scrollHeight - scrollTop - clientHeight > 100
+    }
   }
 
   useEffect(() => {
-    scrollToBottom()
+    // Only auto-scroll if:
+    // 1. User hasn't scrolled up, OR
+    // 2. A new user message was sent (not streaming)
+    const lastMessage = messages[messages.length - 1]
+    const isUserMessage = lastMessage?.role === 'user'
+    
+    if (isUserMessage) {
+      // Always scroll for new user messages
+      scrollToBottom()
+      userHasScrolledUp.current = false
+    } else if (!userHasScrolledUp.current && messages.length > 0) {
+      // Only scroll for assistant messages if user hasn't scrolled up
+      scrollToBottom('auto')
+    }
   }, [messages])
 
   // Update attached content when selection changes
@@ -169,6 +194,9 @@ export function ChatInterface({ selectedContent = [] }: ChatInterfaceProps) {
       const reader = fetchResponse.body?.getReader()
       const decoder = new TextDecoder()
       
+      // Set streaming flag
+      isStreamingRef.current = true
+      
       let assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
@@ -182,7 +210,10 @@ export function ChatInterface({ selectedContent = [] }: ChatInterfaceProps) {
       if (reader) {
         while (true) {
           const { done, value } = await reader.read()
-          if (done) break
+          if (done) {
+            isStreamingRef.current = false
+            break
+          }
 
           const chunk = decoder.decode(value)
           const lines = chunk.split('\n')
@@ -288,6 +319,8 @@ export function ChatInterface({ selectedContent = [] }: ChatInterfaceProps) {
 
       {/* Messages Area */}
       <Box
+        ref={messagesContainerRef}
+        onScroll={checkUserScroll}
         sx={{
           flex: 1,
           overflow: 'auto',
