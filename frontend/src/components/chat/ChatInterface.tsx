@@ -1,5 +1,4 @@
 import { useState, useRef, useEffect } from 'react'
-import { useAuth } from '@/contexts/AuthContext'
 import { api } from '@/services/api'
 import {
   Box,
@@ -54,8 +53,6 @@ export function ChatInterface({ selectedContent = [] }: ChatInterfaceProps) {
   const [attachedContent, setAttachedContent] = useState<typeof selectedContent>([])
   const messagesEndRef = useRef<null | HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
-  const { user } = useAuth()
-  
 
   // Auto-scroll to bottom when new messages arrive
   const scrollToBottom = () => {
