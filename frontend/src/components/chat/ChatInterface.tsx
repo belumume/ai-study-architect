@@ -134,6 +134,15 @@ export function ChatInterface({ selectedContent = [] }: ChatInterfaceProps) {
       })
 
       if (!response.ok) {
+        if (response.status === 403 || response.status === 401) {
+          // Check if user is not authenticated
+          const token = localStorage.getItem('access_token')
+          if (!token) {
+            throw new Error('Please log in to use the chat feature')
+          } else {
+            throw new Error('Session expired. Please log in again')
+          }
+        }
         throw new Error(`Chat request failed: ${response.statusText}`)
       }
 
