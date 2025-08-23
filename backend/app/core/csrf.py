@@ -251,8 +251,8 @@ class CSRFProtect:
         ]
         
         # Special handling for main chat endpoint (JWT protected)
-        # Note: The main chat endpoint is at /api/v1/ after router prefix fix
-        if path == "/api/v1/" or path.startswith("/api/v1/agents/"):
+        # Note: The main chat endpoint is at /api/v1/chat after router prefix fix
+        if path == "/api/v1/chat" or path.startswith("/api/v1/chat/") or path.startswith("/api/v1/agents/"):
             return True
         
         return any(path.startswith(p) for p in exempt_paths)
