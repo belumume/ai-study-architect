@@ -133,10 +133,9 @@ async def csrf_middleware(request: Request, call_next) -> Response:
         auth_header = request.headers.get("Authorization")
         if auth_header and auth_header.startswith("Bearer "):
             try:
-                from app.core.security import decode_access_token
+                from app.core.security import verify_token
                 token = auth_header.split(" ")[1]
-                payload = decode_access_token(token)
-                user_id = payload.get("sub")
+                user_id = verify_token(token, token_type="access")
             except Exception:
                 # If token decode fails, continue with validation without user_id
                 pass
