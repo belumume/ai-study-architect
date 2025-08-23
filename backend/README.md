@@ -19,18 +19,18 @@ This is the backend API for AI Study Architect, a multi-agent learning system th
 - **Database**: PostgreSQL with SQLAlchemy ORM
 - **Database Driver**: pg8000 (pure Python, Windows-compatible)
 - **Authentication**: JWT tokens (RS256) with passlib[bcrypt]
-- **Caching**: Redis for AI responses and agent state (implemented)
+- **Caching**: MockRedisClient (in-memory fallback, no external Redis needed)
 - **AI Integration**: Claude (primary), OpenAI (fallback)
 - **AI Framework**: LangChain, LangGraph for agent orchestration
 - **Security**: Rate limiting, CSRF protection, security headers
-- **Agent Management**: Redis-backed agent persistence
+- **Agent Management**: In-memory cache with graceful degradation
 - **Task Queue**: Celery with Redis (future enhancement)
 
 ## Prerequisites
 
 - Python 3.11+ (tested with 3.13)
 - PostgreSQL 14+ (check ports 5432/5433 on Windows)
-- Redis 6+ (for caching and agent state)
+- Redis (optional - falls back to in-memory cache)
 - API Keys: Claude (Anthropic) or OpenAI for cloud deployment
 
 ## Setup Instructions
@@ -74,8 +74,8 @@ Key environment variables:
 - **AI Services** (Priority: Claude → OpenAI):
   - `ANTHROPIC_API_KEY`: For Claude (best for education)
   - `OPENAI_API_KEY`: For OpenAI fallback
-- **Caching**:
-  - `REDIS_URL`: Default `redis://localhost:6379/0`
+- **Caching** (Optional - falls back to MockRedisClient):
+  - `REDIS_URL`: Default `redis://localhost:6379/0` (not required)
 
 ### 4. Database Setup
 

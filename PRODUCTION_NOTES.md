@@ -20,7 +20,9 @@
 ### What's Running
 - **Live URL**: https://ai-study-architect.onrender.com
 - **Platform**: Render Starter Plan ($7/month)
-- **Database**: PostgreSQL 17
+- **Database**: PostgreSQL 17 Basic-256mb ($6/month)
+- **Frontend**: Vercel (free tier)
+- **Caching**: MockRedisClient (no external Redis)
 - **Authentication**: JWT with RS256
 - **Backups**: Automated via GitHub Actions
 
@@ -78,7 +80,7 @@ psql DATABASE_URL < backup.sql
 
 1. **BACKUP_ENCRYPTION_KEY** - Breaks all previous backups
 2. **Pre-Deploy Command** - Must remain empty in Render
-3. **Root Directory** - Must be "backend" in Render
+3. **Root Directory** - Must be "backend" in Render (not "project/backend")
 4. **JWT Algorithm** - RS256 is configured everywhere
 
 ## 📊 System Health Metrics
@@ -86,6 +88,7 @@ psql DATABASE_URL < backup.sql
 As of January 2025:
 - **Backup Success Rate**: 100%
 - **Database Size**: ~5MB
+- **Database Plan**: Basic-256mb (expires Sept 6, 2025)
 - **Monthly Backup Cost**: <$0.01
 - **Uptime**: Render Starter = no cold starts
 - **Security Score**: Production-ready
