@@ -3,7 +3,7 @@ services:
     name: ai-study-architect
     runtime: python
     region: oregon
-    plan: free
+    plan: starter
     rootDir: project/backend
     buildCommand: chmod +x build.sh && ./build.sh
     startCommand: chmod +x start_render.sh && ./start_render.sh
@@ -12,9 +12,10 @@ services:
         fromDatabase:
           name: ai-study-db
           property: connectionString
-      # Redis not available on Render free tier - using in-memory cache
-      # - key: REDIS_URL
-      #   value: redis://localhost:6379
+      # Redis/Upstash REMOVED - using MockRedisClient fallback
+      # No external Redis required - graceful degradation to in-memory cache
+      # - key: UPSTASH_REDIS_REST_URL
+      # - key: UPSTASH_REDIS_REST_TOKEN
       - key: JWT_SECRET_KEY
         generateValue: true
       - key: JWT_ALGORITHM
@@ -42,6 +43,6 @@ services:
 databases:
   - name: ai-study-db
     region: oregon
-    plan: free
+    plan: basic-256mb
     databaseName: ai_study_architect
     postgresMajorVersion: "17"
