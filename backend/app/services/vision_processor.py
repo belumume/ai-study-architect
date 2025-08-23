@@ -3,14 +3,13 @@ Vision-based content processing using Claude and OpenAI APIs
 Processes images, extracts text, and understands visual content
 """
 
+import os
 import base64
 import logging
 from typing import Dict, Any, Optional, List
 from pathlib import Path
 import io
 from PIL import Image
-
-from app.core.config import settings
 from app.services.claude_service import claude_service
 
 # OpenAI service will be imported only if needed
@@ -250,13 +249,15 @@ Return: extracted text, content type, and brief description."""
             Extracted content and metadata
         """
         # Try Claude first (better for educational content)
-        if settings.ANTHROPIC_API_KEY:
+        anthropic_key = os.getenv("ANTHROPIC_API_KEY")
+        if anthropic_key:
             result = await self.extract_with_claude(image_data)
             if result["success"]:
                 return result
         
         # Fallback to OpenAI
-        if use_fallback and HAS_OPENAI and settings.OPENAI_API_KEY:
+        openai_key = os.getenv("OPENAI_API_KEY")
+        if use_fallback and HAS_OPENAI and openai_key:
             result = await self.extract_with_openai(image_data)
             if result["success"]:
                 return result
