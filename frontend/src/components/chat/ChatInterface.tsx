@@ -120,7 +120,7 @@ export function ChatInterface({ selectedContent = [] }: ChatInterfaceProps) {
       }
 
       // Make API call with streaming
-      const response = await fetch('/api/v1/agents/chat', {
+      const response = await fetch('/api/v1/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
