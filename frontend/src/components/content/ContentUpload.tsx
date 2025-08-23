@@ -69,7 +69,7 @@ export function ContentUpload({ onUploadComplete }: { onUploadComplete?: () => v
   // Responsive design hooks
   const theme = useTheme()
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'))
-  const isTablet = useMediaQuery(theme.breakpoints.down('md'))
+  // const isTablet = useMediaQuery(theme.breakpoints.down('md'))
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
     const newFiles = acceptedFiles.map(file => ({
