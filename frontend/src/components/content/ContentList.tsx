@@ -25,6 +25,12 @@ import {
   CircularProgress,
   Alert,
   Tooltip,
+  Card,
+  CardContent,
+  CardActions,
+  Grid,
+  useTheme,
+  useMediaQuery,
 } from '@mui/material'
 import {
   MoreVert,
@@ -65,6 +71,11 @@ export function ContentList() {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [contentToDelete, setContentToDelete] = useState<Content | null>(null)
+  
+  // Responsive design hooks
+  const theme = useTheme()
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'))
+  const isTablet = useMediaQuery(theme.breakpoints.down('md'))
 
   useEffect(() => {
     fetchContents()
@@ -192,9 +203,16 @@ export function ContentList() {
   }
 
   return (
-    <Paper elevation={3} sx={{ p: 4 }}>
-      <Box sx={{ mb: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <Typography variant="h5" component="h2">
+    <Paper elevation={3} sx={{ p: { xs: 2, sm: 3, md: 4 } }}>
+      <Box sx={{ 
+        mb: 3, 
+        display: 'flex', 
+        flexDirection: { xs: 'column', sm: 'row' },
+        justifyContent: 'space-between', 
+        alignItems: { xs: 'stretch', sm: 'center' },
+        gap: 2 
+      }}>
+        <Typography variant={isMobile ? "h6" : "h5"} component="h2">
           My Study Materials
         </Typography>
         <TextField
@@ -202,6 +220,8 @@ export function ContentList() {
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           size="small"
+          fullWidth={isMobile}
+          sx={{ maxWidth: { xs: '100%', sm: 300 } }}
           InputProps={{
             startAdornment: (
               <InputAdornment position="start">
@@ -229,65 +249,143 @@ export function ContentList() {
         </Box>
       ) : (
         <>
-          <TableContainer>
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell>Title</TableCell>
-                  <TableCell>Type</TableCell>
-                  <TableCell>Subject</TableCell>
-                  <TableCell>Size</TableCell>
-                  <TableCell>Uploaded</TableCell>
-                  <TableCell align="right">Actions</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {filteredContents
-                  .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
-                  .map((content) => (
-                    <TableRow key={content.id} hover>
-                      <TableCell>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <Tooltip title={content.mime_type}>
-                            {getFileIcon(content.mime_type)}
-                          </Tooltip>
-                          <Box>
-                            <Typography variant="body2">{content.title}</Typography>
+          {/* Mobile/Tablet Card Layout */}
+          {isTablet ? (
+            <Grid container spacing={2}>
+              {filteredContents
+                .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
+                .map((content) => (
+                  <Grid item xs={12} sm={6} key={content.id}>
+                    <Card 
+                      elevation={2}
+                      sx={{ 
+                        height: '100%',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        '&:hover': {
+                          elevation: 4,
+                          transform: 'translateY(-2px)',
+                          transition: 'all 0.3s'
+                        }
+                      }}
+                    >
+                      <CardContent sx={{ flexGrow: 1 }}>
+                        <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1, mb: 1 }}>
+                          {getFileIcon(content.mime_type)}
+                          <Box sx={{ flexGrow: 1, minWidth: 0 }}>
+                            <Typography variant="h6" noWrap sx={{ fontSize: '1.1rem' }}>
+                              {content.title}
+                            </Typography>
                             {content.description && (
-                              <Typography variant="caption" color="text.secondary">
+                              <Typography 
+                                variant="body2" 
+                                color="text.secondary"
+                                sx={{ 
+                                  display: '-webkit-box',
+                                  WebkitLineClamp: 2,
+                                  WebkitBoxOrient: 'vertical',
+                                  overflow: 'hidden'
+                                }}
+                              >
                                 {content.description}
                               </Typography>
                             )}
                           </Box>
                         </Box>
-                      </TableCell>
-                      <TableCell>
-                        <Chip
-                          label={content.content_type.replace('_', ' ')}
-                          size="small"
-                          color={getContentTypeColor(content.content_type)}
-                        />
-                      </TableCell>
-                      <TableCell>{content.subject || '-'}</TableCell>
-                      <TableCell>{formatFileSize(content.file_size)}</TableCell>
-                      <TableCell>
-                        <Tooltip title={format(new Date(content.created_at), 'PPpp')}>
-                          <span>{format(new Date(content.created_at), 'MMM d, yyyy')}</span>
-                        </Tooltip>
-                      </TableCell>
-                      <TableCell align="right">
+                        
+                        <Box sx={{ mt: 2 }}>
+                          <Chip
+                            label={content.content_type.replace('_', ' ')}
+                            size="small"
+                            color={getContentTypeColor(content.content_type)}
+                            sx={{ mb: 1 }}
+                          />
+                          <Typography variant="body2" color="text.secondary">
+                            {formatFileSize(content.file_size)} • {format(new Date(content.created_at), 'MMM d, yyyy')}
+                          </Typography>
+                          {content.subject && (
+                            <Typography variant="body2" color="text.secondary">
+                              Subject: {content.subject}
+                            </Typography>
+                          )}
+                        </Box>
+                      </CardContent>
+                      
+                      <CardActions sx={{ justifyContent: 'flex-end', pt: 0 }}>
                         <IconButton
                           size="small"
                           onClick={(e) => handleMenuOpen(e, content)}
+                          aria-label="More actions"
                         >
                           <MoreVert />
                         </IconButton>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
+                      </CardActions>
+                    </Card>
+                  </Grid>
+                ))}
+            </Grid>
+          ) : (
+            /* Desktop Table Layout */
+            <TableContainer>
+              <Table>
+                <TableHead>
+                  <TableRow>
+                    <TableCell>Title</TableCell>
+                    <TableCell>Type</TableCell>
+                    <TableCell>Subject</TableCell>
+                    <TableCell>Size</TableCell>
+                    <TableCell>Uploaded</TableCell>
+                    <TableCell align="right">Actions</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {filteredContents
+                    .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
+                    .map((content) => (
+                      <TableRow key={content.id} hover>
+                        <TableCell>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <Tooltip title={content.mime_type}>
+                              {getFileIcon(content.mime_type)}
+                            </Tooltip>
+                            <Box>
+                              <Typography variant="body2">{content.title}</Typography>
+                              {content.description && (
+                                <Typography variant="caption" color="text.secondary">
+                                  {content.description}
+                                </Typography>
+                              )}
+                            </Box>
+                          </Box>
+                        </TableCell>
+                        <TableCell>
+                          <Chip
+                            label={content.content_type.replace('_', ' ')}
+                            size="small"
+                            color={getContentTypeColor(content.content_type)}
+                          />
+                        </TableCell>
+                        <TableCell>{content.subject || '-'}</TableCell>
+                        <TableCell>{formatFileSize(content.file_size)}</TableCell>
+                        <TableCell>
+                          <Tooltip title={format(new Date(content.created_at), 'PPpp')}>
+                            <span>{format(new Date(content.created_at), 'MMM d, yyyy')}</span>
+                          </Tooltip>
+                        </TableCell>
+                        <TableCell align="right">
+                          <IconButton
+                            size="small"
+                            onClick={(e) => handleMenuOpen(e, content)}
+                          >
+                            <MoreVert />
+                          </IconButton>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          )}
           <TablePagination
             rowsPerPageOptions={[5, 10, 25]}
             component="div"
