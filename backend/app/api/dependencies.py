@@ -122,3 +122,31 @@ def get_optional_current_user(
         return get_current_user(credentials, db)
     except (InvalidTokenError, UserNotFoundError, InactiveUserError):
         return None
+
+
+async def get_current_user_ws(token: str, db: Session) -> Optional[User]:
+    """
+    Get current user from WebSocket token.
+    
+    Args:
+        token: JWT token string
+        db: Database session
+        
+    Returns:
+        The current user or None
+    """
+    try:
+        # Verify the token
+        user_id = verify_token(token, token_type="access")
+        if not user_id:
+            return None
+        
+        # Get user from database
+        user = db.query(User).filter(User.id == user_id).first()
+        
+        if not user or not user.is_active:
+            return None
+            
+        return user
+    except (JWTError, Exception):
+        return None

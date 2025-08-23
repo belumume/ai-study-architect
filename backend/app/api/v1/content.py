@@ -284,6 +284,20 @@ async def upload_content(
         
         # Process the file synchronously for reliability
         logger.info(f"=== STARTING CONTENT PROCESSING for {content.id} ===")
+        
+        # Send WebSocket update if available
+        try:
+            from app.api.v1.websocket import websocket_manager
+            import asyncio
+            asyncio.create_task(websocket_manager.send_personal_message({
+                "type": "processing_status",
+                "content_id": str(content.id),
+                "status": "processing",
+                "message": f"Extracting text from {content.title}..."
+            }, str(current_user.id)))
+        except Exception as e:
+            logger.warning(f"Could not send WebSocket update: {e}")
+        
         try:
             logger.info(f"Processing content {content.id}")
             
@@ -294,8 +308,8 @@ async def upload_content(
             logger.info(f"Processing result: success={processing_result['success']}")
             
             if processing_result["success"]:
-                # Update content with extracted text
-                content.extracted_text = processing_result["text"][:10000]  # Limit to 10k chars for now
+                # Update content with full extracted text - no truncation at storage
+                content.extracted_text = processing_result["text"]  # Store full text
                 content.processing_status = "completed"
                 content.content_metadata = processing_result["metadata"]
                 
