@@ -81,9 +81,7 @@ export function ChatInterface({ selectedContent = [] }: ChatInterfaceProps) {
     const getCSRFToken = async () => {
       try {
         const apiUrl = import.meta.env.VITE_API_URL || ''
-        const response = await fetch(`${apiUrl}/api/v1/csrf/token`, {
-          credentials: 'include'
-        })
+        const response = await fetch(`${apiUrl}/api/v1/csrf/token`)
         if (response.ok) {
           const data = await response.json()
           if (data.csrf_token) {
@@ -153,8 +151,8 @@ export function ChatInterface({ selectedContent = [] }: ChatInterfaceProps) {
       const response = await fetch(`${apiUrl}/api/v1/`, {
         method: 'POST',
         headers,
-        body: JSON.stringify(chatRequest),
-        credentials: 'include'
+        body: JSON.stringify(chatRequest)
+        // Removed credentials: 'include' - using Authorization header instead of cookies
       })
 
       if (!response.ok) {
