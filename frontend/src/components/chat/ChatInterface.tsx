@@ -73,7 +73,8 @@ export function ChatInterface({ selectedContent = [] }: ChatInterfaceProps) {
   useEffect(() => {
     const getCSRFToken = async () => {
       try {
-        const response = await fetch('/api/v1/csrf/token', {
+        const apiUrl = import.meta.env.VITE_API_URL || ''
+        const response = await fetch(`${apiUrl}/api/v1/csrf/token`, {
           credentials: 'include'
         })
         if (response.ok) {
@@ -120,7 +121,8 @@ export function ChatInterface({ selectedContent = [] }: ChatInterfaceProps) {
       }
 
       // Make API call with streaming
-      const response = await fetch('/api/v1/', {
+      const apiUrl = import.meta.env.VITE_API_URL || ''
+      const response = await fetch(`${apiUrl}/api/v1/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
