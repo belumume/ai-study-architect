@@ -6,7 +6,7 @@
 
 - **Backend API**: https://ai-study-architect.onrender.com
 - **API Documentation**: https://ai-study-architect.onrender.com/docs
-- **Frontend**: [Deployment pending on Vercel]
+- **Frontend**: https://ai-study-architect.onrender.com (Vercel hosted)
 
 ## What is AI Study Architect?
 

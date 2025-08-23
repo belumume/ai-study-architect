@@ -181,6 +181,9 @@ model_evaluations/
 backups/
 db_backups/
 postgres_dumps/
+# Environment variable backups (contain sensitive API keys!)
+env_backup_*.json
+backups/env_vars/
 
 # Redis dumps
 dump.rdb
