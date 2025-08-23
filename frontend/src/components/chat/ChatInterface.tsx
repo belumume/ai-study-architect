@@ -123,35 +123,41 @@ export function ChatInterface({ selectedContent = [] }: ChatInterfaceProps) {
         temperature: 0.7
       }
 
-      // Build headers using axios interceptors
+      // Get authentication tokens
       const token = localStorage.getItem('access_token')
       const csrfToken = localStorage.getItem('csrf_token')
       
+      // Validate authentication before making request
+      if (!token) {
+        throw new Error('Please log in to use the chat feature')
+      }
+      
       // Log for debugging
       console.log('Token found:', !!token)
+      console.log('Token value (first 20 chars):', token.substring(0, 20))
       console.log('CSRF token found:', !!csrfToken)
       
-      const headers: HeadersInit = {
-        'Content-Type': 'application/json'
+      // Build complete headers
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
       }
       
-      // Add auth header if token exists
-      if (token) {
-        headers['Authorization'] = `Bearer ${token}`
-        console.log('Adding Authorization header')
-      }
-      
-      // Add CSRF header if token exists
+      // Add CSRF header if available (optional since endpoint is exempt)
       if (csrfToken) {
         headers['X-CSRF-Token'] = csrfToken
       }
       
-      // Use fetch with proper headers for streaming
+      console.log('Request headers:', Object.keys(headers))
+      
+      // Use fetch for streaming response
+      // Note: credentials: 'include' is required for cookies but may strip Authorization header
+      // Since the endpoint is CSRF-exempt, we can try without credentials
       const fetchResponse = await fetch(`${api.defaults.baseURL}/api/v1/`, {
         method: 'POST',
         headers,
         body: JSON.stringify(chatRequest),
-        credentials: 'include'
+        credentials: 'omit'  // Try omitting credentials to preserve Authorization header
       })
 
       if (!fetchResponse.ok) {
