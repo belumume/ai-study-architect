@@ -367,7 +367,12 @@ async def create_chat(
     
     Supports both streaming and non-streaming responses.
     For streaming, returns Server-Sent Events (SSE).
+    
+    Requires authentication via JWT token in Authorization header.
     """
+    # Log authentication success
+    logger.info(f"Chat request from authenticated user: {current_user.username} (ID: {current_user.id})")
+    
     if request.stream:
         return StreamingResponse(
             stream_chat_response(request, current_user, db),
