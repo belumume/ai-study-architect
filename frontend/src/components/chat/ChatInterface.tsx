@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
+import { api } from '@/services/api'
 import {
   Box,
   Paper,
@@ -76,22 +77,17 @@ export function ChatInterface({ selectedContent = [] }: ChatInterfaceProps) {
     }
   }, [selectedContent])
 
-  // Get CSRF token on component mount
+  // Get CSRF token on component mount (using api instance for consistency)
   useEffect(() => {
     const getCSRFToken = async () => {
       try {
-        const apiUrl = import.meta.env.VITE_API_URL || ''
-        const response = await fetch(`${apiUrl}/api/v1/csrf/token`, {
-          credentials: 'include'  // Include credentials for CSRF cookie
-        })
-        if (response.ok) {
-          const data = await response.json()
-          if (data.csrf_token) {
-            localStorage.setItem('csrf_token', data.csrf_token)
-          }
+        const response = await api.get('/api/v1/csrf/token')
+        if (response.data.csrf_token) {
+          localStorage.setItem('csrf_token', response.data.csrf_token)
         }
       } catch (err) {
         // CSRF token fetch failed, will retry on next request
+        console.error('Failed to fetch CSRF token:', err)
       }
     }
     getCSRFToken()
@@ -127,38 +123,39 @@ export function ChatInterface({ selectedContent = [] }: ChatInterfaceProps) {
         temperature: 0.7
       }
 
-      // Make API call with streaming
-      const apiUrl = import.meta.env.VITE_API_URL || ''
-      const accessToken = localStorage.getItem('access_token')
+      // Build headers using axios interceptors
+      const token = localStorage.getItem('access_token')
+      const csrfToken = localStorage.getItem('csrf_token')
       
-      // Debug logging
-      console.log('Access token from localStorage:', accessToken ? 'Found' : 'Missing')
-      console.log('Access token value:', accessToken ? `${accessToken.substring(0, 20)}...` : 'null')
-      console.log('CSRF token from localStorage:', localStorage.getItem('csrf_token') ? 'Found' : 'Missing')
+      // Log for debugging
+      console.log('Token found:', !!token)
+      console.log('CSRF token found:', !!csrfToken)
       
       const headers: HeadersInit = {
-        'Content-Type': 'application/json',
-        'X-CSRF-Token': localStorage.getItem('csrf_token') || ''
+        'Content-Type': 'application/json'
       }
       
-      // Only add Authorization header if token exists
-      if (accessToken) {
-        headers['Authorization'] = `Bearer ${accessToken}`
-        console.log('Authorization header added:', headers['Authorization'].substring(0, 30) + '...')
-      } else {
-        console.log('No access token - Authorization header NOT added')
+      // Add auth header if token exists
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`
+        console.log('Adding Authorization header')
       }
       
-      console.log('Sending request with headers:', headers)
-      const response = await fetch(`${apiUrl}/api/v1/`, {
+      // Add CSRF header if token exists
+      if (csrfToken) {
+        headers['X-CSRF-Token'] = csrfToken
+      }
+      
+      // Use fetch with proper headers for streaming
+      const fetchResponse = await fetch(`${api.defaults.baseURL}/api/v1/`, {
         method: 'POST',
         headers,
         body: JSON.stringify(chatRequest),
-        credentials: 'include'  // Re-enabled: Required for CSRF cookies, endpoint is now CSRF-exempt so JWT will work
+        credentials: 'include'
       })
 
-      if (!response.ok) {
-        if (response.status === 403 || response.status === 401) {
+      if (!fetchResponse.ok) {
+        if (fetchResponse.status === 403 || fetchResponse.status === 401) {
           // Check if user is not authenticated
           const token = localStorage.getItem('access_token')
           if (!token) {
@@ -167,11 +164,11 @@ export function ChatInterface({ selectedContent = [] }: ChatInterfaceProps) {
             throw new Error('Session expired. Please log in again')
           }
         }
-        throw new Error(`Chat request failed: ${response.statusText}`)
+        throw new Error(`Chat request failed: ${fetchResponse.statusText}`)
       }
 
       // Handle streaming response
-      const reader = response.body?.getReader()
+      const reader = fetchResponse.body?.getReader()
       const decoder = new TextDecoder()
       
       let assistantMessage: Message = {
