@@ -216,8 +216,9 @@ NEVER:
         service_name, service = await ai_service_manager.get_available_service()
         
         if not service:
-            # No services available
-            error_response = "All AI services are currently unavailable. Please try again later."
+            # No services available - likely missing API keys
+            logger.error("No AI services available - check API keys configuration")
+            error_response = "⚠️ AI services are not configured. Please ensure ANTHROPIC_API_KEY or OPENAI_API_KEY environment variables are set in production."
             for i, char in enumerate(error_response):
                 chunk_data = {
                     "type": "content",
@@ -307,9 +308,17 @@ NEVER:
             )
             
             if "error" in response_data:
-                full_response = response_data.get("response", "Failed to get AI response")
+                logger.error(f"AI service error: {response_data.get('error')}")
+                full_response = response_data.get("response", "Failed to get AI response. Please check API keys configuration.")
+                # If the response is about missing API keys, make it clearer
+                if "API key" in str(response_data.get("error", "")):
+                    full_response = "⚠️ AI service API keys are not configured. Please set ANTHROPIC_API_KEY or OPENAI_API_KEY in the production environment."
             else:
                 full_response = response_data.get("response", "")
+                # Check for empty response
+                if not full_response:
+                    logger.warning("AI service returned empty response")
+                    full_response = "⚠️ The AI service returned an empty response. This usually means the API keys are not properly configured."
             
             # Send the COMPLETE response in one chunk (no fake streaming!)
             chunk_data = {
