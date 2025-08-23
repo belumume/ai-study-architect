@@ -1,8 +1,8 @@
 import { ThemeProvider, createTheme } from '@mui/material/styles'
 import CssBaseline from '@mui/material/CssBaseline'
-import { Box, Container, Typography, Paper, Button, AppBar, Toolbar, IconButton, Menu, MenuItem } from '@mui/material'
+import { Box, Container, Typography, Paper, Button, AppBar, Toolbar, IconButton, Menu, MenuItem, useMediaQuery, useTheme, Tabs, Tab, Badge } from '@mui/material'
 import { Routes, Route, Link, Navigate } from 'react-router-dom'
-import { AccountCircle } from '@mui/icons-material'
+import { AccountCircle, ChatBubbleOutline, FolderOpen } from '@mui/icons-material'
 import { useState, useEffect } from 'react'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import { LoginForm, RegisterForm, ProtectedRoute } from './components/auth'
@@ -205,11 +205,80 @@ function HomePage() {
 
 function StudyPage() {
   const [selectedContent, setSelectedContent] = useState<{ id: string; title: string }[]>([])
+  const [mobileTab, setMobileTab] = useState(0)
+  const theme = useTheme()
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'))
 
+  const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
+    setMobileTab(newValue)
+  }
+
+  // Mobile layout with tabs
+  if (isMobile) {
+    return (
+      <Box sx={{ height: 'calc(100vh - 200px)', display: 'flex', flexDirection: 'column' }}>
+        {/* Tab navigation for mobile */}
+        <Paper sx={{ borderRadius: 0 }}>
+          <Tabs 
+            value={mobileTab} 
+            onChange={handleTabChange} 
+            variant="fullWidth"
+            indicatorColor="primary"
+            textColor="primary"
+          >
+            <Tab 
+              icon={<Badge badgeContent={selectedContent.length} color="primary"><FolderOpen /></Badge>}
+              label="Materials" 
+            />
+            <Tab 
+              icon={<ChatBubbleOutline />}
+              label="Chat" 
+              disabled={selectedContent.length === 0}
+            />
+          </Tabs>
+        </Paper>
+
+        {/* Tab content */}
+        <Box sx={{ flex: 1, overflow: 'auto', p: 2 }}>
+          {mobileTab === 0 && (
+            <Box>
+              <Typography variant="h6" gutterBottom>
+                Select Study Materials
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                Choose content to discuss with your AI tutor
+              </Typography>
+              <ContentSelector 
+                onSelectionChange={setSelectedContent} 
+                selectedContent={selectedContent}
+              />
+              {selectedContent.length > 0 && (
+                <Box sx={{ mt: 3 }}>
+                  <Button 
+                    variant="contained" 
+                    fullWidth 
+                    onClick={() => setMobileTab(1)}
+                    startIcon={<ChatBubbleOutline />}
+                  >
+                    Start Chat ({selectedContent.length} file{selectedContent.length !== 1 ? 's' : ''} selected)
+                  </Button>
+                </Box>
+              )}
+            </Box>
+          )}
+          {mobileTab === 1 && (
+            <ChatInterface selectedContent={selectedContent} />
+          )}
+        </Box>
+      </Box>
+    )
+  }
+
+  // Desktop layout - side by side
   return (
     <Box sx={{ display: 'flex', gap: 3, height: 'calc(100vh - 200px)' }}>
       {/* Left side - Content Selection */}
-      <Paper elevation={3} sx={{ flex: '0 0 300px', p: 2, overflow: 'auto' }}>
+      <Paper elevation={3} sx={{ flex: '0 0 350px', p: 2, overflow: 'auto' }}>
         <Typography variant="h6" gutterBottom>
           Select Study Materials
         </Typography>
