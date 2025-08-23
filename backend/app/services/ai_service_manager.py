@@ -29,7 +29,12 @@ class AIServiceManager:
             try:
                 # Check if service is enabled and healthy
                 if hasattr(service, 'enabled') and not service.enabled:
-                    logger.debug(f"{name} service not enabled (no API key)")
+                    # Log the actual environment variable status at runtime
+                    api_key = os.getenv(f"{name.upper()}_API_KEY") or os.getenv("ANTHROPIC_API_KEY" if name == "Claude" else "OPENAI_API_KEY")
+                    if api_key:
+                        logger.warning(f"{name} service has API key but reports not enabled - checking property")
+                    else:
+                        logger.debug(f"{name} service not enabled (no API key found at runtime)")
                     continue
                 
                 if hasattr(service, 'health_check'):
