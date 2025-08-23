@@ -81,7 +81,9 @@ export function ChatInterface({ selectedContent = [] }: ChatInterfaceProps) {
     const getCSRFToken = async () => {
       try {
         const apiUrl = import.meta.env.VITE_API_URL || ''
-        const response = await fetch(`${apiUrl}/api/v1/csrf/token`)
+        const response = await fetch(`${apiUrl}/api/v1/csrf/token`, {
+          credentials: 'include'  // Include credentials for CSRF cookie
+        })
         if (response.ok) {
           const data = await response.json()
           if (data.csrf_token) {
@@ -151,8 +153,8 @@ export function ChatInterface({ selectedContent = [] }: ChatInterfaceProps) {
       const response = await fetch(`${apiUrl}/api/v1/`, {
         method: 'POST',
         headers,
-        body: JSON.stringify(chatRequest)
-        // Removed credentials: 'include' - using Authorization header instead of cookies
+        body: JSON.stringify(chatRequest),
+        credentials: 'include'  // Re-enabled: Required for CSRF cookies, endpoint is now CSRF-exempt so JWT will work
       })
 
       if (!response.ok) {
