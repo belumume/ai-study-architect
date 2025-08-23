@@ -21,12 +21,20 @@ class ClaudeService:
     """Service for interacting with Anthropic's Claude API"""
     
     def __init__(self):
-        self.api_key = os.getenv("ANTHROPIC_API_KEY")
         self.model = os.getenv("CLAUDE_MODEL", "claude-3-5-sonnet-20241022")  # Latest as of Nov 2024
         self.base_url = "https://api.anthropic.com/v1"
-        self.enabled = bool(self.api_key)
         self.api_version = "2023-06-01"
         self.timeout = httpx.Timeout(60.0, connect=5.0)  # Claude can take longer for complex reasoning
+    
+    @property
+    def api_key(self):
+        """Get API key at runtime, not import time"""
+        return os.getenv("ANTHROPIC_API_KEY")
+    
+    @property
+    def enabled(self):
+        """Check if service is enabled at runtime"""
+        return bool(self.api_key)
         
     async def health_check(self) -> bool:
         """Check if Claude API is accessible"""
