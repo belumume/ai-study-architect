@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
+import { useAuth } from '@/contexts/AuthContext'
 import {
   Box,
   Paper,
@@ -52,6 +53,7 @@ export function ChatInterface({ selectedContent = [] }: ChatInterfaceProps) {
   const [attachedContent, setAttachedContent] = useState<typeof selectedContent>([])
   const messagesEndRef = useRef<null | HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
+  const { user } = useAuth()
 
   // Auto-scroll to bottom when new messages arrive
   const scrollToBottom = () => {
@@ -122,13 +124,25 @@ export function ChatInterface({ selectedContent = [] }: ChatInterfaceProps) {
 
       // Make API call with streaming
       const apiUrl = import.meta.env.VITE_API_URL || ''
+      const accessToken = localStorage.getItem('access_token')
+      
+      // Debug logging
+      console.log('Access token from localStorage:', accessToken ? 'Found' : 'Missing')
+      console.log('CSRF token from localStorage:', localStorage.getItem('csrf_token') ? 'Found' : 'Missing')
+      
+      const headers: HeadersInit = {
+        'Content-Type': 'application/json',
+        'X-CSRF-Token': localStorage.getItem('csrf_token') || ''
+      }
+      
+      // Only add Authorization header if token exists
+      if (accessToken) {
+        headers['Authorization'] = `Bearer ${accessToken}`
+      }
+      
       const response = await fetch(`${apiUrl}/api/v1/`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
-          'X-CSRF-Token': localStorage.getItem('csrf_token') || ''
-        },
+        headers,
         body: JSON.stringify(chatRequest),
         credentials: 'include'
       })
