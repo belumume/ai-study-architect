@@ -244,12 +244,16 @@ class CSRFProtect:
             "/health",  # Root health check
             "/api/v1/csrf/token",  # Endpoint to get CSRF token
             "/api/v1/content/upload",  # File upload uses JWT auth
-            "/api/v1/chat/",  # Chat endpoint uses JWT auth
             "/api/v1/backup/",  # Backup endpoint uses token auth
             "/docs",
             "/redoc",
             "/openapi.json"
         ]
+        
+        # Special handling for main chat endpoint (JWT protected)
+        # Note: The main chat endpoint is at /api/v1/ after router prefix fix
+        if path == "/api/v1/" or path.startswith("/api/v1/agents/"):
+            return True
         
         return any(path.startswith(p) for p in exempt_paths)
 
