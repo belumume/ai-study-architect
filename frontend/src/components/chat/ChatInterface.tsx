@@ -54,6 +54,11 @@ export function ChatInterface({ selectedContent = [] }: ChatInterfaceProps) {
   const messagesEndRef = useRef<null | HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const { user } = useAuth()
+  
+  // Log user authentication state
+  useEffect(() => {
+    console.log('User authenticated:', !!user)
+  }, [user])
 
   // Auto-scroll to bottom when new messages arrive
   const scrollToBottom = () => {
