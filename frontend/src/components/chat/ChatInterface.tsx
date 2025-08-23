@@ -51,6 +51,7 @@ export function ChatInterface({ selectedContent = [] }: ChatInterfaceProps) {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string>('')
   const [attachedContent, setAttachedContent] = useState<typeof selectedContent>([])
+  const [conversationContent, setConversationContent] = useState<typeof selectedContent>([])  // Content for entire conversation
   const messagesEndRef = useRef<null | HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
@@ -67,8 +68,12 @@ export function ChatInterface({ selectedContent = [] }: ChatInterfaceProps) {
   useEffect(() => {
     if (selectedContent.length > 0) {
       setAttachedContent(selectedContent)
+      // Also set as conversation content if this is the first attachment
+      if (conversationContent.length === 0) {
+        setConversationContent(selectedContent)
+      }
     }
-  }, [selectedContent])
+  }, [selectedContent, conversationContent.length])
 
   // Get CSRF token on component mount (using api instance for consistency)
   useEffect(() => {
@@ -101,7 +106,8 @@ export function ChatInterface({ selectedContent = [] }: ChatInterfaceProps) {
     setIsLoading(true)
 
     try {
-      // Prepare chat request
+      // Prepare chat request - use conversation content for context continuity
+      const contentToSend = attachedContent.length > 0 ? attachedContent : conversationContent
       const chatRequest = {
         messages: messages
           .filter(m => m.role === 'user' || m.role === 'assistant')
@@ -110,7 +116,7 @@ export function ChatInterface({ selectedContent = [] }: ChatInterfaceProps) {
             content: m.content
           }))
           .concat([{ role: 'user', content: input }]),
-        content_ids: attachedContent.map(c => c.id),
+        content_ids: contentToSend.map(c => c.id),
         stream: true,
         temperature: 0.7
       }
@@ -207,7 +213,11 @@ export function ChatInterface({ selectedContent = [] }: ChatInterfaceProps) {
         }
       }
 
-      // Clear attached content after successful send
+      // Update conversation content if new content was attached
+      if (attachedContent.length > 0) {
+        setConversationContent(attachedContent)
+      }
+      // Clear only the attached content display, not the conversation context
       setAttachedContent([])
       
     } catch (error) {
