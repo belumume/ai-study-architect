@@ -56,10 +56,6 @@ export function ChatInterface({ selectedContent = [] }: ChatInterfaceProps) {
   const inputRef = useRef<HTMLInputElement>(null)
   const { user } = useAuth()
   
-  // Log user authentication state
-  useEffect(() => {
-    console.log('User authenticated:', !!user)
-  }, [user])
 
   // Auto-scroll to bottom when new messages arrive
   const scrollToBottom = () => {
@@ -87,7 +83,6 @@ export function ChatInterface({ selectedContent = [] }: ChatInterfaceProps) {
         }
       } catch (err) {
         // CSRF token fetch failed, will retry on next request
-        console.error('Failed to fetch CSRF token:', err)
       }
     }
     getCSRFToken()
@@ -132,10 +127,6 @@ export function ChatInterface({ selectedContent = [] }: ChatInterfaceProps) {
         throw new Error('Please log in to use the chat feature')
       }
       
-      // Log for debugging
-      console.log('Token found:', !!token)
-      console.log('Token value (first 20 chars):', token.substring(0, 20))
-      console.log('CSRF token found:', !!csrfToken)
       
       // Build complete headers
       const headers: Record<string, string> = {
@@ -147,8 +138,6 @@ export function ChatInterface({ selectedContent = [] }: ChatInterfaceProps) {
       if (csrfToken) {
         headers['X-CSRF-Token'] = csrfToken
       }
-      
-      console.log('Request headers:', Object.keys(headers))
       
       // Use fetch for streaming response
       // Note: credentials: 'include' is required for cookies but may strip Authorization header
