@@ -123,11 +123,12 @@ class ClaudeService:
             payload["system"] = system_message
         
         try:
+            if stream:
+                # For streaming, we need to handle the client differently
+                # Return an async generator that manages its own client
+                return self._stream_claude_response_wrapper(payload)
+            
             async with httpx.AsyncClient(timeout=self.timeout) as client:
-                if stream:
-                    # Real streaming support for Claude
-                    return self._stream_claude_response(client, payload)
-                
                 response = await client.post(
                     f"{self.base_url}/messages",
                     headers=self._get_headers(),
@@ -168,6 +169,12 @@ class ClaudeService:
                 "error": str(e),
                 "response": "Failed to get AI response."
             }
+    
+    async def _stream_claude_response_wrapper(self, payload: Dict[str, Any]) -> AsyncIterator[str]:
+        """Wrapper that manages its own client for streaming"""
+        async with httpx.AsyncClient(timeout=self.timeout) as client:
+            async for chunk in self._stream_claude_response(client, payload):
+                yield chunk
     
     async def _stream_claude_response(self, client: AsyncClient, payload: Dict[str, Any]) -> AsyncIterator[str]:
         """Stream response from Claude API"""
