@@ -113,8 +113,13 @@ app.add_middleware(
 @app.middleware("http")
 async def csrf_middleware(request: Request, call_next) -> Response:
     """Apply CSRF protection using double-submit cookie pattern"""
+    # Handle OPTIONS preflight requests
+    if request.method == "OPTIONS":
+        # Let CORS middleware handle OPTIONS
+        return await call_next(request)
+    
     # Skip CSRF for safe methods
-    if request.method in ["GET", "OPTIONS", "HEAD"]:
+    if request.method in ["GET", "HEAD"]:
         return await call_next(request)
     
     # Skip for exempt paths
@@ -139,10 +144,19 @@ async def csrf_middleware(request: Request, call_next) -> Response:
         csrf_protect.validate_request(request, user_id)
     except Exception as e:
         logger.warning(f"CSRF validation failed for {request.url.path}: {str(e)}")
+        # Include CORS headers in error response to prevent misleading CORS errors
+        origin = request.headers.get("origin")
+        headers = {}
+        if origin in settings.BACKEND_CORS_ORIGINS:
+            headers = {
+                "Access-Control-Allow-Origin": origin,
+                "Access-Control-Allow-Credentials": "true",
+            }
         return Response(
             content="CSRF validation failed",
             status_code=403,
-            media_type="text/plain"
+            media_type="text/plain",
+            headers=headers
         )
     
     # Process request
