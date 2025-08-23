@@ -164,32 +164,26 @@ NEVER:
                         content_context += f": {content.description}"
                     content_context += "\n"
                     
-                    # Include extracted text for Q&A with intelligent handling
+                    # Include extracted text - increased limit to prevent content loss
                     if content.extracted_text:
                         content_context += f"\nContent from '{content.title}':\n"
                         
-                        # Use full content for documents under 15000 chars
-                        if len(content.extracted_text) <= 15000:
+                        # Send full content up to 50K chars to prevent dropping slides
+                        # Previous 15K limit was causing slides 28-37 to be lost
+                        if len(content.extracted_text) <= 50000:
                             content_context += content.extracted_text
                         else:
-                            # For larger documents, include beginning, middle, and end sections
-                            # This ensures we don't miss important content that might be at the end
+                            # For very large documents (>50K), use smarter chunking
                             text_len = len(content.extracted_text)
-                            chunk_size = 5000
+                            chunk_size = 16000  # Larger chunks to preserve more content
                             
                             # Beginning section
                             content_context += content.extracted_text[:chunk_size]
-                            content_context += "\n\n[... middle section omitted for brevity ...]\n\n"
+                            content_context += "\n\n[... some content omitted for length ...]\n\n"
                             
-                            # Middle section (around important content)
-                            middle_start = (text_len // 2) - (chunk_size // 2)
-                            middle_end = middle_start + chunk_size
-                            content_context += content.extracted_text[middle_start:middle_end]
-                            content_context += "\n\n[... continuing ...]\n\n"
-                            
-                            # End section (often contains conclusions/summaries)
+                            # End section (important for conclusions/later slides)
                             content_context += content.extracted_text[-chunk_size:]
-                            content_context += f"\n\n[Note: Document contains {text_len} characters total. Showing key sections.]"
+                            content_context += f"\n\n[Note: Document contains {text_len} characters. Showing first and last {chunk_size} characters.]"
                         
                         content_context += "\n\n"
                     
@@ -506,32 +500,26 @@ NEVER:
                         content_context += f": {content.description}"
                     content_context += "\n"
                     
-                    # Include extracted text for Q&A with intelligent handling
+                    # Include extracted text - increased limit to prevent content loss
                     if content.extracted_text:
                         content_context += f"\nContent from '{content.title}':\n"
                         
-                        # Use full content for documents under 15000 chars
-                        if len(content.extracted_text) <= 15000:
+                        # Send full content up to 50K chars to prevent dropping slides
+                        # Previous 15K limit was causing slides 28-37 to be lost
+                        if len(content.extracted_text) <= 50000:
                             content_context += content.extracted_text
                         else:
-                            # For larger documents, include beginning, middle, and end sections
-                            # This ensures we don't miss important content that might be at the end
+                            # For very large documents (>50K), use smarter chunking
                             text_len = len(content.extracted_text)
-                            chunk_size = 5000
+                            chunk_size = 16000  # Larger chunks to preserve more content
                             
                             # Beginning section
                             content_context += content.extracted_text[:chunk_size]
-                            content_context += "\n\n[... middle section omitted for brevity ...]\n\n"
+                            content_context += "\n\n[... some content omitted for length ...]\n\n"
                             
-                            # Middle section (around important content)
-                            middle_start = (text_len // 2) - (chunk_size // 2)
-                            middle_end = middle_start + chunk_size
-                            content_context += content.extracted_text[middle_start:middle_end]
-                            content_context += "\n\n[... continuing ...]\n\n"
-                            
-                            # End section (often contains conclusions/summaries)
+                            # End section (important for conclusions/later slides)
                             content_context += content.extracted_text[-chunk_size:]
-                            content_context += f"\n\n[Note: Document contains {text_len} characters total. Showing key sections.]"
+                            content_context += f"\n\n[Note: Document contains {text_len} characters. Showing first and last {chunk_size} characters.]"
                         
                         content_context += "\n\n"
                     
