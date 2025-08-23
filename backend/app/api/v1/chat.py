@@ -164,13 +164,33 @@ NEVER:
                         content_context += f": {content.description}"
                     content_context += "\n"
                     
-                    # Include extracted text for Q&A
+                    # Include extracted text for Q&A with intelligent handling
                     if content.extracted_text:
                         content_context += f"\nContent from '{content.title}':\n"
-                        # Include up to 10000 chars of extracted text per document (increased from 2000)
-                        content_context += content.extracted_text[:10000]
-                        if len(content.extracted_text) > 10000:
-                            content_context += "...[truncated]"
+                        
+                        # Use full content for documents under 15000 chars
+                        if len(content.extracted_text) <= 15000:
+                            content_context += content.extracted_text
+                        else:
+                            # For larger documents, include beginning, middle, and end sections
+                            # This ensures we don't miss important content that might be at the end
+                            text_len = len(content.extracted_text)
+                            chunk_size = 5000
+                            
+                            # Beginning section
+                            content_context += content.extracted_text[:chunk_size]
+                            content_context += "\n\n[... middle section omitted for brevity ...]\n\n"
+                            
+                            # Middle section (around important content)
+                            middle_start = (text_len // 2) - (chunk_size // 2)
+                            middle_end = middle_start + chunk_size
+                            content_context += content.extracted_text[middle_start:middle_end]
+                            content_context += "\n\n[... continuing ...]\n\n"
+                            
+                            # End section (often contains conclusions/summaries)
+                            content_context += content.extracted_text[-chunk_size:]
+                            content_context += f"\n\n[Note: Document contains {text_len} characters total. Showing key sections.]"
+                        
                         content_context += "\n\n"
                     
                     # Include AI summary if available
@@ -486,13 +506,33 @@ NEVER:
                         content_context += f": {content.description}"
                     content_context += "\n"
                     
-                    # Include extracted text for Q&A
+                    # Include extracted text for Q&A with intelligent handling
                     if content.extracted_text:
                         content_context += f"\nContent from '{content.title}':\n"
-                        # Include up to 10000 chars of extracted text per document (increased from 2000)
-                        content_context += content.extracted_text[:10000]
-                        if len(content.extracted_text) > 10000:
-                            content_context += "...[truncated]"
+                        
+                        # Use full content for documents under 15000 chars
+                        if len(content.extracted_text) <= 15000:
+                            content_context += content.extracted_text
+                        else:
+                            # For larger documents, include beginning, middle, and end sections
+                            # This ensures we don't miss important content that might be at the end
+                            text_len = len(content.extracted_text)
+                            chunk_size = 5000
+                            
+                            # Beginning section
+                            content_context += content.extracted_text[:chunk_size]
+                            content_context += "\n\n[... middle section omitted for brevity ...]\n\n"
+                            
+                            # Middle section (around important content)
+                            middle_start = (text_len // 2) - (chunk_size // 2)
+                            middle_end = middle_start + chunk_size
+                            content_context += content.extracted_text[middle_start:middle_end]
+                            content_context += "\n\n[... continuing ...]\n\n"
+                            
+                            # End section (often contains conclusions/summaries)
+                            content_context += content.extracted_text[-chunk_size:]
+                            content_context += f"\n\n[Note: Document contains {text_len} characters total. Showing key sections.]"
+                        
                         content_context += "\n\n"
                     
                     # Include AI summary if available
