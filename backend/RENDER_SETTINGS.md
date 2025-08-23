@@ -7,8 +7,11 @@ Last updated: 2025-08-08
 
 ### Root Directory
 ```
-project/backend
+backend
 ```
+**IMPORTANT**: Use `backend` in Render dashboard (NOT `project/backend`)
+- render.yaml uses `project/backend` for auto-deploy from GitHub
+- Dashboard setting should be just `backend` when manually configured
 
 ### Build Command
 ```
