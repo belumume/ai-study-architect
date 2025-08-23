@@ -59,8 +59,9 @@ class Settings(BaseSettings):
     CELERY_RESULT_BACKEND: Optional[str] = None
     
     # CORS - Use str and parse in validator
+    # Default is for production - localhost should ONLY be added via env vars in development
     BACKEND_CORS_ORIGINS: Union[str, List[str]] = Field(
-        default="http://localhost:3000,http://localhost:5173,https://www.aistudyarchitect.com,https://aistudyarchitect.com,https://ai-study-architect.vercel.app",
+        default="https://www.aistudyarchitect.com,https://aistudyarchitect.com,https://ai-study-architect.vercel.app",
         description="Comma-separated list of allowed origins"
     )
     
