@@ -92,12 +92,14 @@ class ClaudeService:
         for msg in messages:
             if msg["role"] == "system":
                 # Combine multiple system messages if present
-                if system_message:
-                    system_message += "\n\n" + msg["content"]
-                else:
-                    system_message = msg["content"]
+                if isinstance(msg["content"], str):
+                    if system_message:
+                        system_message += "\n\n" + msg["content"]
+                    else:
+                        system_message = msg["content"]
             else:
                 # Claude uses "user" and "assistant" roles
+                # Content can be string or array (for vision API)
                 claude_messages.append({
                     "role": msg["role"],
                     "content": msg["content"]

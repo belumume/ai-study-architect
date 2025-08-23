@@ -105,6 +105,10 @@ DESCRIPTION:
             # Call Claude Vision API
             messages = [
                 {
+                    "role": "system",
+                    "content": "You are a vision AI extracting content from educational materials."
+                },
+                {
                     "role": "user",
                     "content": [
                         {
@@ -125,12 +129,11 @@ DESCRIPTION:
             
             response = await claude_service.chat_completion(
                 messages=messages,
-                max_tokens=2000,
-                system_prompt="You are a vision AI extracting content from educational materials."
+                max_tokens=2000
             )
             
-            # Parse response
-            content = response.get('content', [{}])[0].get('text', '')
+            # Parse response - claude_service returns {"response": text, ...}
+            content = response.get('response', '')
             
             # Extract sections
             extracted_text = ""
