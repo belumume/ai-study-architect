@@ -224,23 +224,23 @@ class ContentProcessor:
                         try:
                             if hasattr(shape, 'image'):
                                 image_data = shape.image.blob
-                                # Use vision API to extract content
-                                import asyncio
-                                loop = asyncio.new_event_loop()
-                                asyncio.set_event_loop(loop)
-                                extraction = loop.run_until_complete(
-                                    vision_processor.extract_from_image(image_data)
-                                )
-                                loop.close()
+                                # Use synchronous wrapper for vision extraction
+                                logger.info(f"Extracting content from slide {slide_num + 1}, image {image_count}")
+                                extraction = vision_processor.extract_from_image_sync(image_data)
                                 
                                 if extraction['success'] and extraction['text']:
                                     slide_text.append(f"\n[Image {image_count} content:]")
                                     slide_text.append(extraction['text'])
                                     if extraction.get('description'):
                                         slide_text.append(f"[Description: {extraction['description']}]")
+                                    logger.info(f"Successfully extracted content from image {image_count}")
+                                else:
+                                    error_msg = extraction.get('error', 'Unknown error')
+                                    logger.warning(f"Vision extraction failed for image {image_count}: {error_msg}")
+                                    slide_text.append(f"[Image {image_count}: Unable to extract - {error_msg}]")
                         except Exception as e:
-                            logger.warning(f"Could not extract image from slide {slide_num + 1}: {e}")
-                            slide_text.append(f"[Image {image_count}: Unable to extract content]")
+                            logger.error(f"Could not extract image from slide {slide_num + 1}: {e}", exc_info=True)
+                            slide_text.append(f"[Image {image_count}: Unable to extract content - {str(e)}]")
                 
                 if len(slide_text) > 1:  # More than just the slide header
                     text_parts.append('\n'.join(slide_text))
@@ -280,22 +280,20 @@ class ContentProcessor:
                 with open(file_path, 'rb') as f:
                     image_data = f.read()
                 
-                # Use vision API for extraction
-                import asyncio
-                loop = asyncio.new_event_loop()
-                asyncio.set_event_loop(loop)
-                extraction = loop.run_until_complete(
-                    vision_processor.extract_from_image(image_data)
-                )
-                loop.close()
+                # Use synchronous wrapper for vision extraction
+                logger.info(f"Extracting text from image: {file_path.name}")
+                extraction = vision_processor.extract_from_image_sync(image_data)
                 
                 if extraction['success'] and extraction['text']:
                     result = extraction['text']
                     if extraction.get('description'):
                         result += f"\n\n[Image Description: {extraction['description']}]"
+                    logger.info(f"Successfully extracted text from image using {extraction.get('processor', 'unknown')}")
                     return result
+                else:
+                    logger.warning(f"Vision extraction failed: {extraction.get('error', 'Unknown error')}")
             except Exception as e:
-                logger.error(f"Vision AI extraction failed: {e}")
+                logger.error(f"Vision AI extraction failed: {e}", exc_info=True)
         
         # Fallback to local OCR if available
         if HAS_OCR:

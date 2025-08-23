@@ -270,6 +270,46 @@ Return: extracted text, content type, and brief description."""
             "processor": "none"
         }
     
+    def extract_from_image_sync(self, image_data: bytes, use_fallback: bool = True) -> Dict[str, Any]:
+        """
+        Synchronous wrapper for extract_from_image
+        Safe to call from sync contexts like content_processor
+        
+        Args:
+            image_data: Image bytes
+            use_fallback: Try OpenAI if Claude fails
+            
+        Returns:
+            Extracted content and metadata
+        """
+        import asyncio
+        import nest_asyncio
+        
+        # Allow nested event loops (for FastAPI compatibility)
+        nest_asyncio.apply()
+        
+        try:
+            # Try to get existing event loop
+            try:
+                loop = asyncio.get_running_loop()
+                # We're in an async context, create a new loop in thread
+                import concurrent.futures
+                with concurrent.futures.ThreadPoolExecutor() as executor:
+                    future = executor.submit(asyncio.run, self.extract_from_image(image_data, use_fallback))
+                    return future.result()
+            except RuntimeError:
+                # No event loop running, we can run directly
+                return asyncio.run(self.extract_from_image(image_data, use_fallback))
+        except Exception as e:
+            logger.error(f"Sync extraction failed: {e}")
+            return {
+                "success": False,
+                "text": f"Vision extraction error: {str(e)}",
+                "content_type": "error",
+                "description": "Extraction failed",
+                "processor": "none"
+            }
+    
     async def extract_from_pptx_images(self, pptx_path: Path) -> List[Dict[str, Any]]:
         """
         Extract content from all images in a PowerPoint

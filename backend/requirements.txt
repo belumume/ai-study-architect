@@ -66,6 +66,7 @@ python-docx==1.1.0
 python-pptx==0.6.23
 Pillow==10.2.0
 pytesseract==0.3.10  # Stable version
+nest-asyncio==1.6.0  # For async/sync compatibility in vision processing
 
 # Cloud storage for backups
 boto3==1.34.23  # AWS S3 SDK for backup uploads
