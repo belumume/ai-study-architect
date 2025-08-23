@@ -139,7 +139,7 @@ export function ChatInterface({ selectedContent = [] }: ChatInterfaceProps) {
       // Use fetch for streaming response
       // Note: credentials: 'include' is required for cookies but may strip Authorization header
       // Since the endpoint is CSRF-exempt, we can try without credentials
-      const fetchResponse = await fetch(`${api.defaults.baseURL}/api/v1/`, {
+      const fetchResponse = await fetch(`${api.defaults.baseURL}/api/v1/chat`, {
         method: 'POST',
         headers,
         body: JSON.stringify(chatRequest),

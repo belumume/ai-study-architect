@@ -181,16 +181,16 @@ class ContentProcessor:
                 for shape in slide.shapes:
                     if hasattr(shape, "text") and shape.text.strip():
                         slide_text.append(shape.text)
-                
-                # Extract text from tables
-                if shape.has_table:
-                    for row in shape.table.rows:
-                        row_text = []
-                        for cell in row.cells:
-                            if cell.text.strip():
-                                row_text.append(cell.text.strip())
-                        if row_text:
-                            slide_text.append(' | '.join(row_text))
+                    
+                    # Extract text from tables (check inside the shape loop)
+                    if hasattr(shape, 'has_table') and shape.has_table:
+                        for row in shape.table.rows:
+                            row_text = []
+                            for cell in row.cells:
+                                if cell.text.strip():
+                                    row_text.append(cell.text.strip())
+                            if row_text:
+                                slide_text.append(' | '.join(row_text))
                 
                 if len(slide_text) > 1:  # More than just the slide header
                     text_parts.append('\n'.join(slide_text))
