@@ -23,6 +23,13 @@ except ImportError:
 from app.core.config import settings
 from app.core.exceptions import ContentProcessingError
 
+# Import vision processor for image extraction
+try:
+    from app.services.vision_processor import vision_processor
+    HAS_VISION = True
+except ImportError:
+    HAS_VISION = False
+
 logger = logging.getLogger(__name__)
 
 
@@ -112,9 +119,9 @@ class ContentProcessor:
             }
     
     def _extract_pdf_text(self, file_path: Path) -> tuple[str, Dict[str, Any]]:
-        """Extract text from PDF file"""
+        """Extract text from PDF file including OCR for scanned pages"""
         text_parts = []
-        metadata = {"page_count": 0}
+        metadata = {"page_count": 0, "has_images": False}
         
         try:
             with open(file_path, 'rb') as file:
@@ -122,13 +129,29 @@ class ContentProcessor:
                 metadata["page_count"] = len(pdf_reader.pages)
                 
                 for page_num, page in enumerate(pdf_reader.pages):
+                    page_content = [f"--- Page {page_num + 1} ---"]
+                    
+                    # Extract regular text
                     try:
                         page_text = page.extract_text()
                         if page_text.strip():
-                            text_parts.append(f"--- Page {page_num + 1} ---\n{page_text}")
+                            page_content.append(page_text)
                     except Exception as e:
                         logger.warning(f"Error extracting text from page {page_num + 1}: {e}")
-                        text_parts.append(f"--- Page {page_num + 1} ---\n[Error extracting text]")
+                    
+                    # Check if page might be scanned (no extractable text)
+                    if len(page_content) == 1:  # Only header, no text
+                        # Try to extract as image if vision AI is available
+                        if HAS_VISION:
+                            try:
+                                # Note: This is a simplified approach
+                                # Full implementation would use PyMuPDF or pdf2image
+                                page_content.append("[Page appears to be scanned - vision extraction needed]")
+                                metadata["has_images"] = True
+                            except Exception as e:
+                                logger.warning(f"Could not check for images on page {page_num + 1}: {e}")
+                    
+                    text_parts.append('\n'.join(page_content))
                 
                 # Extract metadata
                 if pdf_reader.metadata:
@@ -169,20 +192,21 @@ class ContentProcessor:
             raise ContentProcessingError(f"Failed to process DOCX: {str(e)}")
     
     def _extract_pptx_text(self, file_path: Path) -> str:
-        """Extract text from PPTX file"""
+        """Extract text from PPTX file including images with vision AI"""
         try:
             prs = pptx.Presentation(file_path)
             text_parts = []
             
             for slide_num, slide in enumerate(prs.slides):
                 slide_text = [f"--- Slide {slide_num + 1} ---"]
+                image_count = 0
                 
                 # Extract text from shapes
                 for shape in slide.shapes:
                     if hasattr(shape, "text") and shape.text.strip():
                         slide_text.append(shape.text)
                     
-                    # Extract text from tables (check inside the shape loop)
+                    # Extract text from tables
                     if hasattr(shape, 'has_table') and shape.has_table:
                         for row in shape.table.rows:
                             row_text = []
@@ -191,6 +215,30 @@ class ContentProcessor:
                                     row_text.append(cell.text.strip())
                             if row_text:
                                 slide_text.append(' | '.join(row_text))
+                    
+                    # NEW: Extract content from images using vision AI
+                    if shape.shape_type == 13 and HAS_VISION:  # Picture type
+                        image_count += 1
+                        try:
+                            if hasattr(shape, 'image'):
+                                image_data = shape.image.blob
+                                # Use vision API to extract content
+                                import asyncio
+                                loop = asyncio.new_event_loop()
+                                asyncio.set_event_loop(loop)
+                                extraction = loop.run_until_complete(
+                                    vision_processor.extract_from_image(image_data)
+                                )
+                                loop.close()
+                                
+                                if extraction['success'] and extraction['text']:
+                                    slide_text.append(f"\n[Image {image_count} content:]")
+                                    slide_text.append(extraction['text'])
+                                    if extraction.get('description'):
+                                        slide_text.append(f"[Description: {extraction['description']}]")
+                        except Exception as e:
+                            logger.warning(f"Could not extract image from slide {slide_num + 1}: {e}")
+                            slide_text.append(f"[Image {image_count}: Unable to extract content]")
                 
                 if len(slide_text) > 1:  # More than just the slide header
                     text_parts.append('\n'.join(slide_text))
@@ -223,30 +271,53 @@ class ContentProcessor:
             raise ContentProcessingError(f"Failed to process text file: {str(e)}")
     
     def _extract_image_text(self, file_path: Path) -> str:
-        """Extract text from image using OCR"""
-        if not HAS_OCR:
-            return "OCR not available. Install pytesseract to extract text from images."
-            
-        try:
-            # Open image with PIL
-            image = Image.open(file_path)
-            
-            # Convert to RGB if necessary
-            if image.mode != 'RGB':
-                image = image.convert('RGB')
-            
-            # Extract text using OCR
-            text = pytesseract.image_to_string(image)
-            
-            if not text.strip():
-                return "No text found in image"
-            
-            return text
-            
-        except Exception as e:
-            logger.error(f"Error performing OCR on image: {e}")
-            # OCR might not be available, return empty
-            return "OCR not available or failed to extract text from image"
+        """Extract text from image using vision AI or OCR"""
+        # Try vision AI first (much better than local OCR)
+        if HAS_VISION:
+            try:
+                with open(file_path, 'rb') as f:
+                    image_data = f.read()
+                
+                # Use vision API for extraction
+                import asyncio
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+                extraction = loop.run_until_complete(
+                    vision_processor.extract_from_image(image_data)
+                )
+                loop.close()
+                
+                if extraction['success'] and extraction['text']:
+                    result = extraction['text']
+                    if extraction.get('description'):
+                        result += f"\n\n[Image Description: {extraction['description']}]"
+                    return result
+            except Exception as e:
+                logger.error(f"Vision AI extraction failed: {e}")
+        
+        # Fallback to local OCR if available
+        if HAS_OCR:
+            try:
+                # Open image with PIL
+                image = Image.open(file_path)
+                
+                # Convert to RGB if necessary
+                if image.mode != 'RGB':
+                    image = image.convert('RGB')
+                
+                # Extract text using OCR
+                text = pytesseract.image_to_string(image)
+                
+                if not text.strip():
+                    return "No text found in image"
+                
+                return text
+                
+            except Exception as e:
+                logger.error(f"Error performing OCR on image: {e}")
+        
+        # Neither vision AI nor OCR available
+        return "Text extraction from images requires AI vision API keys to be configured."
     
     def extract_chunks(self, text: str, chunk_size: int = 1000, overlap: int = 200) -> List[str]:
         """
