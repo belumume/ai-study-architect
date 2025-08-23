@@ -167,9 +167,9 @@ NEVER:
                     # Include extracted text for Q&A
                     if content.extracted_text:
                         content_context += f"\nContent from '{content.title}':\n"
-                        # Include up to 2000 chars of extracted text per document
-                        content_context += content.extracted_text[:2000]
-                        if len(content.extracted_text) > 2000:
+                        # Include up to 10000 chars of extracted text per document (increased from 2000)
+                        content_context += content.extracted_text[:10000]
+                        if len(content.extracted_text) > 10000:
                             content_context += "...[truncated]"
                         content_context += "\n\n"
                     
@@ -489,9 +489,9 @@ NEVER:
                     # Include extracted text for Q&A
                     if content.extracted_text:
                         content_context += f"\nContent from '{content.title}':\n"
-                        # Include up to 2000 chars of extracted text per document
-                        content_context += content.extracted_text[:2000]
-                        if len(content.extracted_text) > 2000:
+                        # Include up to 10000 chars of extracted text per document (increased from 2000)
+                        content_context += content.extracted_text[:10000]
+                        if len(content.extracted_text) > 10000:
                             content_context += "...[truncated]"
                         content_context += "\n\n"
                     
@@ -678,7 +678,7 @@ async def answer_content_question(
                     text_to_add = content.extracted_text[:available_chars]
                 else:
                     # Use first portion of text
-                    text_to_add = content.extracted_text[:min(2000, available_chars)]
+                    text_to_add = content.extracted_text[:min(10000, available_chars)]
                 
                 context_parts.append(f"\nContent from '{content.title}':\n{text_to_add}")
                 total_chars += len(text_to_add)
