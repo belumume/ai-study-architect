@@ -12,7 +12,14 @@ from PIL import Image
 
 from app.core.config import settings
 from app.services.claude_service import claude_service
-from app.services.openai_service import openai_service
+
+# OpenAI service will be imported only if needed
+try:
+    from app.services.openai_service import openai_service
+    HAS_OPENAI = True
+except ImportError:
+    HAS_OPENAI = False
+    openai_service = None
 
 logger = logging.getLogger(__name__)
 
@@ -249,7 +256,7 @@ Return: extracted text, content type, and brief description."""
                 return result
         
         # Fallback to OpenAI
-        if use_fallback and settings.OPENAI_API_KEY:
+        if use_fallback and HAS_OPENAI and settings.OPENAI_API_KEY:
             result = await self.extract_with_openai(image_data)
             if result["success"]:
                 return result
