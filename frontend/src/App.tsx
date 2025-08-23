@@ -205,7 +205,7 @@ function HomePage() {
 
 function StudyPage() {
   const [selectedContent, setSelectedContent] = useState<{ id: string; title: string }[]>([])
-  const [mobileTab, setMobileTab] = useState(0)
+  const [mobileTab, setMobileTab] = useState(1) // Default to Chat tab
   const theme = useTheme()
   const isMobile = useMediaQuery(theme.breakpoints.down('md'))
 
@@ -233,7 +233,6 @@ function StudyPage() {
             <Tab 
               icon={<ChatBubbleOutline />}
               label="Chat" 
-              disabled={selectedContent.length === 0}
             />
           </Tabs>
         </Paper>
@@ -243,10 +242,10 @@ function StudyPage() {
           {mobileTab === 0 && (
             <Box>
               <Typography variant="h6" gutterBottom>
-                Select Study Materials
+                Select Study Materials (Optional)
               </Typography>
               <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                Choose content to discuss with your AI tutor
+                Add content to discuss with your AI tutor, or chat freely without materials
               </Typography>
               <ContentSelector 
                 onSelectionChange={setSelectedContent} 
@@ -260,7 +259,7 @@ function StudyPage() {
                     onClick={() => setMobileTab(1)}
                     startIcon={<ChatBubbleOutline />}
                   >
-                    Start Chat ({selectedContent.length} file{selectedContent.length !== 1 ? 's' : ''} selected)
+                    Back to Chat ({selectedContent.length} file{selectedContent.length !== 1 ? 's' : ''} selected)
                   </Button>
                 </Box>
               )}
@@ -280,10 +279,10 @@ function StudyPage() {
       {/* Left side - Content Selection */}
       <Paper elevation={3} sx={{ flex: '0 0 350px', p: 2, overflow: 'auto' }}>
         <Typography variant="h6" gutterBottom>
-          Select Study Materials
+          Study Materials (Optional)
         </Typography>
         <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-          Choose content to discuss with your AI tutor
+          Add content to enhance your chat, or start chatting directly
         </Typography>
         <ContentSelector 
           onSelectionChange={setSelectedContent} 
@@ -291,7 +290,7 @@ function StudyPage() {
         />
       </Paper>
 
-      {/* Right side - Chat Interface */}
+      {/* Right side - Chat Interface (Primary) */}
       <Box sx={{ flex: 1 }}>
         <ChatInterface selectedContent={selectedContent} />
       </Box>
