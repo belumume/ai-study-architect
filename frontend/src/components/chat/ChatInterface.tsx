@@ -133,6 +133,7 @@ export function ChatInterface({ selectedContent = [] }: ChatInterfaceProps) {
       
       // Debug logging
       console.log('Access token from localStorage:', accessToken ? 'Found' : 'Missing')
+      console.log('Access token value:', accessToken ? `${accessToken.substring(0, 20)}...` : 'null')
       console.log('CSRF token from localStorage:', localStorage.getItem('csrf_token') ? 'Found' : 'Missing')
       
       const headers: HeadersInit = {
@@ -143,8 +144,12 @@ export function ChatInterface({ selectedContent = [] }: ChatInterfaceProps) {
       // Only add Authorization header if token exists
       if (accessToken) {
         headers['Authorization'] = `Bearer ${accessToken}`
+        console.log('Authorization header added:', headers['Authorization'].substring(0, 30) + '...')
+      } else {
+        console.log('No access token - Authorization header NOT added')
       }
       
+      console.log('Sending request with headers:', headers)
       const response = await fetch(`${apiUrl}/api/v1/`, {
         method: 'POST',
         headers,
