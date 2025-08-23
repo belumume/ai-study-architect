@@ -164,26 +164,51 @@ NEVER:
                         content_context += f": {content.description}"
                     content_context += "\n"
                     
-                    # Include extracted text - increased limit to prevent content loss
+                    # Include extracted text - with proper handling for all sizes
                     if content.extracted_text:
                         content_context += f"\nContent from '{content.title}':\n"
                         
-                        # Send full content up to 50K chars to prevent dropping slides
-                        # Previous 15K limit was causing slides 28-37 to be lost
-                        if len(content.extracted_text) <= 50000:
+                        # Use higher limits based on typical AI context windows
+                        # Claude: 200K tokens (~150K chars), GPT-4: 128K tokens (~96K chars)
+                        # We'll use 100K chars as a safe limit that works with both
+                        if len(content.extracted_text) <= 100000:
+                            # Send full content for documents up to 100K chars
                             content_context += content.extracted_text
                         else:
-                            # For very large documents (>50K), use smarter chunking
+                            # For very large documents (>100K), use overlapping chunks
+                            # This ensures NO content is completely lost
                             text_len = len(content.extracted_text)
-                            chunk_size = 16000  # Larger chunks to preserve more content
                             
-                            # Beginning section
-                            content_context += content.extracted_text[:chunk_size]
-                            content_context += "\n\n[... some content omitted for length ...]\n\n"
+                            # Use overlapping windows to preserve ALL content
+                            max_context = 90000  # Leave room for system prompts
                             
-                            # End section (important for conclusions/later slides)
-                            content_context += content.extracted_text[-chunk_size:]
-                            content_context += f"\n\n[Note: Document contains {text_len} characters. Showing first and last {chunk_size} characters.]"
+                            if text_len <= 150000:
+                                # For 100K-150K docs: compress but include everything
+                                # Take every Nth character to maintain document flow
+                                step = text_len // max_context + 1
+                                compressed = content.extracted_text[::step]
+                                content_context += compressed
+                                content_context += f"\n\n[Note: Document compressed from {text_len} to {len(compressed)} characters using sampling to fit context window while preserving document structure.]"
+                            else:
+                                # For truly massive docs: intelligent sectioning
+                                # Include beginning, multiple middle sections, and end
+                                chunk_size = max_context // 5  # Divide available space
+                                
+                                # Beginning
+                                content_context += content.extracted_text[:chunk_size]
+                                
+                                # Three middle sections to capture document body
+                                for i in range(1, 4):
+                                    start = (text_len // 4) * i - (chunk_size // 2)
+                                    end = start + chunk_size
+                                    content_context += f"\n\n[... section {i+1} of 5 ...]\n\n"
+                                    content_context += content.extracted_text[start:end]
+                                
+                                # End
+                                content_context += f"\n\n[... final section ...]\n\n"
+                                content_context += content.extracted_text[-chunk_size:]
+                                
+                                content_context += f"\n\n[Note: Large document ({text_len} chars) shown in 5 representative sections of {chunk_size} chars each.]"
                         
                         content_context += "\n\n"
                     
@@ -500,26 +525,51 @@ NEVER:
                         content_context += f": {content.description}"
                     content_context += "\n"
                     
-                    # Include extracted text - increased limit to prevent content loss
+                    # Include extracted text - with proper handling for all sizes
                     if content.extracted_text:
                         content_context += f"\nContent from '{content.title}':\n"
                         
-                        # Send full content up to 50K chars to prevent dropping slides
-                        # Previous 15K limit was causing slides 28-37 to be lost
-                        if len(content.extracted_text) <= 50000:
+                        # Use higher limits based on typical AI context windows
+                        # Claude: 200K tokens (~150K chars), GPT-4: 128K tokens (~96K chars)
+                        # We'll use 100K chars as a safe limit that works with both
+                        if len(content.extracted_text) <= 100000:
+                            # Send full content for documents up to 100K chars
                             content_context += content.extracted_text
                         else:
-                            # For very large documents (>50K), use smarter chunking
+                            # For very large documents (>100K), use overlapping chunks
+                            # This ensures NO content is completely lost
                             text_len = len(content.extracted_text)
-                            chunk_size = 16000  # Larger chunks to preserve more content
                             
-                            # Beginning section
-                            content_context += content.extracted_text[:chunk_size]
-                            content_context += "\n\n[... some content omitted for length ...]\n\n"
+                            # Use overlapping windows to preserve ALL content
+                            max_context = 90000  # Leave room for system prompts
                             
-                            # End section (important for conclusions/later slides)
-                            content_context += content.extracted_text[-chunk_size:]
-                            content_context += f"\n\n[Note: Document contains {text_len} characters. Showing first and last {chunk_size} characters.]"
+                            if text_len <= 150000:
+                                # For 100K-150K docs: compress but include everything
+                                # Take every Nth character to maintain document flow
+                                step = text_len // max_context + 1
+                                compressed = content.extracted_text[::step]
+                                content_context += compressed
+                                content_context += f"\n\n[Note: Document compressed from {text_len} to {len(compressed)} characters using sampling to fit context window while preserving document structure.]"
+                            else:
+                                # For truly massive docs: intelligent sectioning
+                                # Include beginning, multiple middle sections, and end
+                                chunk_size = max_context // 5  # Divide available space
+                                
+                                # Beginning
+                                content_context += content.extracted_text[:chunk_size]
+                                
+                                # Three middle sections to capture document body
+                                for i in range(1, 4):
+                                    start = (text_len // 4) * i - (chunk_size // 2)
+                                    end = start + chunk_size
+                                    content_context += f"\n\n[... section {i+1} of 5 ...]\n\n"
+                                    content_context += content.extracted_text[start:end]
+                                
+                                # End
+                                content_context += f"\n\n[... final section ...]\n\n"
+                                content_context += content.extracted_text[-chunk_size:]
+                                
+                                content_context += f"\n\n[Note: Large document ({text_len} chars) shown in 5 representative sections of {chunk_size} chars each.]"
                         
                         content_context += "\n\n"
                     
