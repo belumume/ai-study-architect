@@ -11,7 +11,6 @@ from app.api.v1.admin import router as admin_router
 from app.api.v1.chat import router as chat_router
 from app.api.v1.agents import router as agents_router
 from app.api.v1.endpoints.backup import router as backup_router
-from app.api.v1.debug import router as debug_router  # TEMPORARY - REMOVE IN PRODUCTION
 
 api_router = APIRouter()
 
@@ -24,4 +23,3 @@ api_router.include_router(chat_router, tags=["chat"])
 api_router.include_router(agents_router, tags=["agents"])
 api_router.include_router(admin_router, prefix="/admin", tags=["admin"])
 api_router.include_router(backup_router, prefix="/backup", tags=["maintenance"])
-api_router.include_router(debug_router, prefix="/debug", tags=["debug"])  # TEMPORARY
