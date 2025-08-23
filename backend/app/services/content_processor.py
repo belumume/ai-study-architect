@@ -23,14 +23,16 @@ except ImportError:
 from app.core.config import settings
 from app.core.exceptions import ContentProcessingError
 
+logger = logging.getLogger(__name__)
+
 # Import vision processor for image extraction
 try:
     from app.services.vision_processor import vision_processor
     HAS_VISION = True
-except ImportError:
+    logger.info("Vision processor imported successfully")
+except ImportError as e:
     HAS_VISION = False
-
-logger = logging.getLogger(__name__)
+    logger.warning(f"Vision processor not available: {e}")
 
 
 class ContentProcessor:
