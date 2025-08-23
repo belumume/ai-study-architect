@@ -123,10 +123,10 @@ DESCRIPTION:
                 }
             ]
             
-            response = await claude_service.create_completion(
+            response = await claude_service.chat_completion(
                 messages=messages,
                 max_tokens=2000,
-                system="You are a vision AI extracting content from educational materials."
+                system_prompt="You are a vision AI extracting content from educational materials."
             )
             
             # Parse response
