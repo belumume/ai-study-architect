@@ -15,10 +15,18 @@ class OpenAIFallbackService:
     """Fallback to OpenAI when Claude is not available"""
     
     def __init__(self):
-        self.api_key = os.getenv("OPENAI_API_KEY")
         self.model = os.getenv("OPENAI_MODEL", "gpt-3.5-turbo")
         self.base_url = "https://api.openai.com/v1"
-        self.enabled = bool(self.api_key)
+    
+    @property
+    def api_key(self):
+        """Get API key at runtime, not import time"""
+        return os.getenv("OPENAI_API_KEY")
+    
+    @property
+    def enabled(self):
+        """Check if service is enabled at runtime"""
+        return bool(self.api_key)
         
     async def chat_completion(
         self,
