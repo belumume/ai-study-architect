@@ -275,6 +275,8 @@ export function ChatInterface({ selectedContent = [] }: ChatInterfaceProps) {
         setMessages(prev => [...prev, assistantMessage as Message])
 
         if (reader) {
+          let buffer = ''
+          
           while (true) {
           const { done, value } = await reader.read()
           if (done) {
@@ -282,8 +284,13 @@ export function ChatInterface({ selectedContent = [] }: ChatInterfaceProps) {
             break
           }
 
-          const chunk = decoder.decode(value)
-          const lines = chunk.split('\n')
+          // Use stream: true to handle partial UTF-8 sequences
+          const chunk = decoder.decode(value, { stream: true })
+          buffer += chunk
+          const lines = buffer.split('\n')
+          
+          // Keep the last line in buffer if it's incomplete
+          buffer = lines.pop() || ''
 
           for (const line of lines) {
             if (line.startsWith('data: ')) {
