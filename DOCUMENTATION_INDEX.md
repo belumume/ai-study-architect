@@ -1,85 +1,122 @@
 # Documentation Index
 
-## Core Documentation
+## 📚 Core Documentation
 
 ### Project Overview
-- **README.md** - Main project introduction and features
-- **CLAUDE.md** - AI assistant guidelines and development commands
-- **CLAUDE.local.md** - Private local instructions (not in git)
+- **[README.md](README.md)** - CS50 final project submission, overview, and features
+- **[CLAUDE.md](CLAUDE.md)** - Claude Code development guidance and commands
+- **[CLAUDE.local.md](CLAUDE.local.md)** - Private development principles (not in git)
+
+### Development & Operations
+- **[DEVELOPMENT.md](DEVELOPMENT.md)** - Local setup, testing, and development workflow
+- **[DEPLOYMENT.md](DEPLOYMENT.md)** - Production deployment, monitoring, and operations
+- **[TROUBLESHOOTING.md](TROUBLESHOOTING.md)** - Common issues and solutions
 
 ### Security & Backup
-- **SECURITY.md** - Security implementation details
-- **BACKUP_SECURITY.md** - Backup system security architecture
-- **BACKUP_SETUP.md** - Backup configuration guide
-- **RENDER_MCP_SECURITY.md** - MCP Server security safeguards ⚠️ NEW
+- **[SECURITY.md](SECURITY.md)** - Security implementation details
+- **[SECURITY_ASSESSMENT_2025.md](SECURITY_ASSESSMENT_2025.md)** - Latest security audit
+- **[BACKUP_SECURITY.md](BACKUP_SECURITY.md)** - Backup system architecture
+- **[BACKUP_SETUP.md](BACKUP_SETUP.md)** - Backup configuration guide
+- **[RENDER_MCP_SECURITY.md](RENDER_MCP_SECURITY.md)** - MCP Server security safeguards
 
-### Infrastructure & Deployment
-- **PRODUCTION_NOTES.md** - Production deployment details
-- **TROUBLESHOOTING.md** - Comprehensive troubleshooting guide ⚠️ NEW
-- **vercel.json** - Frontend routing configuration
+## 🛠️ Configuration Files
 
-## Scripts Documentation
-
-### Backup & Recovery Scripts
-- **scripts/backup_env_vars.py** - Environment variable backup script
-- **scripts/secure_backup_options.py** - Multiple backup strategies
-- **scripts/env_vars_criticality_analysis.md** - Analysis of which env vars need backup ⚠️ IMPORTANT
-- **scripts/proton_pass_backup_guide.md** - Guide for Proton Pass backup
-
-### Deployment Scripts
+### Backend
+- **backend/requirements.txt** - Python dependencies
+- **backend/alembic.ini** - Database migration config
 - **backend/build_starter.sh** - Render build script
 - **backend/start_render.sh** - Render startup script
-- **scripts/tag_version.sh** - Version tagging utility
+- **.env.example** - Environment variable template
 
-## Key Insights from Latest Updates
+### Frontend
+- **frontend/package.json** - Node dependencies
+- **frontend/vite.config.ts** - Vite configuration
+- **frontend/tsconfig.json** - TypeScript configuration
+- **frontend/vercel.json** - Vercel deployment config
 
-### Environment Variables
-- **CRITICAL**: Only `BACKUP_ENCRYPTION_KEY` truly needs backup (stored in Proton Pass)
-- **Recoverable**: All API keys can be regenerated in minutes
-- **Auto-managed**: DATABASE_URL is managed by Render
+### CI/CD
+- **.github/workflows/** - GitHub Actions workflows
+- **.pre-commit-config.yaml** - Pre-commit hooks
+- **.gitignore** - Git ignore patterns
 
-### MCP Server Setup
-- **Installed**: Render MCP Server via Claude Code
-- **Safe Operations**: list_services, list_logs, get_metrics
-- **Dangerous Operations**: update_environment_variables (use with extreme caution)
-- **Security**: See RENDER_MCP_SECURITY.md for safeguards
+## 📂 Project Structure
+
+```
+project/
+├── backend/           # FastAPI backend
+│   ├── app/          # Application code
+│   ├── tests/        # Test suites
+│   └── scripts/      # Utility scripts
+├── frontend/         # React frontend
+│   ├── src/          # Source code
+│   ├── tests/        # Test suites
+│   └── dist/         # Build output
+├── scripts/          # Project-wide scripts
+└── docs/             # Additional documentation
+```
+
+## 🔑 Key Information
 
 ### Current Infrastructure
-- **Backend**: Render Starter ($7/month) - https://ai-study-architect.onrender.com
-- **Frontend**: Vercel (free tier) - Same URL via proxy
-- **Database**: PostgreSQL Basic-256mb ($6/month, expires Sept 6, 2025)
-- **Backups**: Dual-provider (R2 daily, S3 weekly)
+- **Backend**: Render Starter ($7/month)
+- **Frontend**: Vercel (free tier)
+- **Database**: PostgreSQL Basic-256mb ($6/month)
+- **Domain**: aistudyarchitect.com
+- **Backups**: R2 (daily) + S3 (weekly)
 
-## Quick Reference Paths
+### Critical Environment Variables
+- **Must Backup**: `BACKUP_ENCRYPTION_KEY` (in password manager)
+- **Recoverable**: All API keys (can regenerate)
+- **Auto-managed**: `DATABASE_URL` (by Render)
 
-### For Development
-1. Start here: **CLAUDE.md** (commands and setup)
-2. Security concerns: **RENDER_MCP_SECURITY.md**
-3. Deployment issues: **PRODUCTION_NOTES.md**
+### Quick Commands
+```bash
+# Local development
+cd backend && uvicorn app.main:app --reload
+cd frontend && npm run dev
 
-### For Backup/Recovery
-1. What needs backup: **scripts/env_vars_criticality_analysis.md**
-2. How to backup: **scripts/proton_pass_backup_guide.md**
-3. Backup system: **BACKUP_SECURITY.md**
+# Testing
+cd backend && pytest tests/
+cd frontend && npm test
 
-### For New Contributors
-1. Project overview: **README.md**
-2. Development setup: **CLAUDE.md**
-3. Security practices: **SECURITY.md**
+# Deployment (automatic on push)
+git push origin main
+```
 
-## Documentation Maintenance
+## 📝 Documentation Updates
 
-Last comprehensive review: 2025-08-23
-- Added MCP Server documentation
-- Clarified environment variable criticality
-- Updated deployment URLs
-- Removed reference to non-existent RENDER_SETTINGS.md
-- Added comprehensive TROUBLESHOOTING.md guide
-- Documented streaming and API key loading fixes
+### Latest Changes (2025-08-24)
+- Consolidated deployment docs into DEPLOYMENT.md
+- Created DEVELOPMENT.md for developer guide
+- Cleaned up redundant files
+- Fixed double scrollbar in Study Materials panel
+- Fixed FAB badge counting issue during streaming
 
-## Notes
+### Maintenance Schedule
+- **Weekly**: Review error logs
+- **Monthly**: Test backup restoration
+- **Quarterly**: Rotate API keys
+- **Yearly**: Security audit
 
-- Frontend deployment is on Vercel, not Render (common confusion point)
-- Pre-Deploy command in Render MUST be empty
-- Windows PostgreSQL uses port 5433 (not 5432)
-- Redis/Upstash removed - using MockRedisClient fallback
+## 🚀 Quick Start Guides
+
+### For New Developers
+1. Read [DEVELOPMENT.md](DEVELOPMENT.md)
+2. Review [CLAUDE.md](CLAUDE.md)
+3. Check [TROUBLESHOOTING.md](TROUBLESHOOTING.md)
+
+### For Operations
+1. Read [DEPLOYMENT.md](DEPLOYMENT.md)
+2. Review [BACKUP_SETUP.md](BACKUP_SETUP.md)
+3. Check monitoring dashboards
+
+### For Security Review
+1. Read [SECURITY.md](SECURITY.md)
+2. Review [SECURITY_ASSESSMENT_2025.md](SECURITY_ASSESSMENT_2025.md)
+3. Check [RENDER_MCP_SECURITY.md](RENDER_MCP_SECURITY.md)
+
+## 📞 Support
+
+- **GitHub Issues**: https://github.com/belumume/ai-study-architect/issues
+- **API Docs**: https://ai-study-architect.onrender.com/docs
+- **Live App**: https://aistudyarchitect.com
