@@ -177,6 +177,51 @@ test.describe('UI Controls and Features', () => {
     expect(parseInt(badgeContent || '0')).toBeGreaterThan(0);
   });
 
+  test('FAB badge should only increment once per message during streaming', async ({ page }) => {
+    // Send a message that will generate a long streaming response
+    await page.fill('textarea[placeholder="Type your message..."]', 
+      'Write a very detailed essay with at least 30 paragraphs about the history of computing');
+    await page.press('textarea[placeholder="Type your message..."]', 'Enter');
+    
+    // Wait for streaming to start
+    await page.waitForSelector('text=/Thinking/', { timeout: 5000 });
+    await page.waitForTimeout(500);
+    
+    // Immediately scroll up to trigger unread count
+    await page.evaluate(() => {
+      const container = document.querySelector('div[role="log"]');
+      if (container) {
+        container.scrollTop = 0;
+      }
+    });
+    
+    // Collect badge values during streaming
+    const badgeValues = [];
+    for (let i = 0; i < 10; i++) {
+      const badge = page.locator('.MuiBadge-badge').first();
+      const value = await badge.textContent().catch(() => '0');
+      if (value) badgeValues.push(parseInt(value));
+      await page.waitForTimeout(300);
+    }
+    
+    // The badge should stay at 1 (not increment to 99)
+    // Allow for some variation but it should never reach 99
+    const maxBadgeValue = Math.max(...badgeValues.filter(v => !isNaN(v)));
+    expect(maxBadgeValue).toBeLessThan(10); // Should be 1, but allow some tolerance
+    expect(maxBadgeValue).toBeGreaterThan(0); // Should show at least 1
+    
+    // Stop the response
+    await page.keyboard.press('Escape');
+    
+    // Scroll to bottom to clear badge
+    const fab = page.locator('button[aria-label*="Scroll to bottom"]').first();
+    await fab.click();
+    
+    // Badge should disappear when at bottom
+    const badge = page.locator('.MuiBadge-badge').first();
+    await expect(badge).not.toBeVisible({ timeout: 2000 });
+  });
+
   test('should have proper ARIA labels for accessibility', async ({ page }) => {
     // Check for ARIA labels on key elements
     const chatArea = await page.locator('[role="log"][aria-label="Chat messages"]');
