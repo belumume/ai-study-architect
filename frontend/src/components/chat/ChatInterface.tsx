@@ -94,10 +94,7 @@ export function ChatInterface({ selectedContent = [] }: ChatInterfaceProps) {
       if (distanceFromBottom > threshold) {
         userHasScrolledUp.current = true
         setShowScrollToBottom(true)
-        // Track unread messages when scrolled up
-        if (isStreamingRef.current) {
-          setUnreadCount(prev => prev + 1)
-        }
+        // Don't increment unread count here - only when new content arrives
       }
       // Only clear the flag if very close to bottom and not streaming
       else if (distanceFromBottom < 5 && !isStreamingRef.current) {
@@ -296,6 +293,11 @@ export function ChatInterface({ selectedContent = [] }: ChatInterfaceProps) {
                         : msg
                     )
                   )
+                  
+                  // Increment unread count if user has scrolled up
+                  if (userHasScrolledUp.current && data.content.trim()) {
+                    setUnreadCount(prev => Math.min(prev + 1, 99))
+                  }
                   
                   // Only scroll if user hasn't manually scrolled up
                   if (!userHasScrolledUp.current && messagesContainerRef.current) {
@@ -558,25 +560,27 @@ export function ChatInterface({ selectedContent = [] }: ChatInterfaceProps) {
         
         <div ref={messagesEndRef} />
         
-        {/* Scroll to Bottom FAB */}
-        <Zoom in={showScrollToBottom}>
-          <Fab
-            color="primary"
-            size="small"
-            onClick={handleScrollToBottom}
-            aria-label={unreadCount > 0 ? `Scroll to bottom, ${unreadCount} unread messages` : 'Scroll to bottom'}
-            sx={{
-              position: 'absolute',
-              bottom: 16,
-              right: 16,
-            }}
-          >
-            <Badge badgeContent={unreadCount} color="error">
-              <KeyboardArrowDown />
-            </Badge>
-          </Fab>
-        </Zoom>
       </Box>
+      
+      {/* Scroll to Bottom FAB - Outside scrollable container */}
+      <Zoom in={showScrollToBottom}>
+        <Fab
+          color="primary"
+          size="small"
+          onClick={handleScrollToBottom}
+          aria-label={unreadCount > 0 ? `Scroll to bottom, ${unreadCount} unread messages` : 'Scroll to bottom'}
+          sx={{
+            position: 'fixed',
+            bottom: isMobile ? 80 : 100,
+            right: isMobile ? 16 : 32,
+            zIndex: 1000,
+          }}
+        >
+          <Badge badgeContent={unreadCount} color="error">
+            <KeyboardArrowDown />
+          </Badge>
+        </Fab>
+      </Zoom>
 
       <Divider />
 
