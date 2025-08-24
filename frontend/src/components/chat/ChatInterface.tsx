@@ -11,6 +11,8 @@ import {
   CircularProgress,
   Chip,
   Alert,
+  useTheme,
+  useMediaQuery,
 } from '@mui/material'
 import {
   Send,
@@ -57,6 +59,10 @@ export function ChatInterface({ selectedContent = [] }: ChatInterfaceProps) {
   const messagesContainerRef = useRef<HTMLDivElement>(null)
   const isStreamingRef = useRef(false)
   const userHasScrolledUp = useRef(false)
+  
+  // Mobile detection
+  const theme = useTheme()
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'))
 
   // Auto-scroll to bottom when new messages arrive
   const scrollToBottom = (behavior: ScrollBehavior = 'smooth') => {
@@ -333,25 +339,26 @@ export function ChatInterface({ selectedContent = [] }: ChatInterfaceProps) {
             key={message.id}
             sx={{
               display: 'flex',
-              gap: 2,
-              mb: 2,
+              gap: isMobile ? 1 : 2,
+              mb: isMobile ? 1 : 2,
               flexDirection: message.role === 'user' ? 'row-reverse' : 'row',
             }}
           >
             <Avatar
               sx={{
                 bgcolor: message.role === 'user' ? 'secondary.main' : 'primary.main',
-                width: 36,
-                height: 36,
+                width: isMobile ? 28 : 36,
+                height: isMobile ? 28 : 36,
+                display: isMobile && message.role === 'user' ? 'none' : 'flex',
               }}
             >
               {message.role === 'user' ? <Person /> : <SmartToy />}
             </Avatar>
             <Box
               sx={{
-                maxWidth: '70%',
+                maxWidth: isMobile ? '85%' : '70%',
                 bgcolor: message.role === 'user' ? 'secondary.light' : 'white',
-                p: 2,
+                p: isMobile ? 1.5 : 2,
                 borderRadius: 2,
                 boxShadow: 1,
               }}
@@ -369,25 +376,34 @@ export function ChatInterface({ selectedContent = [] }: ChatInterfaceProps) {
                   ))}
                 </Box>
               )}
-              <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap' }}>
+              <Typography 
+                variant={isMobile ? "body2" : "body1"} 
+                sx={{ whiteSpace: 'pre-wrap' }}
+              >
                 {message.content}
               </Typography>
-              <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
-                {format(message.timestamp, 'h:mm a')}
-              </Typography>
+              {!isMobile && (
+                <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+                  {format(message.timestamp, 'h:mm a')}
+                </Typography>
+              )}
             </Box>
           </Box>
         ))}
         
         {isLoading && (
-          <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
-            <Avatar sx={{ bgcolor: 'primary.main', width: 36, height: 36 }}>
+          <Box sx={{ display: 'flex', gap: isMobile ? 1 : 2, mb: isMobile ? 1 : 2 }}>
+            <Avatar sx={{ 
+              bgcolor: 'primary.main', 
+              width: isMobile ? 28 : 36, 
+              height: isMobile ? 28 : 36 
+            }}>
               <SmartToy />
             </Avatar>
             <Box
               sx={{
                 bgcolor: 'white',
-                p: 2,
+                p: isMobile ? 1 : 2,
                 borderRadius: 2,
                 boxShadow: 1,
                 display: 'flex',
@@ -395,8 +411,8 @@ export function ChatInterface({ selectedContent = [] }: ChatInterfaceProps) {
                 gap: 1,
               }}
             >
-              <CircularProgress size={16} />
-              <Typography variant="body2" color="text.secondary">
+              <CircularProgress size={isMobile ? 14 : 16} />
+              <Typography variant={isMobile ? "caption" : "body2"} color="text.secondary">
                 Thinking...
               </Typography>
             </Box>
@@ -409,10 +425,10 @@ export function ChatInterface({ selectedContent = [] }: ChatInterfaceProps) {
       <Divider />
 
       {/* Input Area */}
-      <Box sx={{ p: 2 }}>
+      <Box sx={{ p: isMobile ? 1 : 2 }}>
         {/* Attached Content Display */}
         {attachedContent.length > 0 && (
-          <Box sx={{ mb: 1, display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+          <Box sx={{ mb: 0.5, display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
             {attachedContent.map((content, index) => (
               <Chip
                 key={content.id}
@@ -428,12 +444,12 @@ export function ChatInterface({ selectedContent = [] }: ChatInterfaceProps) {
         )}
 
         {/* Message Input */}
-        <Box sx={{ display: 'flex', gap: 1, alignItems: 'flex-end' }}>
+        <Box sx={{ display: 'flex', gap: isMobile ? 0.5 : 1, alignItems: 'flex-end' }}>
           <TextField
             ref={inputRef}
             fullWidth
             multiline
-            maxRows={4}
+            maxRows={isMobile ? 3 : 4}
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyPress={handleKeyPress}
@@ -453,6 +469,7 @@ export function ChatInterface({ selectedContent = [] }: ChatInterfaceProps) {
             color="primary"
             onClick={handleSend}
             disabled={isLoading || (!input.trim() && attachedContent.length === 0)}
+            size={isMobile ? "small" : "medium"}
             sx={{ 
               bgcolor: 'primary.main',
               color: 'white',
