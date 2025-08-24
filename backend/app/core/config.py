@@ -61,7 +61,7 @@ class Settings(BaseSettings):
     # CORS - Use str and parse in validator
     # Default is for production - localhost should ONLY be added via env vars in development
     BACKEND_CORS_ORIGINS: Union[str, List[str]] = Field(
-        default="https://www.aistudyarchitect.com,https://aistudyarchitect.com,https://ai-study-architect.vercel.app",
+        default="https://www.aistudyarchitect.com,https://aistudyarchitect.com",
         description="Comma-separated list of allowed origins"
     )
     
