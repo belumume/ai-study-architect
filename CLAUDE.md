@@ -9,6 +9,16 @@ AI Study Architect - A 7-agent educational system that builds cognitive strength
 **Live Application**: https://ai-study-architect.onrender.com  
 **Core Philosophy**: "Build cognitive strength, not cognitive debt"
 
+## Important Development Rules
+
+### NO EMOJIS in Code or Terminal Output
+- **NEVER use emojis** in Python scripts, test files, or any code that will be executed
+- **NEVER use emojis** in terminal output, log messages, or print statements
+- **NEVER use emojis** in git commit messages (except the robot emoji for Claude attribution)
+- Windows terminals and Python encoding often fail with Unicode emojis (UnicodeEncodeError)
+- Use ASCII alternatives: [PASS], [FAIL], [WARN], SUCCESS:, ERROR:, etc.
+- This prevents encoding errors and ensures cross-platform compatibility
+
 ## Common Development Commands
 
 ### Backend Development
