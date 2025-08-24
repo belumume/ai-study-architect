@@ -60,13 +60,16 @@ export function ChatInterface({ selectedContent = [] }: ChatInterfaceProps) {
   const isStreamingRef = useRef(false)
   const userHasScrolledUp = useRef(false)
   
-  // Mobile detection
+  // Mobile and tablet detection
   const theme = useTheme()
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'))
+  const isTablet = useMediaQuery(theme.breakpoints.between('sm', 'md'))
 
   // Auto-scroll to bottom when new messages arrive
   const scrollToBottom = (behavior: ScrollBehavior = 'smooth') => {
-    messagesEndRef.current?.scrollIntoView({ behavior })
+    if (!userHasScrolledUp.current) {
+      messagesEndRef.current?.scrollIntoView({ behavior })
+    }
   }
 
   // Check if user has scrolled up from the bottom
@@ -239,6 +242,15 @@ export function ChatInterface({ selectedContent = [] }: ChatInterfaceProps) {
                         : msg
                     )
                   )
+                  
+                  // Smooth scroll during streaming if user hasn't scrolled up
+                  if (!userHasScrolledUp.current && messagesContainerRef.current) {
+                    const container = messagesContainerRef.current
+                    const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 150
+                    if (isNearBottom) {
+                      container.scrollTop = container.scrollHeight
+                    }
+                  }
                 } else if (data.type === 'error') {
                   throw new Error(data.error)
                 }
@@ -339,8 +351,8 @@ export function ChatInterface({ selectedContent = [] }: ChatInterfaceProps) {
             key={message.id}
             sx={{
               display: 'flex',
-              gap: isMobile ? 1 : 2,
-              mb: isMobile ? 1 : 2,
+              gap: isMobile ? 1 : isTablet ? 1.5 : 2,
+              mb: isMobile ? 1 : isTablet ? 1.5 : 2,
               flexDirection: message.role === 'user' ? 'row-reverse' : 'row',
             }}
           >

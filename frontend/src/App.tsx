@@ -207,17 +207,18 @@ function StudyPage() {
   const [selectedContent, setSelectedContent] = useState<{ id: string; title: string }[]>([])
   const [mobileTab, setMobileTab] = useState(1) // Default to Chat tab
   const theme = useTheme()
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'))
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm')) // Mobile: < 600px
+  const isTablet = useMediaQuery(theme.breakpoints.between('sm', 'md')) // Tablet: 600-960px
 
   const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
     setMobileTab(newValue)
   }
 
-  // Mobile layout with tabs
-  if (isMobile) {
+  // Mobile and Tablet layout with tabs
+  if (isMobile || isTablet) {
     return (
       <Box sx={{ height: 'calc(100vh - 200px)', display: 'flex', flexDirection: 'column' }}>
-        {/* Tab navigation for mobile */}
+        {/* Tab navigation for mobile/tablet */}
         <Paper sx={{ borderRadius: 0 }}>
           <Tabs 
             value={mobileTab} 
@@ -238,9 +239,9 @@ function StudyPage() {
         </Paper>
 
         {/* Tab content */}
-        <Box sx={{ flex: 1, overflow: 'auto', p: 2 }}>
+        <Box sx={{ flex: 1, overflow: 'auto', p: isTablet ? 3 : 2 }}>
           {mobileTab === 0 && (
-            <Box>
+            <Box sx={{ maxWidth: isTablet ? 600 : '100%', mx: 'auto' }}>
               <Typography variant="h6" gutterBottom>
                 Select Study Materials (Optional)
               </Typography>
@@ -266,7 +267,9 @@ function StudyPage() {
             </Box>
           )}
           {mobileTab === 1 && (
-            <ChatInterface selectedContent={selectedContent} />
+            <Box sx={{ maxWidth: isTablet ? 800 : '100%', mx: 'auto', height: '100%' }}>
+              <ChatInterface selectedContent={selectedContent} />
+            </Box>
           )}
         </Box>
       </Box>
