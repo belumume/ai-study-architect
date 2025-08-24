@@ -219,7 +219,7 @@ export function ChatInterface({ selectedContent = [] }: ChatInterfaceProps) {
       
       // Use fetch for streaming response with abort signal
       // credentials: 'include' is required to send httpOnly cookies
-      const fetchResponse = await fetch(`${api.defaults.baseURL}/api/v1/chat`, {
+      const fetchResponse = await fetch(`${api.defaults.baseURL}/api/v1/chat/`, {
         method: 'POST',
         headers,
         body: JSON.stringify(chatRequest),
