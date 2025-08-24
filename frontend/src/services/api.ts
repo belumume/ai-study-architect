@@ -1,12 +1,9 @@
 import axios from 'axios'
 import tokenStorage from './tokenStorage'
 
-// Use api subdomain in production, empty for local dev (proxied)
-const API_BASE_URL = import.meta.env.VITE_API_URL || 
-  (window.location.hostname === 'www.aistudyarchitect.com' || 
-   window.location.hostname === 'aistudyarchitect.com' 
-    ? 'https://api.aistudyarchitect.com' 
-    : '')
+// With Cloudflare Worker, we can use relative paths everywhere!
+// Same-origin means no CORS, better security, and simpler code
+const API_BASE_URL = import.meta.env.VITE_API_URL || ''
 
 // Create axios instance with default config
 export const api = axios.create({
