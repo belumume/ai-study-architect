@@ -77,8 +77,19 @@ export function ChatInterface({ selectedContent = [] }: ChatInterfaceProps) {
   const checkUserScroll = () => {
     if (messagesContainerRef.current) {
       const { scrollTop, scrollHeight, clientHeight } = messagesContainerRef.current
-      // Consider user has scrolled up if they're more than 100px from bottom
-      userHasScrolledUp.current = scrollHeight - scrollTop - clientHeight > 100
+      const distanceFromBottom = scrollHeight - scrollTop - clientHeight
+      
+      // More sensitive detection during streaming
+      const threshold = isStreamingRef.current ? 30 : 50
+      
+      // If user scrolled up, set the flag
+      if (distanceFromBottom > threshold) {
+        userHasScrolledUp.current = true
+      }
+      // Only clear the flag if very close to bottom and not streaming
+      else if (distanceFromBottom < 5 && !isStreamingRef.current) {
+        userHasScrolledUp.current = false
+      }
     }
   }
 
@@ -204,8 +215,9 @@ export function ChatInterface({ selectedContent = [] }: ChatInterfaceProps) {
       const reader = fetchResponse.body?.getReader()
       const decoder = new TextDecoder()
       
-      // Set streaming flag
+      // Set streaming flag and reset user scroll flag for new response
       isStreamingRef.current = true
+      userHasScrolledUp.current = false  // Reset for new message
       
       let assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
@@ -244,30 +256,29 @@ export function ChatInterface({ selectedContent = [] }: ChatInterfaceProps) {
                     )
                   )
                   
-                  // Smooth scroll during streaming if user hasn't scrolled up
+                  // Only scroll if user hasn't manually scrolled up
                   if (!userHasScrolledUp.current && messagesContainerRef.current) {
                     const container = messagesContainerRef.current
-                    const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 150
+                    const distanceFromBottom = container.scrollHeight - container.scrollTop - container.clientHeight
                     
-                    if (isNearBottom) {
+                    // Only auto-scroll if already near bottom (within 150px)
+                    if (distanceFromBottom < 150) {
                       // Cancel any pending scroll animation
                       if (scrollAnimationFrame.current) {
                         cancelAnimationFrame(scrollAnimationFrame.current)
                       }
                       
-                      // Defer scrolling to next animation frame for smoother updates
+                      // Use smooth, minimal scrolling
                       scrollAnimationFrame.current = requestAnimationFrame(() => {
-                        if (messagesContainerRef.current) {
-                          const targetScroll = messagesContainerRef.current.scrollHeight
-                          const currentScroll = messagesContainerRef.current.scrollTop
-                          const distance = targetScroll - currentScroll
+                        if (messagesContainerRef.current && !userHasScrolledUp.current) {
+                          // Double-check user hasn't scrolled during the frame
+                          const container = messagesContainerRef.current
+                          const currentDistanceFromBottom = container.scrollHeight - container.scrollTop - container.clientHeight
                           
-                          // For small distances, jump directly
-                          if (distance < 50) {
-                            messagesContainerRef.current.scrollTop = targetScroll
-                          } else {
-                            // For larger distances, move incrementally to reduce jumps
-                            messagesContainerRef.current.scrollTop = currentScroll + (distance * 0.5)
+                          // Only proceed if still near bottom
+                          if (currentDistanceFromBottom < 150) {
+                            // Smooth scroll to bottom
+                            container.scrollTop = container.scrollHeight
                           }
                         }
                       })

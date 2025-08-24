@@ -10,16 +10,16 @@ test.describe('Streaming Response Scroll Behavior', () => {
   };
 
   test.beforeEach(async ({ page }) => {
-    // Navigate to the study page
-    await page.goto('https://www.aistudyarchitect.com/study');
+    // Navigate to the login page first
+    await page.goto('https://www.aistudyarchitect.com/login');
     
-    // Check if we need to login first
-    const loginVisible = await page.locator('text=/Sign In|Login/i').isVisible().catch(() => false);
-    if (loginVisible) {
-      // Skip test if login is required
-      test.skip();
-      return;
-    }
+    // Login with provided credentials
+    await page.fill('input[name="email"]', 'dropout_taekwondo');
+    await page.fill('input[name="password"]', 'zf5sUdV&3WVdGtwbB$5Tw@1wTHC8j4Tz%aGE!e1^rP@M663^Rc1dUruUFpDRhvn6');
+    await page.click('button[type="submit"]');
+    
+    // Wait for navigation to study page
+    await page.waitForURL('**/study', { timeout: 10000 });
     
     // Wait for page to fully load
     await page.waitForSelector('textarea[placeholder="Type your message..."]', { timeout: 10000 });
@@ -119,33 +119,73 @@ test.describe('Streaming Response Scroll Behavior', () => {
   });
 
   test('should respect user scroll during streaming', async ({ page }) => {
-    // Trigger a streaming response
-    await page.fill('textarea[placeholder="Type your message..."]', 'Tell me about quantum computing');
+    // Set tablet viewport
+    await page.setViewportSize({ width: 768, height: 1024 });
+    
+    // Trigger a long streaming response
+    await page.fill('textarea[placeholder="Type your message..."]', 
+      'Write 15 paragraphs about the history of mathematics. Each paragraph should be at least 4 sentences long.');
     await page.press('textarea[placeholder="Type your message..."]', 'Enter');
     
     // Wait for streaming to start
-    await page.waitForSelector('text=/Thinking|typing/', { timeout: 5000 });
+    await page.waitForSelector('text=/Thinking/', { timeout: 5000 });
     
-    // Scroll up manually
-    await page.evaluate(() => {
-      const container = document.querySelector('div[style*="overflow: auto"]');
-      if (container) {
-        container.scrollTop = 0; // Scroll to top
-        window['userScrolledPosition'] = 0;
+    // Wait for some content to stream
+    await page.waitForTimeout(1500);
+    
+    // Find the correct scroll container and scroll up
+    const scrolledUp = await page.evaluate(() => {
+      // Find the messages container
+      const containers = Array.from(document.querySelectorAll('div')).filter(el => {
+        const style = getComputedStyle(el);
+        return style.overflow === 'auto' || style.overflowY === 'auto';
+      });
+      
+      // Find the main chat container (not the sidebar)
+      const chatContainer = containers.find(c => c.scrollHeight > 500 && c.querySelector('[role="assistant"]'));
+      
+      if (chatContainer) {
+        // Store initial position
+        const initialScroll = chatContainer.scrollTop;
+        // Scroll up significantly
+        chatContainer.scrollTop = 100;
+        // Trigger scroll event
+        chatContainer.dispatchEvent(new Event('scroll', { bubbles: true }));
+        return {
+          found: true,
+          initialScroll,
+          newScroll: 100,
+          scrollHeight: chatContainer.scrollHeight
+        };
       }
+      return { found: false };
     });
     
-    // Wait a bit for more content to stream
-    await page.waitForTimeout(2000);
+    expect(scrolledUp.found).toBe(true);
     
-    // Check if scroll position was respected
-    const scrollPosition = await page.evaluate(() => {
-      const container = document.querySelector('div[style*="overflow: auto"]');
-      return container ? container.scrollTop : -1;
-    });
+    // Monitor scroll position during streaming
+    const positions = [];
+    for (let i = 0; i < 5; i++) {
+      await page.waitForTimeout(500);
+      const pos = await page.evaluate(() => {
+        const containers = Array.from(document.querySelectorAll('div')).filter(el => {
+          const style = getComputedStyle(el);
+          return style.overflow === 'auto' || style.overflowY === 'auto';
+        });
+        const chatContainer = containers.find(c => c.scrollHeight > 500 && c.querySelector('[role="assistant"]'));
+        return chatContainer ? chatContainer.scrollTop : -1;
+      });
+      positions.push(pos);
+    }
     
-    // Should stay near top (within 100px) if user scroll is respected
-    expect(scrollPosition).toBeLessThan(100);
+    // Check that scroll position stayed relatively stable (not forced to bottom)
+    const maxPosition = Math.max(...positions);
+    const minPosition = Math.min(...positions);
+    
+    // Should not jump to bottom (which would be much higher)
+    expect(maxPosition).toBeLessThan(500);
+    // Some variation is ok due to content, but not huge jumps
+    expect(maxPosition - minPosition).toBeLessThan(200);
   });
 
   test('should handle rapid message sending smoothly', async ({ page }) => {
