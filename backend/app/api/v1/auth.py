@@ -4,7 +4,7 @@ Authentication endpoints - Sync version
 
 from datetime import datetime, timedelta
 from typing import Any, Optional
-from fastapi import APIRouter, Depends, HTTPException, status, Request, Response
+from fastapi import APIRouter, Depends, HTTPException, status, Request, Response, Form
 from fastapi.responses import JSONResponse
 from fastapi.security import HTTPBearer, OAuth2PasswordRequestForm
 from sqlalchemy import or_
@@ -85,12 +85,15 @@ def login(
     request: Request,
     response: Response,  # Added for cookie support
     form_data: OAuth2PasswordRequestForm = Depends(),
-    remember_me: bool = False,  # Optional remember me
+    remember_me: Optional[str] = Form(default="false"),  # Get remember_me from form
     db: Session = Depends(get_db)
 ) -> Any:
     """
     OAuth2 compatible token login.
     """
+    # Convert remember_me string to boolean
+    remember_me_bool = remember_me.lower() == 'true' if remember_me else False
+    
     # Find user by email or username
     user = db.query(User).filter(
         or_(
@@ -120,7 +123,7 @@ def login(
     # Access token cookie (30 minutes if remember_me, else session)
     access_max_age = (
         settings.JWT_ACCESS_TOKEN_EXPIRE_MINUTES * 60
-        if remember_me else None  # None = session cookie
+        if remember_me_bool else None  # None = session cookie
     )
     response.set_cookie(
         key="access_token",
@@ -135,7 +138,7 @@ def login(
     # Refresh token cookie (7 days if remember_me, else session)
     refresh_max_age = (
         settings.JWT_REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60
-        if remember_me else None  # None = session cookie
+        if remember_me_bool else None  # None = session cookie
     )
     response.set_cookie(
         key="refresh_token",
