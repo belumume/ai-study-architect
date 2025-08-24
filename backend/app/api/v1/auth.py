@@ -212,7 +212,7 @@ def refresh_token(
     response.set_cookie(
         key="refresh_token",
         value=new_refresh_token,
-        max_age=settings.REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60,
+        max_age=settings.JWT_REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60,
         httponly=True,
         secure=not settings.DEBUG,
         samesite="lax",
