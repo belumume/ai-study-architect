@@ -9,6 +9,7 @@ import { LoginForm, RegisterForm, ProtectedRoute } from './components/auth'
 import { ContentUpload, ContentList, ContentSelector } from './components/content'
 import { ChatInterface } from './components/chat'
 import api from './services/api'
+import tokenStorage from './services/tokenStorage'
 
 // Create a theme instance
 const theme = createTheme({
@@ -160,6 +161,11 @@ function AppContent() {
 }
 
 function App() {
+  // Migrate tokens from localStorage to sessionStorage on app load
+  useEffect(() => {
+    tokenStorage.migrateFromLocalStorage()
+  }, [])
+  
   // Fetch CSRF token on app load
   useEffect(() => {
     api.get('/api/v1/csrf/token').catch(() => {
