@@ -199,7 +199,7 @@ export function ChatInterface({ selectedContent = [] }: ChatInterfaceProps) {
           }))
           .concat([{ role: 'user', content: input }]),
         content_ids: contentToSend.map(c => c.id),
-        stream: true,
+        stream: false,  // Temporarily disable streaming to test Vercel proxy
         temperature: 0.7
       }
 
@@ -219,7 +219,8 @@ export function ChatInterface({ selectedContent = [] }: ChatInterfaceProps) {
       
       // Use fetch for streaming response with abort signal
       // credentials: 'include' is required to send httpOnly cookies
-      const fetchResponse = await fetch(`${api.defaults.baseURL}/api/v1/chat/`, {
+      const chatUrl = api.defaults.baseURL ? `${api.defaults.baseURL}/api/v1/chat/` : '/api/v1/chat/'
+      const fetchResponse = await fetch(chatUrl, {
         method: 'POST',
         headers,
         body: JSON.stringify(chatRequest),
@@ -239,25 +240,41 @@ export function ChatInterface({ selectedContent = [] }: ChatInterfaceProps) {
         throw new Error(`Chat request failed: ${fetchResponse.statusText}`)
       }
 
-      // Handle streaming response
-      const reader = fetchResponse.body?.getReader()
-      const decoder = new TextDecoder()
+      // Check if response is streaming or not
+      const contentType = fetchResponse.headers.get('content-type')
+      const isStreaming = contentType?.includes('text/event-stream')
       
-      // Set streaming flag and reset user scroll flag for new response
-      isStreamingRef.current = true
-      userHasScrolledUp.current = false  // Reset for new message
-      
-      assistantMessage = {
-        id: (Date.now() + 1).toString(),
-        role: 'assistant',
-        content: '',
-        timestamp: new Date(),
-      }
+      if (!isStreaming) {
+        // Handle non-streaming response
+        const data = await fetchResponse.json()
+        assistantMessage = {
+          id: (Date.now() + 1).toString(),
+          role: 'assistant',
+          content: data.message.content,
+          timestamp: new Date(),
+        }
+        setMessages(prev => [...prev, assistantMessage as Message])
+        userHasScrolledUp.current = false
+      } else {
+        // Handle streaming response
+        const reader = fetchResponse.body?.getReader()
+        const decoder = new TextDecoder()
+        
+        // Set streaming flag and reset user scroll flag for new response
+        isStreamingRef.current = true
+        userHasScrolledUp.current = false  // Reset for new message
+        
+        assistantMessage = {
+          id: (Date.now() + 1).toString(),
+          role: 'assistant',
+          content: '',
+          timestamp: new Date(),
+        }
 
-      // Add empty message that we'll update as chunks arrive
-      setMessages(prev => [...prev, assistantMessage as Message])
+        // Add empty message that we'll update as chunks arrive
+        setMessages(prev => [...prev, assistantMessage as Message])
 
-      if (reader) {
+        if (reader) {
         while (true) {
           const { done, value } = await reader.read()
           if (done) {
