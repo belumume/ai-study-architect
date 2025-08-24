@@ -1,6 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
 import { api } from '@/services/api'
-import tokenStorage from '@/services/tokenStorage'
 import {
   Box,
   Paper,
@@ -204,20 +203,13 @@ export function ChatInterface({ selectedContent = [] }: ChatInterfaceProps) {
         temperature: 0.7
       }
 
-      // Get authentication tokens
-      const token = tokenStorage.getAccessToken()
+      // Get CSRF token (authentication is handled by httpOnly cookies)
       const csrfToken = localStorage.getItem('csrf_token')
-      
-      // Validate authentication before making request
-      if (!token) {
-        throw new Error('Please log in to use the chat feature')
-      }
       
       
       // Build complete headers
       const headers: Record<string, string> = {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
       }
       
       // Add CSRF header if available (optional since endpoint is exempt)
@@ -226,24 +218,22 @@ export function ChatInterface({ selectedContent = [] }: ChatInterfaceProps) {
       }
       
       // Use fetch for streaming response with abort signal
-      // Note: credentials: 'include' is required for cookies but may strip Authorization header
-      // Since the endpoint is CSRF-exempt, we can try without credentials
+      // credentials: 'include' is required to send httpOnly cookies
       const fetchResponse = await fetch(`${api.defaults.baseURL}/api/v1/chat`, {
         method: 'POST',
         headers,
         body: JSON.stringify(chatRequest),
-        credentials: 'omit',  // Try omitting credentials to preserve Authorization header
+        credentials: 'include',  // Send cookies with request
         signal: abortControllerRef.current.signal
       })
 
       if (!fetchResponse.ok) {
         if (fetchResponse.status === 403 || fetchResponse.status === 401) {
-          // Check if user is not authenticated
-          const token = tokenStorage.getAccessToken()
-          if (!token) {
-            throw new Error('Please log in to use the chat feature')
+          // Authentication or CSRF error
+          if (fetchResponse.status === 401) {
+            throw new Error('Your session has expired. Please log in again.')
           } else {
-            throw new Error('Session expired. Please log in again')
+            throw new Error('CSRF validation failed. Please refresh the page.')
           }
         }
         throw new Error(`Chat request failed: ${fetchResponse.statusText}`)

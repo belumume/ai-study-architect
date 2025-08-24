@@ -28,9 +28,12 @@ function getCSRFToken(): string | null {
   return null
 }
 
-// Request interceptor to add auth token
+// Request interceptor to add auth token (if using Bearer tokens)
 api.interceptors.request.use(
   (config) => {
+    // Backend now supports both cookies and Bearer tokens
+    // We'll rely on httpOnly cookies for better security
+    // But still support Bearer tokens for backward compatibility
     const token = tokenStorage.getAccessToken()
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
@@ -69,19 +72,16 @@ api.interceptors.response.use(
       originalRequest._retry = true
 
       try {
-        const refreshToken = tokenStorage.getRefreshToken()
-        if (refreshToken) {
-          const response = await api.post('/api/v1/auth/refresh', {
-            refresh_token: refreshToken,
-          })
-          
-          const { access_token } = response.data
-          tokenStorage.setAccessToken(access_token)
-          
-          // Retry original request with new token
-          originalRequest.headers.Authorization = `Bearer ${access_token}`
-          return api(originalRequest)
+        // Try to refresh the token using the refresh cookie
+        const response = await api.post('/api/v1/auth/refresh')
+        
+        // If using Bearer tokens (backward compatibility), update the header
+        if (response.data.access_token) {
+          originalRequest.headers.Authorization = `Bearer ${response.data.access_token}`
         }
+        
+        // Retry original request (cookies will be automatically included)
+        return api(originalRequest)
       } catch (refreshError) {
         // Refresh failed, redirect to login
         tokenStorage.clearTokens()
