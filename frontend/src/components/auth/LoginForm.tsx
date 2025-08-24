@@ -11,6 +11,8 @@ import {
   CircularProgress,
   InputAdornment,
   IconButton,
+  FormControlLabel,
+  Checkbox,
 } from '@mui/material'
 import { Visibility, VisibilityOff } from '@mui/icons-material'
 import { useForm } from 'react-hook-form'
@@ -38,6 +40,7 @@ export const LoginForm: React.FC = () => {
     defaultValues: {
       username: '',
       password: '',
+      remember_me: false,
     },
   })
 
@@ -129,6 +132,17 @@ export const LoginForm: React.FC = () => {
                 </InputAdornment>
               ),
             }}
+          />
+
+          <FormControlLabel
+            control={
+              <Checkbox
+                {...register('remember_me')}
+                color="primary"
+              />
+            }
+            label="Remember me"
+            sx={{ mt: 1, mb: 1 }}
           />
 
           <Button

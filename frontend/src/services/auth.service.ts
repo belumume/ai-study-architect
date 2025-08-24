@@ -4,6 +4,7 @@ import tokenStorage from './tokenStorage'
 export interface LoginCredentials {
   username: string
   password: string
+  remember_me?: boolean
 }
 
 export interface RegisterData {
@@ -40,6 +41,7 @@ class AuthService {
     const formData = new FormData()
     formData.append('username', credentials.username)
     formData.append('password', credentials.password)
+    formData.append('remember_me', credentials.remember_me ? 'true' : 'false')
 
     const response = await api.post<AuthResponse>('/api/v1/auth/login', formData, {
       headers: {
