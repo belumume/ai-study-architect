@@ -11,10 +11,12 @@ from app.api.v1.admin import router as admin_router
 from app.api.v1.chat import router as chat_router
 from app.api.v1.agents import router as agents_router
 from app.api.v1.endpoints.backup import router as backup_router
+from app.api.v1.health import router as health_router
 
 api_router = APIRouter()
 
 # Include routers with explicit references
+api_router.include_router(health_router, tags=["health"])
 api_router.include_router(csrf_router, prefix="/csrf", tags=["authentication"])
 api_router.include_router(auth_router, tags=["authentication"])
 api_router.include_router(tutor_router, tags=["tutor"])
