@@ -429,10 +429,11 @@ export function ChatInterface({ selectedContent = [] }: ChatInterfaceProps) {
     <Paper 
       elevation={3} 
       sx={{ 
-        height: '600px', 
+        height: '100%', 
         display: 'flex', 
         flexDirection: 'column',
         overflow: 'hidden',
+        position: 'relative',
       }}
     >
       {/* Chat Header */}
@@ -571,7 +572,7 @@ export function ChatInterface({ selectedContent = [] }: ChatInterfaceProps) {
           onClick={handleScrollToBottom}
           aria-label={unreadCount > 0 ? `Scroll to bottom, ${unreadCount} unread messages` : 'Scroll to bottom'}
           sx={{
-            position: 'fixed',
+            position: 'absolute',
             bottom: isMobile ? 80 : 100,
             right: isMobile ? 16 : 32,
             zIndex: 1000,
