@@ -280,17 +280,25 @@ function StudyPage() {
   return (
     <Box sx={{ display: 'flex', gap: 3, height: 'calc(100vh - 200px)' }}>
       {/* Left side - Content Selection */}
-      <Paper elevation={3} sx={{ flex: '0 0 350px', p: 2, overflow: 'auto' }}>
+      <Paper elevation={3} sx={{ 
+        flex: '0 0 350px', 
+        p: 2, 
+        display: 'flex', 
+        flexDirection: 'column',
+        overflow: 'hidden'
+      }}>
         <Typography variant="h6" gutterBottom>
           Study Materials (Optional)
         </Typography>
         <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
           Add content to enhance your chat, or start chatting directly
         </Typography>
-        <ContentSelector 
-          onSelectionChange={setSelectedContent} 
-          selectedContent={selectedContent}
-        />
+        <Box sx={{ flex: 1, minHeight: 0 }}>
+          <ContentSelector 
+            onSelectionChange={setSelectedContent} 
+            selectedContent={selectedContent}
+          />
+        </Box>
       </Paper>
 
       {/* Right side - Chat Interface (Primary) */}

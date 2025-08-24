@@ -109,7 +109,7 @@ export function ContentSelector({ onSelectionChange, selectedContent }: ContentS
   }
 
   return (
-    <Box>
+    <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       <TextField
         fullWidth
         size="small"
@@ -126,7 +126,7 @@ export function ContentSelector({ onSelectionChange, selectedContent }: ContentS
         }}
       />
 
-      <List dense sx={{ maxHeight: 400, overflow: 'auto' }}>
+      <List dense sx={{ flex: 1, overflow: 'auto' }}>
         {filteredContents.map((content) => {
           const isSelected = selectedContent.some(item => item.id === content.id)
           return (
