@@ -2,14 +2,11 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-**📚 For complete documentation overview, see DOCUMENTATION_INDEX.md**
-
 ## Project Overview
 
 AI Study Architect - A 7-agent educational system that builds cognitive strength through Socratic questioning and guided discovery learning. Uses Claude API (primary) and OpenAI (fallback) to help students learn from their own course materials.
 
 **Live Application**: https://ai-study-architect.onrender.com  
-**Repository**: https://github.com/belumume/ai-study-architect  
 **Core Philosophy**: "Build cognitive strength, not cognitive debt"
 
 ## Common Development Commands
@@ -33,11 +30,12 @@ venv\Scripts\python.exe tests/scripts/quick_socratic_test.py  # Test Socratic mo
 # Code quality
 ruff check app/                                # Lint code
 ruff check app/ --fix                          # Auto-fix linting issues
+mypy app/                                      # Type checking
 coverage run -m pytest                         # Run tests with coverage
 coverage report                                # Show coverage report
 
 # Database
-alembic upgrade head                           # Run migrations (fails in production)
+alembic upgrade head                           # Run migrations
 alembic revision --autogenerate -m "message"  # Create new migration
 ```
 
@@ -60,47 +58,18 @@ npm run build                                 # Build for production
 npm run preview                               # Preview production build
 ```
 
-### Health Checks
+### E2E Testing
 ```bash
-# Production
-curl https://ai-study-architect.onrender.com/api/v1/health
-curl https://ai-study-architect.onrender.com/docs
-
-# Local
-curl http://localhost:8000/api/v1/health
-curl http://localhost:8000/docs
-```
-
-### Backup Operations
-```bash
-# Test backup configuration
-curl -X POST -H "X-Backup-Token: YOUR_TOKEN" \
-  https://ai-study-architect.onrender.com/api/v1/backup/test
-
-# Trigger R2 backup (primary - daily automated)
-curl -X POST -H "X-Backup-Token: YOUR_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"provider": "r2"}' \
-  https://ai-study-architect.onrender.com/api/v1/backup/trigger
-
-# Trigger S3 backup (secondary - weekly automated)
-curl -X POST -H "X-Backup-Token: YOUR_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"provider": "s3"}' \
-  https://ai-study-architect.onrender.com/api/v1/backup/trigger
-
-# Check backup status
-curl -X GET -H "X-Backup-Token: YOUR_TOKEN" \
-  https://ai-study-architect.onrender.com/api/v1/backup/status
-
-# Decrypt a backup (local)
-python backend/scripts/decrypt_backup.py backup.enc backup.sql
+cd frontend
+npx playwright test                           # Run all E2E tests
+npx playwright test --ui                      # Run with UI mode
+npx playwright test streaming-scroll          # Run specific test
 ```
 
 ## High-Level Architecture
 
 ### 7-Agent System
-The project implements seven specialized agents that work together to create personalized learning experiences:
+The project implements seven specialized agents that work together:
 
 1. **Lead Tutor** (`/api/v1/agents/chat`) - Orchestrates Socratic questioning
 2. **Content Understanding** - Processes course materials (PDFs, notes, lectures)
@@ -119,7 +88,6 @@ The project implements seven specialized agents that work together to create per
 - `app/core/security.py` - JWT authentication with RS256 algorithm
 - `app/core/csrf.py` - CSRF protection with strategic exemptions
 - `app/models/` - SQLAlchemy models for users, content, sessions, and practice
-- `app/api/v1/endpoints/` - RESTful API endpoints organized by feature
 
 **Key Design Patterns:**
 - Dependency injection for database sessions and authentication
@@ -151,15 +119,10 @@ The project implements seven specialized agents that work together to create per
 - `practice_problems` - Generated exercises with difficulty levels
 - `chat_messages` - Conversation history with context
 
-**Migration Strategy:**
-- Alembic for schema versioning
-- Pre-existing tables require empty Pre-Deploy command
-- Migrations handled in `start_render.sh` with error handling
-
 ### AI Integration Architecture
 
 **Multi-Provider Strategy:**
-1. **Claude API** (Primary) - Superior educational performance (93.7% HumanEval)
+1. **Claude API** (Primary) - Superior educational performance
 2. **OpenAI API** (Fallback) - Automatic failover for reliability
 3. **LangChain** - Orchestration and prompt management
 
@@ -168,68 +131,6 @@ The project implements seven specialized agents that work together to create per
 - Token counting and usage tracking
 - Context window management
 - Prompt template system for consistency
-
-## Deployment Configuration
-
-### Platform Architecture
-- **Backend**: Render Starter Plan ($7/month)
-- **Frontend**: Vercel (free tier)
-- **Database**: PostgreSQL 17 Basic-256mb ($6/month)
-- **Caching**: MockRedisClient (in-memory fallback)
-
-### Render Platform Settings
-**Critical**: These must match exactly in Render dashboard
-
-```
-Root Directory: backend
-Build Command: chmod +x build_starter.sh && ./build_starter.sh
-Pre-Deploy Command: (MUST BE EMPTY - leave blank)
-Start Command: chmod +x start_render.sh && ./start_render.sh
-Instance Type: Starter ($7/month)
-Database: Basic-256mb ($6/month) - Upgraded from free tier
-```
-
-### Required Environment Variables
-```bash
-# Database (auto-configured by Render)
-DATABASE_URL=postgresql://...
-
-# AI Services (REQUIRED)
-ANTHROPIC_API_KEY=sk-ant-xxx
-OPENAI_API_KEY=sk-xxx
-
-# Backup System (Dual-Provider)
-BACKUP_TOKEN=<match GitHub secret>
-BACKUP_ENCRYPTION_KEY=<NEVER CHANGE - stored in password manager>
-
-# AWS S3 (Secondary - Weekly backups)
-AWS_ACCESS_KEY_ID=<your AWS key>
-AWS_SECRET_ACCESS_KEY=<your AWS secret>
-AWS_BACKUP_BUCKET=ai-study-architect-backup-2025
-
-# Cloudflare R2 (Primary - Daily backups)
-R2_ACCOUNT_ID=<your Cloudflare account ID>
-R2_ACCESS_KEY=<from R2 API token>
-R2_SECRET_KEY=<from R2 API token>
-R2_BUCKET=ai-study-architect-backups
-
-# Redis/Caching (REMOVED - using MockRedisClient)
-# UPSTASH_REDIS_REST_URL - Not needed
-# UPSTASH_REDIS_REST_TOKEN - Not needed
-
-# Auto-generated
-SECRET_KEY=<auto-generated>
-JWT_SECRET_KEY=<auto-generated>
-```
-
-### Backup System
-- **Dual-Provider Strategy**: Cloudflare R2 (primary) + AWS S3 (secondary)
-- **Schedule**: R2 daily at 2 AM UTC, S3 weekly (Sundays) at 3 AM UTC
-- **Encryption**: Fernet (AES-128-CBC + HMAC) - authenticated encryption
-- **Storage**: R2 (30-day retention), S3 (14-day retention)
-- **Rate Limit**: 1 hour between manual backups
-- **Trigger**: GitHub Actions → API endpoint
-- **Restore Tested**: ✅ Verified working with decrypt script
 
 ## Platform-Specific Considerations
 
@@ -241,85 +142,33 @@ JWT_SECRET_KEY=<auto-generated>
 
 ### Render Platform Constraints
 - No root access (use Python packages, not apt-get)
-- PostgreSQL client v16, database v17 (handled by Python fallback)
 - Starter plan benefits: SSH access, no spin-down, persistent disk
-- Database upgraded to Basic-256mb plan (expires Sept 6, 2025)
+- Pre-Deploy command MUST be empty in Render dashboard
+- Database upgraded to Basic-256mb plan ($6/month, expires Sept 6, 2025)
 
 ### Vercel Frontend Hosting
 - SPA routing configured via `vercel.json`
 - Automatic deployments from GitHub
 - Custom domain: aistudyarchitect.com
 
-## Common Issues & Solutions
-
-**📚 For detailed troubleshooting, see TROUBLESHOOTING.md**
-
-| Issue | Solution |
-|-------|----------|
-| Empty/blank AI responses | Fixed: Use @property for runtime API key loading + streaming wrapper |
-| API keys not detected | Services must check keys at runtime, not import time |
-| Streaming closes prematurely | Use wrapper method to manage client lifecycle |
-| PostgreSQL version mismatch | Python backup using psycopg2 (automatic fallback) |
-| Alembic "relation exists" error | Leave Pre-Deploy empty in Render dashboard |
-| CSRF 403 on API calls | JWT endpoints exempted in `app/core/csrf.py` |
-| Authorization header missing | Use `credentials: 'omit'` for JWT endpoints |
-| Build fails on system packages | Render has no root; use Python alternatives |
-| bash\r: command not found | `.gitattributes` enforces Unix line endings |
-| Rate limit exceeded on backup | Wait 1 hour between manual triggers |
-| Redis connection fails | MockRedisClient automatically takes over |
-| Frontend 404 on direct route access | Fixed with `vercel.json` SPA rewrites |
-| Database free tier expiring | Upgrade to Basic-256mb plan ($6/month) |
-
-## Security Configuration
-
-### CSRF Protection
-Exempted paths configured in `app/core/csrf.py`:
-- `/api/v1/backup/` - Token authentication
-- `/api/v1/auth/*` - Login/register endpoints
-- `/api/v1/content/upload` - File upload with JWT
-- `/docs`, `/redoc`, `/openapi.json` - API documentation
-
-### Authentication
-- JWT with RS256 algorithm (auto-generated RSA keys)
-- Token rotation with refresh tokens
-- Rate limiting on all endpoints
-- Input validation with Pydantic schemas
-
-### Infrastructure Monitoring (Render MCP Server)
-- **Tool**: Render MCP Server via Claude Code
-- **API Key**: Stored in Claude Code settings (user scope)
-- **Safe Operations**: list_services, list_logs, get_metrics, list_deploys
-- **Dangerous Operations**: update_environment_variables (use with caution)
-- **Security Docs**: See `RENDER_MCP_SECURITY.md` for safeguards
-
-### Environment Variables Security
-- **CRITICAL**: `BACKUP_ENCRYPTION_KEY` - NEVER change (stored in Proton Pass)
-- **Recoverable**: All API keys can be regenerated in minutes
-- **Not Secrets**: DATABASE_URL (Render manages), bucket names, account IDs
-- **Backup Strategy**: Only BACKUP_ENCRYPTION_KEY needs backup (already in Proton Pass)
-- **Recovery**: See `scripts/env_vars_criticality_analysis.md` for details
-
 ## Critical Reminders
 
 - **7 agents always** - Not 5 or 6, the system is designed for 7 specialized agents
 - **Pre-Deploy MUST be empty** - Any migration command will fail
 - **Port 5433 on Windows** - PostgreSQL uses non-standard port
-- **Backup token in GitHub secrets** - Must match Render environment variable
 - **NEVER change BACKUP_ENCRYPTION_KEY** - Will lose access to all previous backups
-- **Encryption is Fernet (AES-128)** - NOT AES-256, includes HMAC authentication
-- **MCP Server installed** - Use read-only operations first, be cautious with env var updates
-- **Feature flags NOT integrated** - Files exist but unused (for future use)
-- **Redis/Upstash REMOVED** - Using MockRedisClient fallback, no external Redis needed
-- **Database on Basic-256mb plan** - $6/month, expires Sept 6, 2025
+- **MockRedisClient fallback** - No external Redis needed, uses in-memory fallback
+- **API keys at runtime** - Services must check keys at runtime, not import time
+- **JWT endpoints exempted from CSRF** - Configured in `app/core/csrf.py`
 - **Frontend on Vercel** - Not Render, requires `vercel.json` for SPA routing
 
-## Project Philosophy
+## Quick Troubleshooting
 
-The project addresses the "AI Learning Paradox" - 86% of students use AI for homework, but MIT research shows they perform 78% worse when AI is removed. Our solution: Build cognitive strength through Socratic questioning rather than providing direct answers.
-
-Key principles:
-- Questions over answers
-- Understanding over correctness
-- Personalized to student's actual materials
-- Progressive difficulty based on comprehension
-- Privacy-preserving collective intelligence
+| Issue | Solution |
+|-------|----------|
+| Empty/blank AI responses | Use @property for runtime API key loading + streaming wrapper |
+| PostgreSQL version mismatch | Python backup using psycopg2 (automatic fallback) |
+| CSRF 403 on API calls | JWT endpoints exempted in `app/core/csrf.py` |
+| Database free tier expiring | Upgrade to Basic-256mb plan ($6/month) |
+| Redis connection fails | MockRedisClient automatically takes over |
+| Frontend 404 on direct route | Fixed with `vercel.json` SPA rewrites |

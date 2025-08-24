@@ -1,4 +1,5 @@
 import axios from 'axios'
+import tokenStorage from './tokenStorage'
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || ''  // Use env var for production, proxy for dev
 
@@ -30,7 +31,7 @@ function getCSRFToken(): string | null {
 // Request interceptor to add auth token
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('access_token')
+    const token = tokenStorage.getAccessToken()
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
     }
@@ -68,14 +69,14 @@ api.interceptors.response.use(
       originalRequest._retry = true
 
       try {
-        const refreshToken = localStorage.getItem('refresh_token')
+        const refreshToken = tokenStorage.getRefreshToken()
         if (refreshToken) {
           const response = await api.post('/api/v1/auth/refresh', {
             refresh_token: refreshToken,
           })
           
           const { access_token } = response.data
-          localStorage.setItem('access_token', access_token)
+          tokenStorage.setAccessToken(access_token)
           
           // Retry original request with new token
           originalRequest.headers.Authorization = `Bearer ${access_token}`
@@ -83,8 +84,7 @@ api.interceptors.response.use(
         }
       } catch (refreshError) {
         // Refresh failed, redirect to login
-        localStorage.removeItem('access_token')
-        localStorage.removeItem('refresh_token')
+        tokenStorage.clearTokens()
         window.location.href = '/login'
       }
     }
