@@ -36,7 +36,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        if (authService.isAuthenticated()) {
+        const isAuth = await authService.isAuthenticated()
+        if (isAuth) {
           const currentUser = await authService.getCurrentUser()
           setUser(currentUser)
         }
