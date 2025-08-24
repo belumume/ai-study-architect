@@ -275,7 +275,7 @@ export function ChatInterface({ selectedContent = [] }: ChatInterfaceProps) {
         setMessages(prev => [...prev, assistantMessage as Message])
 
         if (reader) {
-        while (true) {
+          while (true) {
           const { done, value } = await reader.read()
           if (done) {
             isStreamingRef.current = false
@@ -344,6 +344,7 @@ export function ChatInterface({ selectedContent = [] }: ChatInterfaceProps) {
               }
             }
           }
+        }
         }
       }
 
