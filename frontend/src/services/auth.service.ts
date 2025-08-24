@@ -47,9 +47,9 @@ class AuthService {
       },
     })
 
-    const { access_token, refresh_token } = response.data
-    tokenStorage.setAccessToken(access_token)
-    tokenStorage.setRefreshToken(refresh_token)
+    // Tokens are now stored in httpOnly cookies by the backend
+    // No need to store them in sessionStorage/localStorage
+    // This is more secure (XSS-proof) and follows industry standards
 
     return response.data
   }
@@ -66,19 +66,25 @@ class AuthService {
 
   async logout(): Promise<void> {
     try {
-      const refreshToken = tokenStorage.getRefreshToken()
-      if (refreshToken) {
-        await api.post('/api/v1/auth/logout', { refresh_token: refreshToken })
-      }
+      // Call logout endpoint to clear httpOnly cookies
+      await api.post('/api/v1/auth/logout')
     } catch (error) {
       // Continue with local logout even if server request fails
     } finally {
+      // Clear any local tokens (for backward compatibility)
       tokenStorage.clearTokens()
     }
   }
 
-  isAuthenticated(): boolean {
-    return tokenStorage.isAuthenticated()
+  async isAuthenticated(): Promise<boolean> {
+    try {
+      // Check if we're authenticated by calling the /me endpoint
+      // The httpOnly cookies will be sent automatically
+      await api.get('/api/v1/auth/me')
+      return true
+    } catch {
+      return false
+    }
   }
 
   async getCSRFToken(): Promise<string> {
