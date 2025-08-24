@@ -96,7 +96,10 @@ app.add_middleware(
         "127.0.0.1", 
         "*.localhost",
         "ai-study-architect.onrender.com",
-        "*.onrender.com"
+        "*.onrender.com",
+        "api.aistudyarchitect.com",
+        "aistudyarchitect.com",
+        "www.aistudyarchitect.com"
     ]
 )
 
