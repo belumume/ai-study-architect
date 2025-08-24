@@ -36,6 +36,28 @@ from app.schemas.user import (
     RefreshTokenRequest,
 )
 
+
+class OAuth2PasswordRequestFormWithRememberMe:
+    """
+    Custom OAuth2 form that includes remember_me field
+    """
+    def __init__(
+        self,
+        username: str = Form(),
+        password: str = Form(),
+        remember_me: str = Form(default="false"),
+        scope: str = Form(default=""),
+        client_id: Optional[str] = Form(default=None),
+        client_secret: Optional[str] = Form(default=None),
+    ):
+        self.username = username
+        self.password = password
+        self.remember_me = remember_me
+        self.scopes = scope.split()
+        self.client_id = client_id
+        self.client_secret = client_secret
+
+
 router = APIRouter(prefix="/auth")
 limiter = Limiter(key_func=get_remote_address)
 security = HTTPBearer()
@@ -84,15 +106,14 @@ def register(
 def login(
     request: Request,
     response: Response,  # Added for cookie support
-    form_data: OAuth2PasswordRequestForm = Depends(),
-    remember_me: Optional[str] = Form(default="false"),  # Get remember_me from form
+    form_data: OAuth2PasswordRequestFormWithRememberMe = Depends(),
     db: Session = Depends(get_db)
 ) -> Any:
     """
-    OAuth2 compatible token login.
+    OAuth2 compatible token login with Remember Me support.
     """
     # Convert remember_me string to boolean
-    remember_me_bool = remember_me.lower() == 'true' if remember_me else False
+    remember_me_bool = form_data.remember_me.lower() == 'true'
     
     # Find user by email or username
     user = db.query(User).filter(
