@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { api } from '@/services/api'
+import tokenStorage from '@/services/tokenStorage'
 import {
   Box,
   Paper,
@@ -204,7 +205,7 @@ export function ChatInterface({ selectedContent = [] }: ChatInterfaceProps) {
       }
 
       // Get authentication tokens
-      const token = localStorage.getItem('access_token')
+      const token = tokenStorage.getAccessToken()
       const csrfToken = localStorage.getItem('csrf_token')
       
       // Validate authentication before making request
@@ -238,7 +239,7 @@ export function ChatInterface({ selectedContent = [] }: ChatInterfaceProps) {
       if (!fetchResponse.ok) {
         if (fetchResponse.status === 403 || fetchResponse.status === 401) {
           // Check if user is not authenticated
-          const token = localStorage.getItem('access_token')
+          const token = tokenStorage.getAccessToken()
           if (!token) {
             throw new Error('Please log in to use the chat feature')
           } else {
