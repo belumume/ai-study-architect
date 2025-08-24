@@ -284,6 +284,7 @@ export function ChatInterface({ selectedContent = [] }: ChatInterfaceProps) {
                 
                 if (data.type === 'content' && assistantMessage) {
                   // Update the assistant message content
+                  const isFirstChunk = assistantMessage.content === ''
                   assistantMessage.content += data.content
                   const currentMessage = assistantMessage
                   setMessages(prev => 
@@ -294,8 +295,8 @@ export function ChatInterface({ selectedContent = [] }: ChatInterfaceProps) {
                     )
                   )
                   
-                  // Increment unread count if user has scrolled up
-                  if (userHasScrolledUp.current && data.content.trim()) {
+                  // Only increment unread count once per message when first content arrives
+                  if (userHasScrolledUp.current && isFirstChunk && data.content.trim()) {
                     setUnreadCount(prev => Math.min(prev + 1, 99))
                   }
                   
