@@ -59,7 +59,6 @@ export function ChatInterface({ selectedContent = [] }: ChatInterfaceProps) {
   const messagesContainerRef = useRef<HTMLDivElement>(null)
   const isStreamingRef = useRef(false)
   const userHasScrolledUp = useRef(false)
-  const lastScrollTime = useRef(0)
   const scrollAnimationFrame = useRef<number | null>(null)
   
   // Mobile and tablet detection
@@ -251,23 +250,27 @@ export function ChatInterface({ selectedContent = [] }: ChatInterfaceProps) {
                     const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 150
                     
                     if (isNearBottom) {
-                      const now = Date.now()
-                      // Throttle scrolling to every 100ms to reduce jitter
-                      if (now - lastScrollTime.current > 100) {
-                        // Cancel any pending scroll animation
-                        if (scrollAnimationFrame.current) {
-                          cancelAnimationFrame(scrollAnimationFrame.current)
-                        }
-                        
-                        // Use requestAnimationFrame for smoother scrolling
-                        scrollAnimationFrame.current = requestAnimationFrame(() => {
-                          if (messagesContainerRef.current) {
-                            // Use instant scroll to avoid cumulative smooth animations
-                            messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight
-                          }
-                        })
-                        lastScrollTime.current = now
+                      // Cancel any pending scroll animation
+                      if (scrollAnimationFrame.current) {
+                        cancelAnimationFrame(scrollAnimationFrame.current)
                       }
+                      
+                      // Defer scrolling to next animation frame for smoother updates
+                      scrollAnimationFrame.current = requestAnimationFrame(() => {
+                        if (messagesContainerRef.current) {
+                          const targetScroll = messagesContainerRef.current.scrollHeight
+                          const currentScroll = messagesContainerRef.current.scrollTop
+                          const distance = targetScroll - currentScroll
+                          
+                          // For small distances, jump directly
+                          if (distance < 50) {
+                            messagesContainerRef.current.scrollTop = targetScroll
+                          } else {
+                            // For larger distances, move incrementally to reduce jumps
+                            messagesContainerRef.current.scrollTop = currentScroll + (distance * 0.5)
+                          }
+                        }
+                      })
                     }
                   }
                 } else if (data.type === 'error') {
