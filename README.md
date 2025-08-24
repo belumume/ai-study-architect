@@ -1,5 +1,5 @@
 # AI Study Architect
-#### Video Demo: [YOUR_VIDEO_URL_HERE]
+#### Video Demo: https://youtu.be/YOUR_VIDEO_ID
 #### Description:
 
 ## Live Deployment
