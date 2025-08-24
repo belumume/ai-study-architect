@@ -31,7 +31,7 @@ class Settings(BaseSettings):
     JWT_SECRET_KEY: str = Field(..., description="Secret key for JWT token signing")
     JWT_ALGORITHM: str = Field(default="RS256", description="Algorithm for JWT token signing")
     JWT_ACCESS_TOKEN_EXPIRE_MINUTES: int = Field(default=30, description="Access token expiration time in minutes")
-    JWT_REFRESH_TOKEN_EXPIRE_DAYS: int = Field(default=7, description="Refresh token expiration time in days")
+    JWT_REFRESH_TOKEN_EXPIRE_DAYS: int = Field(default=30, description="Refresh token expiration time in days")
     
     # Database
     POSTGRES_USER: Optional[str] = None
