@@ -59,6 +59,8 @@ export function ChatInterface({ selectedContent = [] }: ChatInterfaceProps) {
   const messagesContainerRef = useRef<HTMLDivElement>(null)
   const isStreamingRef = useRef(false)
   const userHasScrolledUp = useRef(false)
+  const lastScrollTime = useRef(0)
+  const scrollAnimationFrame = useRef<number | null>(null)
   
   // Mobile and tablet detection
   const theme = useTheme()
@@ -247,8 +249,25 @@ export function ChatInterface({ selectedContent = [] }: ChatInterfaceProps) {
                   if (!userHasScrolledUp.current && messagesContainerRef.current) {
                     const container = messagesContainerRef.current
                     const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 150
+                    
                     if (isNearBottom) {
-                      container.scrollTop = container.scrollHeight
+                      const now = Date.now()
+                      // Throttle scrolling to every 100ms to reduce jitter
+                      if (now - lastScrollTime.current > 100) {
+                        // Cancel any pending scroll animation
+                        if (scrollAnimationFrame.current) {
+                          cancelAnimationFrame(scrollAnimationFrame.current)
+                        }
+                        
+                        // Use requestAnimationFrame for smoother scrolling
+                        scrollAnimationFrame.current = requestAnimationFrame(() => {
+                          if (messagesContainerRef.current) {
+                            // Use instant scroll to avoid cumulative smooth animations
+                            messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight
+                          }
+                        })
+                        lastScrollTime.current = now
+                      }
                     }
                   }
                 } else if (data.type === 'error') {
@@ -342,8 +361,12 @@ export function ChatInterface({ selectedContent = [] }: ChatInterfaceProps) {
         sx={{
           flex: 1,
           overflow: 'auto',
+          overflowAnchor: 'none', // Disable browser's scroll anchoring
           p: 2,
           bgcolor: 'grey.50',
+          // Optimize scrolling performance
+          willChange: 'scroll-position',
+          WebkitOverflowScrolling: 'touch', // Smooth scrolling on iOS
         }}
       >
         {messages.map((message) => (
@@ -373,6 +396,9 @@ export function ChatInterface({ selectedContent = [] }: ChatInterfaceProps) {
                 p: isMobile ? 1.5 : 2,
                 borderRadius: 2,
                 boxShadow: 1,
+                // Prevent layout shift during streaming
+                minHeight: '40px',
+                transition: 'none', // Disable transitions during streaming
               }}
             >
               {message.attachments && message.attachments.length > 0 && (
