@@ -117,11 +117,15 @@ def login(
     request.state.user_id = str(user.id)
     
     # Set httpOnly cookies for better security (like major platforms)
-    # Access token cookie (30 minutes)
+    # Access token cookie (30 minutes if remember_me, else session)
+    access_max_age = (
+        settings.JWT_ACCESS_TOKEN_EXPIRE_MINUTES * 60
+        if remember_me else None  # None = session cookie
+    )
     response.set_cookie(
         key="access_token",
         value=access_token,
-        max_age=settings.JWT_ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+        max_age=access_max_age,
         httponly=True,  # Cannot be accessed by JavaScript (XSS protection)
         secure=not settings.DEBUG,  # HTTPS only in production
         samesite="lax",  # CSRF protection

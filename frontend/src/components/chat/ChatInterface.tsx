@@ -199,7 +199,7 @@ export function ChatInterface({ selectedContent = [] }: ChatInterfaceProps) {
           }))
           .concat([{ role: 'user', content: input }]),
         content_ids: contentToSend.map(c => c.id),
-        stream: false,  // Temporarily disable streaming to test Vercel proxy
+        stream: true,  // Re-enable streaming for better UX
         temperature: 0.7
       }
 
