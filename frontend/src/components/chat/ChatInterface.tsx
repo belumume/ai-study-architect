@@ -13,12 +13,17 @@ import {
   Alert,
   useTheme,
   useMediaQuery,
+  Fab,
+  Badge,
+  Zoom,
 } from '@mui/material'
 import {
   Send,
   SmartToy,
   Person,
   AttachFile,
+  Stop,
+  KeyboardArrowDown,
 } from '@mui/icons-material'
 import { format } from 'date-fns'
 
@@ -60,6 +65,9 @@ export function ChatInterface({ selectedContent = [] }: ChatInterfaceProps) {
   const isStreamingRef = useRef(false)
   const userHasScrolledUp = useRef(false)
   const scrollAnimationFrame = useRef<number | null>(null)
+  const abortControllerRef = useRef<AbortController | null>(null)
+  const [showScrollToBottom, setShowScrollToBottom] = useState(false)
+  const [unreadCount, setUnreadCount] = useState(0)
   
   // Mobile and tablet detection
   const theme = useTheme()
@@ -85,10 +93,17 @@ export function ChatInterface({ selectedContent = [] }: ChatInterfaceProps) {
       // If user scrolled up, set the flag
       if (distanceFromBottom > threshold) {
         userHasScrolledUp.current = true
+        setShowScrollToBottom(true)
+        // Track unread messages when scrolled up
+        if (isStreamingRef.current) {
+          setUnreadCount(prev => prev + 1)
+        }
       }
       // Only clear the flag if very close to bottom and not streaming
       else if (distanceFromBottom < 5 && !isStreamingRef.current) {
         userHasScrolledUp.current = false
+        setShowScrollToBottom(false)
+        setUnreadCount(0)
       }
     }
   }
@@ -136,6 +151,24 @@ export function ChatInterface({ selectedContent = [] }: ChatInterfaceProps) {
     getCSRFToken()
   }, [])
 
+  const handleStop = () => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort()
+      abortControllerRef.current = null
+    }
+    isStreamingRef.current = false
+    setIsLoading(false)
+  }
+
+  const handleScrollToBottom = () => {
+    if (messagesContainerRef.current) {
+      messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight
+      setShowScrollToBottom(false)
+      setUnreadCount(0)
+      userHasScrolledUp.current = false
+    }
+  }
+
   const handleSend = async () => {
     if (!input.trim() && attachedContent.length === 0) return
 
@@ -150,6 +183,12 @@ export function ChatInterface({ selectedContent = [] }: ChatInterfaceProps) {
     setMessages(prev => [...prev, userMessage])
     setInput('')
     setIsLoading(true)
+
+    // Create new abort controller for this request
+    abortControllerRef.current = new AbortController()
+
+    // Declare assistantMessage here so it's accessible in catch block
+    let assistantMessage: Message | null = null
 
     try {
       // Prepare chat request - use conversation content for context continuity
@@ -188,14 +227,15 @@ export function ChatInterface({ selectedContent = [] }: ChatInterfaceProps) {
         headers['X-CSRF-Token'] = csrfToken
       }
       
-      // Use fetch for streaming response
+      // Use fetch for streaming response with abort signal
       // Note: credentials: 'include' is required for cookies but may strip Authorization header
       // Since the endpoint is CSRF-exempt, we can try without credentials
       const fetchResponse = await fetch(`${api.defaults.baseURL}/api/v1/chat`, {
         method: 'POST',
         headers,
         body: JSON.stringify(chatRequest),
-        credentials: 'omit'  // Try omitting credentials to preserve Authorization header
+        credentials: 'omit',  // Try omitting credentials to preserve Authorization header
+        signal: abortControllerRef.current.signal
       })
 
       if (!fetchResponse.ok) {
@@ -219,7 +259,7 @@ export function ChatInterface({ selectedContent = [] }: ChatInterfaceProps) {
       isStreamingRef.current = true
       userHasScrolledUp.current = false  // Reset for new message
       
-      let assistantMessage: Message = {
+      assistantMessage = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
         content: '',
@@ -227,7 +267,7 @@ export function ChatInterface({ selectedContent = [] }: ChatInterfaceProps) {
       }
 
       // Add empty message that we'll update as chunks arrive
-      setMessages(prev => [...prev, assistantMessage])
+      setMessages(prev => [...prev, assistantMessage as Message])
 
       if (reader) {
         while (true) {
@@ -245,13 +285,14 @@ export function ChatInterface({ selectedContent = [] }: ChatInterfaceProps) {
               try {
                 const data = JSON.parse(line.slice(6))
                 
-                if (data.type === 'content') {
+                if (data.type === 'content' && assistantMessage) {
                   // Update the assistant message content
                   assistantMessage.content += data.content
+                  const currentMessage = assistantMessage
                   setMessages(prev => 
                     prev.map(msg => 
-                      msg.id === assistantMessage.id 
-                        ? { ...msg, content: assistantMessage.content }
+                      msg.id === currentMessage.id 
+                        ? { ...msg, content: currentMessage.content }
                         : msg
                     )
                   )
@@ -303,6 +344,25 @@ export function ChatInterface({ selectedContent = [] }: ChatInterfaceProps) {
       setAttachedContent([])
       
     } catch (error) {
+      // Handle abort separately - not an error
+      if (error instanceof Error && error.name === 'AbortError') {
+        const cancelMessage: Message = {
+          id: (Date.now() + 1).toString(),
+          role: 'assistant',
+          content: assistantMessage?.content || '(Response cancelled)',
+          timestamp: new Date(),
+        }
+        if (assistantMessage?.content && assistantMessage) {
+          const messageId = assistantMessage.id
+          setMessages(prev => 
+            prev.map(msg => 
+              msg.id === messageId ? cancelMessage : msg
+            )
+          )
+        }
+        return
+      }
+
       let errorMsg = 'An error occurred while sending your message. '
       
       if (error instanceof Error) {
@@ -339,6 +399,25 @@ export function ChatInterface({ selectedContent = [] }: ChatInterfaceProps) {
     }
   }
 
+  // Global keyboard shortcuts
+  useEffect(() => {
+    const handleGlobalKeyPress = (e: KeyboardEvent) => {
+      // Ctrl/Cmd + End: Scroll to bottom
+      if ((e.ctrlKey || e.metaKey) && e.key === 'End') {
+        e.preventDefault()
+        handleScrollToBottom()
+      }
+      // Escape: Stop streaming
+      if (e.key === 'Escape' && isStreamingRef.current) {
+        e.preventDefault()
+        handleStop()
+      }
+    }
+
+    window.addEventListener('keydown', handleGlobalKeyPress)
+    return () => window.removeEventListener('keydown', handleGlobalKeyPress)
+  }, [])
+
   const removeAttachment = (index: number) => {
     setAttachedContent(prev => prev.filter((_, i) => i !== index))
   }
@@ -372,12 +451,16 @@ export function ChatInterface({ selectedContent = [] }: ChatInterfaceProps) {
       <Box
         ref={messagesContainerRef}
         onScroll={checkUserScroll}
+        role="log"
+        aria-label="Chat messages"
+        aria-live="polite"
         sx={{
           flex: 1,
           overflow: 'auto',
           overflowAnchor: 'none', // Disable browser's scroll anchoring
           p: 2,
           bgcolor: 'grey.50',
+          position: 'relative',
           // Optimize scrolling performance
           willChange: 'scroll-position',
           WebkitOverflowScrolling: 'touch', // Smooth scrolling on iOS
@@ -462,6 +545,8 @@ export function ChatInterface({ selectedContent = [] }: ChatInterfaceProps) {
                 alignItems: 'center',
                 gap: 1,
               }}
+              role="status"
+              aria-live="assertive"
             >
               <CircularProgress size={isMobile ? 14 : 16} />
               <Typography variant={isMobile ? "caption" : "body2"} color="text.secondary">
@@ -472,6 +557,25 @@ export function ChatInterface({ selectedContent = [] }: ChatInterfaceProps) {
         )}
         
         <div ref={messagesEndRef} />
+        
+        {/* Scroll to Bottom FAB */}
+        <Zoom in={showScrollToBottom}>
+          <Fab
+            color="primary"
+            size="small"
+            onClick={handleScrollToBottom}
+            aria-label={unreadCount > 0 ? `Scroll to bottom, ${unreadCount} unread messages` : 'Scroll to bottom'}
+            sx={{
+              position: 'absolute',
+              bottom: 16,
+              right: 16,
+            }}
+          >
+            <Badge badgeContent={unreadCount} color="error">
+              <KeyboardArrowDown />
+            </Badge>
+          </Fab>
+        </Zoom>
       </Box>
 
       <Divider />
@@ -517,24 +621,44 @@ export function ChatInterface({ selectedContent = [] }: ChatInterfaceProps) {
               },
             }}
           />
-          <IconButton
-            color="primary"
-            onClick={handleSend}
-            disabled={isLoading || (!input.trim() && attachedContent.length === 0)}
-            size={isMobile ? "small" : "medium"}
-            sx={{ 
-              bgcolor: 'primary.main',
-              color: 'white',
-              '&:hover': {
-                bgcolor: 'primary.dark',
-              },
-              '&:disabled': {
-                bgcolor: 'grey.300',
-              },
-            }}
-          >
-            <Send />
-          </IconButton>
+          {isLoading && isStreamingRef.current ? (
+            <IconButton
+              color="error"
+              onClick={handleStop}
+              size={isMobile ? "small" : "medium"}
+              aria-label="Stop response (Esc)"
+              title="Stop response (Press Esc)"
+              sx={{ 
+                bgcolor: 'error.main',
+                color: 'white',
+                '&:hover': {
+                  bgcolor: 'error.dark',
+                },
+              }}
+            >
+              <Stop />
+            </IconButton>
+          ) : (
+            <IconButton
+              color="primary"
+              onClick={handleSend}
+              disabled={isLoading || (!input.trim() && attachedContent.length === 0)}
+              size={isMobile ? "small" : "medium"}
+              aria-label="Send message"
+              sx={{ 
+                bgcolor: 'primary.main',
+                color: 'white',
+                '&:hover': {
+                  bgcolor: 'primary.dark',
+                },
+                '&:disabled': {
+                  bgcolor: 'grey.300',
+                },
+              }}
+            >
+              <Send />
+            </IconButton>
+          )}
         </Box>
       </Box>
     </Paper>
