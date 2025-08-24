@@ -1,4 +1,5 @@
 import api from './api'
+import tokenStorage from './tokenStorage'
 
 export interface LoginCredentials {
   username: string
@@ -47,8 +48,8 @@ class AuthService {
     })
 
     const { access_token, refresh_token } = response.data
-    localStorage.setItem('access_token', access_token)
-    localStorage.setItem('refresh_token', refresh_token)
+    tokenStorage.setAccessToken(access_token)
+    tokenStorage.setRefreshToken(refresh_token)
 
     return response.data
   }
@@ -65,20 +66,19 @@ class AuthService {
 
   async logout(): Promise<void> {
     try {
-      const refreshToken = localStorage.getItem('refresh_token')
+      const refreshToken = tokenStorage.getRefreshToken()
       if (refreshToken) {
         await api.post('/api/v1/auth/logout', { refresh_token: refreshToken })
       }
     } catch (error) {
       // Continue with local logout even if server request fails
     } finally {
-      localStorage.removeItem('access_token')
-      localStorage.removeItem('refresh_token')
+      tokenStorage.clearTokens()
     }
   }
 
   isAuthenticated(): boolean {
-    return !!localStorage.getItem('access_token')
+    return tokenStorage.isAuthenticated()
   }
 
   async getCSRFToken(): Promise<string> {
