@@ -1,9 +1,10 @@
 """
 Common dependencies for API endpoints - Sync version
+Supports both Bearer tokens and httpOnly cookies for authentication
 """
 
 from typing import Optional
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, status, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
 from sqlalchemy import select
@@ -19,19 +20,23 @@ from app.core.exceptions import (
 )
 from app.models.user import User
 
-# Security scheme
-security = HTTPBearer()
+# Security scheme with auto_error=False to allow cookie fallback
+security = HTTPBearer(auto_error=False)
 
 
 def get_current_user(
-    credentials: HTTPAuthorizationCredentials = Depends(security),
+    request: Request,
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(security),
     db: Session = Depends(get_db)
 ) -> User:
     """
-    Get the current authenticated user from JWT token.
+    Get the current authenticated user from either:
+    1. Authorization header (Bearer token) - for backward compatibility
+    2. httpOnly cookie - new secure method (industry standard)
     
     Args:
-        credentials: The HTTP authorization credentials
+        request: The FastAPI request object
+        credentials: The HTTP authorization credentials (optional)
         db: Database session
         
     Returns:
@@ -40,11 +45,30 @@ def get_current_user(
     Raises:
         HTTPException: If authentication fails
     """
-    token = credentials.credentials
+    token = None
+    
+    # First, try Authorization header (backward compatibility)
+    if credentials and credentials.credentials:
+        token = credentials.credentials
+    
+    # If no header token, try cookie (new secure method)
+    if not token:
+        token = request.cookies.get("access_token")
+    
+    # If still no token, raise unauthorized
+    if not token:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Not authenticated",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
     
     # Verify the token
-    user_id = verify_token(token, token_type="access")
-    if not user_id:
+    try:
+        user_id = verify_token(token, token_type="access")
+        if not user_id:
+            raise InvalidTokenError()
+    except Exception:
         raise InvalidTokenError()
     
     # Get user from database
