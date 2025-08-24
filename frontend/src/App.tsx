@@ -217,7 +217,7 @@ function StudyPage() {
   // Mobile and Tablet layout with tabs
   if (isMobile || isTablet) {
     return (
-      <Box sx={{ height: 'calc(100vh - 200px)', display: 'flex', flexDirection: 'column' }}>
+      <Box sx={{ height: 'calc(100vh - 165px)', display: 'flex', flexDirection: 'column' }}>
         {/* Tab navigation for mobile/tablet */}
         <Paper sx={{ borderRadius: 0 }}>
           <Tabs 
@@ -278,14 +278,20 @@ function StudyPage() {
 
   // Desktop layout - side by side
   return (
-    <Box sx={{ display: 'flex', gap: 3, height: 'calc(100vh - 200px)' }}>
+    <Box sx={{ 
+      display: 'flex', 
+      gap: 2, 
+      height: 'calc(100vh - 165px)', // Adjusted to account for actual header/footer
+      position: 'relative'
+    }}>
       {/* Left side - Content Selection */}
       <Paper elevation={3} sx={{ 
         flex: '0 0 350px', 
         p: 2, 
         display: 'flex', 
         flexDirection: 'column',
-        overflow: 'hidden'
+        overflow: 'hidden',
+        height: '100%'
       }}>
         <Typography variant="h6" gutterBottom>
           Study Materials (Optional)
@@ -293,7 +299,7 @@ function StudyPage() {
         <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
           Add content to enhance your chat, or start chatting directly
         </Typography>
-        <Box sx={{ flex: 1, minHeight: 0 }}>
+        <Box sx={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
           <ContentSelector 
             onSelectionChange={setSelectedContent} 
             selectedContent={selectedContent}
@@ -302,7 +308,7 @@ function StudyPage() {
       </Paper>
 
       {/* Right side - Chat Interface (Primary) */}
-      <Box sx={{ flex: 1 }}>
+      <Box sx={{ flex: 1, minHeight: 0, height: '100%' }}>
         <ChatInterface selectedContent={selectedContent} />
       </Box>
     </Box>
