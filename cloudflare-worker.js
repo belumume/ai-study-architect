@@ -1,25 +1,26 @@
-// Cloudflare Worker for AI Study Architect
-// Routes /api/* to Render backend, everything else to Vercel frontend
-
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
     
-    // Route API requests to Render backend
+    // Route /api/* to backend WITHOUT stripping /api
     if (url.pathname.startsWith('/api/')) {
-      // Modify the request to go to Render
       const backendUrl = new URL(url);
       backendUrl.hostname = 'ai-study-architect.onrender.com';
       
-      // Clone the request with the new URL
-      const backendRequest = new Request(backendUrl, request);
+      // SECURITY: Block OpenAPI/docs exposure
+      if (url.pathname === '/api/docs' || 
+          url.pathname === '/api/openapi.json' ||
+          url.pathname === '/api/redoc') {
+        return new Response('Not Found', { status: 404 });
+      }
       
-      // Add proper headers
-      const modifiedHeaders = new Headers(backendRequest.headers);
+      // Keep the full path - backend expects /api/v1/*
+      // DO NOT strip /api prefix
+      
+      const modifiedHeaders = new Headers(request.headers);
       modifiedHeaders.set('X-Forwarded-Host', url.hostname);
       modifiedHeaders.set('X-Forwarded-Proto', url.protocol.replace(':', ''));
       
-      // Forward to backend
       return fetch(new Request(backendUrl, {
         method: request.method,
         headers: modifiedHeaders,
@@ -28,11 +29,10 @@ export default {
       }));
     }
     
-    // Route everything else to Vercel frontend
+    // Route everything else to frontend (Vercel)
     const frontendUrl = new URL(url);
     frontendUrl.hostname = 'ai-study-architect.vercel.app';
     
-    // Forward to frontend
     return fetch(new Request(frontendUrl, request));
   }
 };
