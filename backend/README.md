@@ -306,9 +306,10 @@ alembic revision --autogenerate -m "Description"
   - Ensure virtual environment is activated
   - On Windows: `.\venv\Scripts\activate`
   
-- **CORS errors**: 
+- **CORS errors** (Local Development): 
   - Check `BACKEND_CORS_ORIGINS` in `.env`
-  - Must include full URL: `http://localhost:3000`
+  - Must include full URL: `http://localhost:5173` for local development
+  - Production uses `https://aistudyarchitect.com` via same-origin
   
 - **Endpoints returning 404**:
   - Uvicorn module caching issue on Windows
