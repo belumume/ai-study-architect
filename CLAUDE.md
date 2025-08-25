@@ -171,6 +171,10 @@ The project implements seven specialized agents that work together:
 - **API keys at runtime** - Services must check keys at runtime, not import time
 - **JWT endpoints exempted from CSRF** - Configured in `app/core/csrf.py`
 - **Frontend on Vercel** - Not Render, requires `vercel.json` for SPA routing
+- **Cloudflare Worker routing** - MUST NOT strip /api prefix, backend expects full paths
+- **API docs blocked** - Worker returns 404 for /api/docs, /api/openapi.json, /api/redoc
+- **RS256 JWT with HS256 fallback** - Keys in backend/keys/ (gitignored)
+- **48 endpoints secured** - 6 public, 42 protected (verified Aug 25, 2025)
 
 ## Quick Troubleshooting
 
