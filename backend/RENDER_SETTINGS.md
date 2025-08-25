@@ -1,7 +1,7 @@
 # Render Dashboard Settings
 
 **IMPORTANT**: These settings must be configured in the Render dashboard and kept in sync with this file.
-Last updated: 2025-08-08
+Last updated: 2025-08-25
 
 ## Required Settings (Cannot be blank)
 

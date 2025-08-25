@@ -65,16 +65,19 @@ This document outlines security best practices for the AI Study Architect projec
 ## Environment Variables
 
 ### Required `.env.example` Structure
+
+**Note**: This is a template for local development. Production values should never include localhost references.
+
 ```bash
-# Database
+# Database (Development Example)
 DATABASE_URL=postgresql://user:password@localhost/ai_study_architect
 REDIS_URL=redis://localhost:6379
 
-# Authentication
+# Authentication (Generate secure values for production)
 JWT_SECRET=generate-a-secure-random-string
 SESSION_SECRET=another-secure-random-string
 
-# AI Services (if using cloud)
+# AI Services (Replace with actual keys)
 OPENAI_API_KEY=your-key-here
 ANTHROPIC_API_KEY=your-key-here
 
@@ -82,9 +85,9 @@ ANTHROPIC_API_KEY=your-key-here
 UPLOAD_PATH=/secure/location/uploads
 MAX_UPLOAD_SIZE=10485760
 
-# Security
+# Security (Production should use actual domains)
 ENCRYPTION_KEY=generate-using-secrets-module
-ALLOWED_ORIGINS=http://localhost:3000
+ALLOWED_ORIGINS=http://localhost:5173  # Dev only - use https://aistudyarchitect.com in production
 ```
 
 ## Incident Response
