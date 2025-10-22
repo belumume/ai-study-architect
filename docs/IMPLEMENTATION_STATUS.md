@@ -212,11 +212,10 @@ This document tracks the current implementation status of AI Study Architect. Fo
 
 ## Known Issues
 
-1. **Chat History**: Not persisting between sessions
+1. **Chat History**: Not persisting between sessions (TODO in backend/app/api/v1/chat.py:653)
 2. **File Processing**: Large PDFs (>5MB) slow to process
 3. **Error Messages**: Some still too technical for users
 4. **Mobile UI**: Not fully responsive
-5. **Ollama Dependency**: No graceful degradation when offline
 
 ## Next Implementation Priorities
 
@@ -241,35 +240,46 @@ This document tracks the current implementation status of AI Study Architect. Fo
 ## Development Environment
 
 **Required Services Running**:
-- PostgreSQL (port 5432 or 5433)
-- Redis (port 6379)
-- Ollama (port 11434)
+- PostgreSQL (port 5432 or 5433 on Windows)
+- Redis (port 6379) - MockRedisClient fallback available
+
+**Required API Keys**:
+- Anthropic API key (Claude - primary service)
+- OpenAI API key (fallback service) - optional but recommended
 
 **Verified Working On**:
 - Windows 11 with WSL2
+- Linux (Ubuntu 20.04+)
 - Python 3.11+
-- Node.js 16+
-- PostgreSQL 14+
+- Node.js 18+
+- PostgreSQL 17 (14+ supported)
 
 ## Deployment Status
 
-**Current**: Local development only
-**Next Steps**: 
-1. Dockerize application
-2. Set up CI/CD pipeline
-3. Deploy to cloud (considering Vercel/Railway)
-4. Configure production database
+**Current**: Production deployment active
+- **Backend**: Render.com (https://ai-study-architect.onrender.com)
+- **Frontend**: Vercel (https://ai-study-architect.onrender.com via Cloudflare Worker routing)
+- **Database**: PostgreSQL on Render (Basic-256mb plan, $6/month, expires Sept 6, 2025)
+- **CDN/Routing**: Cloudflare Worker for API routing
+
+**Completed**:
+1. Production deployment (Render + Vercel)
+2. Database migrations (Alembic)
+3. Environment configuration (secrets management)
+4. HTTPS/SSL certificates (automatic via Cloudflare)
+
+**Pending**:
+1. CI/CD pipeline automation (currently manual deployments)
+2. Monitoring and alerting setup
+3. Backup automation beyond current manual scripts
 
 ## Resource Usage
 
 **Development**:
-- RAM: ~4GB (with all services)
-- CPU: Moderate (spikes during AI processing)
-- Disk: ~2GB (excluding Ollama models)
-
-**Ollama Models**:
-- llama3.2: ~2GB
-- nomic-embed-text: ~280MB
+- RAM: ~2GB (backend + frontend + PostgreSQL + Redis)
+- CPU: Moderate (spikes during file processing, AI calls handled by cloud services)
+- Disk: ~1GB (application code + dependencies)
+- Network: Required for Claude/OpenAI API calls
 
 ---
 

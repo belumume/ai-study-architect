@@ -5,7 +5,6 @@
 ### Project Overview
 - **[README.md](README.md)** - CS50 final project submission, overview, and features
 - **[CLAUDE.md](CLAUDE.md)** - Claude Code development guidance and commands
-- **[CLAUDE.local.md](CLAUDE.local.md)** - Private development principles (not in git)
 
 ### Development & Operations
 - **[DEVELOPMENT.md](DEVELOPMENT.md)** - Local setup, testing, and development workflow
@@ -14,7 +13,8 @@
 
 ### Security & Backup
 - **[SECURITY.md](SECURITY.md)** - Security implementation details
-- **[SECURITY_ASSESSMENT_2025.md](SECURITY_ASSESSMENT_2025.md)** - Latest security audit
+- **[SECURITY_AUDIT_2025.md](SECURITY_AUDIT_2025.md)** - Security audit procedures
+- **[SECURITY_AUDIT_RESULTS_2025_08_25.md](SECURITY_AUDIT_RESULTS_2025_08_25.md)** - Latest audit results (Aug 25, 2025)
 - **[BACKUP_SECURITY.md](BACKUP_SECURITY.md)** - Backup system architecture
 - **[BACKUP_SETUP.md](BACKUP_SETUP.md)** - Backup configuration guide
 - **[RENDER_MCP_SECURITY.md](RENDER_MCP_SECURITY.md)** - MCP Server security safeguards

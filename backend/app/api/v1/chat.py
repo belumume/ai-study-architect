@@ -267,76 +267,37 @@ NEVER:
                 yield f"data: {json.dumps(chunk_data)}\n\n"
             full_response = error_response
         elif request.stream:
-            # ALL services now support streaming
-            if False:  # Removed Ollama support
-                # Legacy code removed
-                async with service as svc:
-                    response_stream = await svc.chat_completion(
-                        messages=context_messages,
-                        temperature=request.temperature,
-                        max_tokens=request.max_tokens,
-                        stream=True
-                    )
-                
-                index = 0
-                async for chunk in response_stream:
-                    try:
-                        # Parse the JSON response from AI service
-                        chunk_data = json.loads(chunk)
-                        
-                        if "response" in chunk_data:
-                            content = chunk_data["response"]
-                            full_response += content
-                            
-                            # Send each character as a separate event
-                            for char in content:
-                                yield f"data: {json.dumps({'type': 'content', 'content': char, 'index': index})}\n\n"
-                                index += 1
-                                token_count += 1
-                        
-                        # Check if this is the final chunk
-                        if chunk_data.get("done", False):
-                            # Extract context for future conversations
-                            if "context" in chunk_data:
-                                # Store context in cache for conversation continuity
-                                context_key = f"chat:context:{user.id}"
-                                redis_cache.set(context_key, chunk_data["context"], 3600)
-                            
-                    except json.JSONDecodeError:
-                        logger.warning(f"Failed to parse AI service chunk: {chunk}")
-                        continue
-            else:
-                # Claude and OpenAI also support streaming now!
-                response_stream = await service.chat_completion(
-                    messages=context_messages,
-                    temperature=request.temperature,
-                    max_tokens=request.max_tokens,
-                    stream=True
-                )
-                
-                index = 0
-                async for chunk in response_stream:
-                    try:
-                        # Parse the JSON response (same format for all services now)
-                        chunk_data = json.loads(chunk)
-                        
-                        if "response" in chunk_data:
-                            content = chunk_data["response"]
-                            full_response += content
-                            
-                            # Send each character as a separate event
-                            for char in content:
-                                yield f"data: {json.dumps({'type': 'content', 'content': char, 'index': index})}\n\n"
-                                index += 1
-                                token_count += 1
-                        
-                        # Check if this is the final chunk
-                        if chunk_data.get("done", False):
-                            break
-                            
-                    except json.JSONDecodeError:
-                        logger.warning(f"Failed to parse {service_name} chunk: {chunk}")
-                        continue
+            # ALL services support streaming (Claude and OpenAI)
+            response_stream = await service.chat_completion(
+                messages=context_messages,
+                temperature=request.temperature,
+                max_tokens=request.max_tokens,
+                stream=True
+            )
+
+            index = 0
+            async for chunk in response_stream:
+                try:
+                    # Parse the JSON response (same format for all services now)
+                    chunk_data = json.loads(chunk)
+
+                    if "response" in chunk_data:
+                        content = chunk_data["response"]
+                        full_response += content
+
+                        # Send each character as a separate event
+                        for char in content:
+                            yield f"data: {json.dumps({'type': 'content', 'content': char, 'index': index})}\n\n"
+                            index += 1
+                            token_count += 1
+
+                    # Check if this is the final chunk
+                    if chunk_data.get("done", False):
+                        break
+
+                except json.JSONDecodeError:
+                    logger.warning(f"Failed to parse {service_name} chunk: {chunk}")
+                    continue
         else:
             # Non-streaming mode - get complete response and send it all at once
             response_data = await ai_service_manager.chat_completion(
@@ -768,7 +729,7 @@ async def answer_content_question(
         
         referenced_content.append(ref_info)
     
-    # Prepare messages for Ollama
+    # Prepare messages for AI service (Claude or OpenAI)
     messages = [
         {
             "role": "system",
