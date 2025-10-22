@@ -4,10 +4,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-AI Study Architect - A 7-agent educational system that builds cognitive strength through Socratic questioning and guided discovery learning. Uses Claude API (primary) and OpenAI (fallback) to help students learn from their own course materials.
+AI Study Architect - A mastery-based learning system that proves students actually learned through knowledge graphs, spaced repetition, and measurable retention. Currently focused on CS education (CS50) as beachhead market. Uses Claude API (primary) and OpenAI (fallback) for AI-powered concept extraction and practice generation.
 
-**Live Application**: https://ai-study-architect.onrender.com  
+**Live Application**: https://ai-study-architect.onrender.com
 **Core Philosophy**: "Build cognitive strength, not cognitive debt"
+
+**Current Phase**: Strategic pivot to mastery-based learning (see docs/NEW_DIRECTION_2025.md)
+- FROM: "7-agent Socratic chatbot"
+- TO: "Mastery-based system with proven retention" (MathAcademy-inspired)
 
 ## Important Development Rules
 
@@ -78,16 +82,21 @@ npx playwright test streaming-scroll          # Run specific test
 
 ## High-Level Architecture
 
-### 7-Agent System
-The project implements seven specialized agents that work together:
+### Mastery-Based Learning System
+**Current Implementation** (as of Oct 2025):
+- Lead Tutor Agent - Provides Socratic questioning and explanations [IMPLEMENTED]
+- File upload and content processing [IMPLEMENTED]
+- Chat interface with streaming [IMPLEMENTED]
 
-1. **Lead Tutor** (`/api/v1/agents/chat`) - Orchestrates Socratic questioning
-2. **Content Understanding** - Processes course materials (PDFs, notes, lectures)
-3. **Knowledge Synthesis** (`/api/v1/agents/explain`) - Creates personalized explanations
-4. **Practice Generation** (`/api/v1/agents/study-plan`) - Generates adaptive problems
-5. **Progress Tracking** (`/api/v1/agents/status`) - Monitors learning patterns
-6. **Assessment** (`/api/v1/agents/check-understanding`) - Evaluates comprehension
-7. **Collaboration** (`/api/v1/agents/clear-memory`) - Enables collective intelligence
+**Planned Components** (see DAILY_DEV_PLAN.md for timeline):
+1. **Knowledge Graph Extractor** - Extract atomic concepts and dependencies from course materials
+2. **Practice Problem Generator** - Create auto-graded programming exercises
+3. **Mastery Tracker** - Enforce 90%+ gates before concept unlock
+4. **Spaced Repetition Scheduler** - SM-2 algorithm for optimal review timing
+5. **Retention Analyzer** - Track long-term learning (weeks/months later)
+
+**Legacy Reference** (Original 7-Agent Vision):
+The original architecture envisioned 7 specialized agents (Lead Tutor, Content Understanding, Knowledge Synthesis, Practice Generation, Progress Tracking, Assessment, Collaboration). The strategic pivot focuses on measurable mastery-based learning instead.
 
 ### Backend Architecture (FastAPI)
 
@@ -123,11 +132,20 @@ The project implements seven specialized agents that work together:
 ### Database Architecture
 
 **PostgreSQL 17** with SQLAlchemy ORM:
+
+**Current Tables:**
 - `users` - Authentication and profiles
 - `content` - Uploaded study materials with extracted text
 - `study_sessions` - Learning sessions and progress tracking
 - `practice_problems` - Generated exercises with difficulty levels
 - `chat_messages` - Conversation history with context
+
+**Planned (Week 1-2):**
+- `concepts` - Atomic learning concepts extracted from materials
+- `concept_dependencies` - Prerequisite relationships between concepts
+- `user_attempts` - Student problem-solving attempts
+- `mastery_status` - Per-concept mastery tracking
+- `spaced_repetition_schedule` - Review scheduling (SM-2 algorithm)
 
 ### AI Integration Architecture
 
@@ -163,7 +181,8 @@ The project implements seven specialized agents that work together:
 
 ## Critical Reminders
 
-- **7 agents always** - Not 5 or 6, the system is designed for 7 specialized agents
+- **Mastery-based focus** - Building for measurable learning outcomes, not agent count
+- **Daily dev sessions** - See DAILY_DEV_PLAN.md for 1-2 hour incremental progress
 - **Pre-Deploy MUST be empty** - Any migration command will fail
 - **Port 5433 on Windows** - PostgreSQL uses non-standard port
 - **NEVER change BACKUP_ENCRYPTION_KEY** - Will lose access to all previous backups
