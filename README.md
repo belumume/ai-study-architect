@@ -62,15 +62,21 @@ AI Study Architect takes a fundamentally different approach from other AI tutors
 ## Technical Architecture
 
 ### Multi-Agent System
-The project implements seven specialized AI agents that work together:
+The project is designed around seven specialized AI agents working together (currently in phased implementation):
 
-1. **Lead Tutor Agent**: Orchestrates the entire learning experience with Socratic questioning ✅ Live
-2. **Content Understanding Agent**: Processes educational materials (PDFs, lectures, notes) into structured knowledge ✅ Live
-3. **Knowledge Synthesis Agent**: Creates connections between concepts and generates personalized explanations ✅ Live
-4. **Practice Generation Agent**: Develops custom exercises targeting specific weaknesses ✅ Live
-5. **Progress Tracking Agent**: Monitors learning patterns and adjusts difficulty ✅ Live
-6. **Assessment Agent**: Evaluates true comprehension, not just correctness ✅ Live
-7. **Collaboration Agent**: Enables collective intelligence through privacy-preserving group learning ✅ Live
+1. **Lead Tutor Agent**: Orchestrates the entire learning experience with Socratic questioning [LIVE]
+   - Creates personalized study plans
+   - Explains concepts tailored to learning style
+   - Generates understanding check questions
+   - Provides feedback and adapts difficulty
+2. **Content Understanding Agent**: Processes educational materials (PDFs, lectures, notes) into structured knowledge [PLANNED]
+3. **Knowledge Synthesis Agent**: Creates connections between concepts and generates personalized explanations [PLANNED]
+4. **Practice Generation Agent**: Develops custom exercises targeting specific weaknesses [PLANNED]
+5. **Progress Tracking Agent**: Monitors learning patterns and adjusts difficulty [PLANNED]
+6. **Assessment Agent**: Evaluates true comprehension, not just correctness [PLANNED]
+7. **Collaboration Agent**: Enables collective intelligence through privacy-preserving group learning [PLANNED]
+
+Note: While only the Lead Tutor Agent is fully implemented, it provides multiple educational functions through specialized actions. The remaining agents are part of the full vision and will be implemented in future phases.
 
 ### Technology Stack
 
@@ -91,11 +97,11 @@ The project implements seven specialized AI agents that work together:
 
 **AI Integration**:
 - **Cloud-Only Architecture**: Enterprise-grade AI services for reliability and performance
-- **Intelligent Model Selection**: Claude (Anthropic) for superior educational experience
-- **Automatic Fallback**: Claude → OpenAI based on availability
-- **Real Streaming**: Native SSE streaming with live AI responses
-- **Content Analysis**: AI-powered extraction of key concepts and learning objectives
-- **Socratic Questioning**: Built-in prompts that make students think before answering
+- **Primary Service**: Claude (Anthropic) for superior educational reasoning and Socratic questioning
+- **Automatic Fallback**: Claude → OpenAI for high availability (99.9%+ uptime)
+- **Real Streaming**: Server-sent events (SSE) for live AI response streaming
+- **Content Analysis**: AI-powered extraction of key concepts and learning objectives from uploaded materials
+- **Socratic Questioning**: Built-in educational prompts optimized for deep learning, not just answers
 
 ### Security & Privacy
 
