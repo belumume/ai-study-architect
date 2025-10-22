@@ -3,43 +3,62 @@
 ---
 Document Level: 3
 Created: July 2025
-Last Updated: August 2025
+Last Updated: October 2025
 Supersedes: None
-Status: Active
+Status: Active - Strategic Pivot to Mastery-Based Learning
 ---
 
 ## Overview
 
-AI Study Architect is a **7-agent learning system** that leverages Claude best practices for development and deployment. The system creates personalized, adaptive study experiences through orchestrated AI agents working in concert to solve the **AI Learning Paradox**: **86% of students use AI in their studies, yet research shows they perform worse when AI support is removed - creating cognitive debt instead of cognitive strength**.
+AI Study Architect is a **mastery-based learning system** that proves students actually learned through knowledge graphs, spaced repetition, and measurable retention. Currently focused on CS education (CS50) as beachhead market. The system solves the **AI Learning Paradox**: **86% of students use AI in their studies, yet research shows they perform worse when AI support is removed - creating cognitive debt instead of cognitive strength**.
 
-### The Seven Specialized Agents
-1. **Lead Tutor Agent** - Orchestrates the learning experience ✅ LIVE
-2. **Content Understanding Agent** - Processes any educational material ✅ LIVE
-3. **Knowledge Synthesis Agent** - Creates personalized connections ✅ LIVE
-4. **Practice Generation Agent** - Builds exercises targeting learning opportunities ✅ LIVE
-5. **Progress Tracking Agent** - Monitors true understanding ✅ LIVE
-6. **Assessment Agent** - Evaluates comprehension, not correctness ✅ LIVE
-7. **Collaboration Agent** - Enables collective intelligence ✅ LIVE
+**Strategic Direction**: See [NEW_DIRECTION_2025.md](NEW_DIRECTION_2025.md) for complete pivot rationale and roadmap.
+
+### Current Implementation (October 2025)
+
+**What's Live:**
+- Lead Tutor Agent - Provides Socratic questioning and explanations
+- File upload and content processing
+- Chat interface with streaming responses
+- User authentication and session management
+
+**In Active Development** (see [DAILY_DEV_PLAN.md](../DAILY_DEV_PLAN.md)):
+1. **Knowledge Graph Extractor** - Extract atomic concepts and dependencies from course materials
+2. **Practice Problem Generator** - Create auto-graded programming exercises
+3. **Mastery Tracker** - Enforce 90%+ gates before concept unlock
+4. **Spaced Repetition Scheduler** - SM-2 algorithm for optimal review timing
+5. **Retention Analyzer** - Track long-term learning (weeks/months later)
+
+### Legacy Architecture Note
+
+The original vision included a "7-agent system" (Lead Tutor, Content Understanding, Knowledge Synthesis, Practice Generation, Progress Tracking, Assessment, Collaboration). After strategic analysis, we pivoted to focus on measurable mastery-based learning outcomes instead of agent count. See [DOCUMENTATION_AUDIT.md](../DOCUMENTATION_AUDIT.md) for details on the transition.
 
 ## Architecture Principles
 
-### 1. Multi-Agent Design Pattern
-- **Separation of Concerns**: Each agent has a single, well-defined responsibility
-- **Loose Coupling**: Agents communicate through standardized message interfaces
-- **High Cohesion**: Related functionality is grouped within agents
-- **Testability**: Each agent can be tested in isolation
+### 1. Mastery-Based Learning Design
+- **Measurable Outcomes**: All features optimized for retention, not just completion
+- **Knowledge Graph Structure**: Concepts are atomic and dependencies explicit
+- **Mastery Gates**: Students must prove understanding (90%+) before advancing
+- **Spaced Repetition**: Review timing based on cognitive science (SM-2 algorithm)
+- **Long-term Tracking**: Measure learning weeks/months later, not just immediately
 
-### 2. Understanding-First Architecture
+### 2. Service-Oriented Architecture
+- **Separation of Concerns**: Each service has a single, well-defined responsibility
+- **Loose Coupling**: Services communicate through database and API interfaces
+- **High Cohesion**: Related functionality is grouped within services
+- **Testability**: Each service can be tested in isolation
+
+### 3. Understanding-First Development
 - **Learning Focus**: All decisions optimize for comprehension, not convenience
-- **User Control**: Flexible processing options based on user needs
+- **Incremental Implementation**: Daily 1-2 hour sessions with clear wins (see DAILY_DEV_PLAN.md)
 - **Data Minimization**: Only essential data stored for learning continuity
 - **Secure Implementation**: Standard security practices throughout
 
-### 3. Claude Development Patterns
-- **Explore-Plan-Code-Test**: Standard workflow for all features
+### 4. Development Workflow
 - **Test-Driven Development**: Tests written before implementation
-- **Iterative Refinement**: 2-3 iterations for optimal results
-- **Multi-Instance Verification**: Separate Claude instances for code review
+- **Iterative Refinement**: Validate with real CS50 materials, iterate based on results
+- **Code Review**: PR reviews via automated Claude bot
+- **Daily Progress**: Small wins compound over time
 
 ## System Components
 
@@ -56,32 +75,33 @@ backend/
 │   │   │   ├── study.py          # Study session management
 │   │   │   └── practice.py       # Practice generation
 │   │   └── dependencies.py       # Shared dependencies
-│   ├── agents/                   # Multi-agent system
-│   │   ├── base.py              # Base agent class
-│   │   ├── lead_tutor.py        # Orchestration agent ✅ Live
-│   │   ├── content_understanding.py  # Processes educational materials ✅ Live
-│   │   ├── knowledge_synthesis.py    # Creates connections between concepts ✅ Live
-│   │   ├── practice_generation.py    # Develops custom exercises ✅ Live
-│   │   ├── progress_tracking.py      # Monitors learning patterns ✅ Live
-│   │   ├── assessment.py             # Evaluates true comprehension ✅ Live
-│   │   └── collaboration.py          # Enables collective intelligence ✅ Live
+│   ├── agents/                   # Agent system (current)
+│   │   ├── base.py              # Base agent class ✅ Live
+│   │   └── lead_tutor.py        # Socratic questioning agent ✅ Live
 │   ├── core/                    # Core functionality
 │   │   ├── config.py           # Configuration management
 │   │   ├── security.py         # JWT, password hashing
 │   │   └── database.py         # Database connections
 │   ├── models/                 # SQLAlchemy models
-│   │   ├── user.py
-│   │   ├── content.py
-│   │   ├── study_session.py
-│   │   └── practice.py
+│   │   ├── user.py            # User accounts ✅ Live
+│   │   ├── content.py         # Uploaded materials ✅ Live
+│   │   ├── study_session.py   # Learning sessions ✅ Live
+│   │   ├── practice.py        # Practice problems ✅ Live
+│   │   ├── concept.py         # Knowledge graph concepts [PLANNED - Week 1-2]
+│   │   ├── user_attempt.py    # Problem-solving attempts [PLANNED - Week 3-4]
+│   │   └── mastery_status.py  # Mastery tracking [PLANNED - Week 5-6]
 │   ├── schemas/                # Pydantic schemas
 │   │   └── ...                 # Request/response models
 │   └── services/              # Business logic
-│       ├── ai_service_manager.py  # Intelligent AI service selection (Claude → OpenAI)
-│       ├── claude_service.py      # Anthropic Claude integration (primary)
-│       ├── openai_service.py      # OpenAI fallback service
-│       ├── content_processor.py   # File processing pipeline
-│       └── ...
+│       ├── ai_service_manager.py        # AI service selection (Claude → OpenAI) ✅ Live
+│       ├── claude_service.py            # Anthropic Claude integration ✅ Live
+│       ├── openai_fallback.py           # OpenAI fallback service ✅ Live
+│       ├── content_processor.py         # File processing pipeline ✅ Live
+│       ├── knowledge_graph_service.py   # Concept extraction [PLANNED - Week 1]
+│       ├── practice_generator.py        # Problem generation [PLANNED - Week 3]
+│       ├── mastery_tracker.py           # Mastery gates [PLANNED - Week 5]
+│       ├── spaced_repetition.py         # SM-2 scheduling [PLANNED - Week 6]
+│       └── auto_grader.py               # Code execution sandbox [PLANNED - Week 4]
 ├── tests/                     # Test suite
 │   ├── unit/
 │   ├── integration/
@@ -119,67 +139,78 @@ ml/
 └── models/            # Model configurations
 ```
 
-## Agent Communication Flow
+## Mastery-Based Learning Flow
 
 ```mermaid
 graph TD
-    User[User Interface] --> LT[Lead Tutor Agent]
-    LT --> CU[Content Understanding Agent]
-    LT --> KS[Knowledge Synthesis Agent]
-    LT --> PG[Practice Generation Agent]
-    LT --> PT[Progress Tracking Agent]
-    LT --> AS[Assessment Agent]
-    LT --> CA[Collaboration Agent]
-    
-    CU --> VS[Vector Store]
-    KS --> VS
-    PG --> DB[Database]
-    PT --> DB
-    AS --> DB
-    CA --> CF[Collaborative Features]
-    
-    subgraph Processing Pipeline
-        CU
-        KS
-        PG
-        AS
-        Claude[Claude AI]
-        OpenAI[OpenAI Fallback]
+    User[Student] --> Upload[Upload Course Materials]
+    Upload --> Extract[Knowledge Graph Extractor]
+    Extract --> Concepts[Atomic Concepts + Dependencies]
+
+    Concepts --> Unlock{Concept Unlocked?}
+    Unlock -->|Yes| Practice[Generate Practice Problems]
+    Unlock -->|No| Locked[Prerequisites Required]
+
+    Practice --> Attempt[Student Attempts]
+    Attempt --> Grade[Auto-Grader]
+    Grade --> Mastery{90%+ Correct?}
+
+    Mastery -->|Yes| NextConcept[Unlock Next Concepts]
+    Mastery -->|No| Retry[More Practice]
+    Retry --> Practice
+
+    NextConcept --> Schedule[Spaced Repetition Scheduler]
+    Schedule --> Review[Schedule Review: +1d, +3d, +7d, +30d]
+    Review --> Retention[Track Long-term Retention]
+
+    subgraph AI Services
+        Claude[Claude API - Primary]
+        OpenAI[OpenAI - Fallback]
     end
-    
-    subgraph Cloud Sync
-        CF
-        Analytics[Anonymous Analytics]
-    end
+
+    Extract --> Claude
+    Practice --> Claude
+    Grade --> Claude
 ```
 
 ## Data Flow Architecture
 
-### 1. Content Processing Pipeline
+### 1. Knowledge Graph Extraction Flow
 ```
-User Upload → Content Understanding Agent → Embeddings → Vector Store
-                    ↓
-              Text Extraction
-                    ↓
-              Concept Mapping
-                    ↓
-              Knowledge Graph
-```
-
-### 2. Study Session Flow
-```
-User Request → Lead Tutor → Knowledge Synthesis → Personalized Content
-                   ↓                                      ↓
-            Progress Tracking ← User Interaction ← Interactive Session
+Course Materials (PDF/Text) → Claude API → Atomic Concepts
+                                   ↓
+                          Concept Dependencies
+                                   ↓
+                          Database (concepts, concept_dependencies)
+                                   ↓
+                          Knowledge Graph Visualization
 ```
 
-### 3. Practice Generation Flow
+### 2. Practice & Mastery Flow
 ```
-Learning Objectives → Practice Generation Agent → Problem Set
-                            ↓                          ↓
-                    Difficulty Calibration      User Attempts
-                            ↓                          ↓
-                    Adaptive Adjustment ← Performance Analysis
+Unlocked Concept → Practice Generator → Problem + Test Cases
+                            ↓
+                   Student Attempts Code
+                            ↓
+                    Auto-Grader (sandbox)
+                            ↓
+                   Score ≥ 90%? → Mastery Gate
+                            ↓
+                    Yes: Unlock Next Concepts
+                    No: Generate More Practice
+```
+
+### 3. Spaced Repetition Flow
+```
+Mastered Concept → Spaced Repetition Scheduler (SM-2)
+                            ↓
+                   Schedule Review: Day 1, Day 3, Day 7, Day 30
+                            ↓
+                   User Attempts Review Problem
+                            ↓
+                   Track Retention: Remember? Y/N
+                            ↓
+                   Adjust Schedule Based on Performance
 ```
 
 ## Security Architecture
