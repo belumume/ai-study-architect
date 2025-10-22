@@ -46,6 +46,13 @@ import sqlalchemy as sa
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 
 def upgrade():
+    # Create ENUMs for data integrity
+    difficulty_enum = sa.Enum('beginner', 'intermediate', 'advanced', name='difficulty_level')
+    strength_enum = sa.Enum('required', 'recommended', 'optional', name='dependency_strength')
+
+    difficulty_enum.create(op.get_bind())
+    strength_enum.create(op.get_bind())
+
     # Concepts table
     op.create_table(
         'concepts',
@@ -54,12 +61,15 @@ def upgrade():
         sa.Column('name', sa.String(255), nullable=False),
         sa.Column('slug', sa.String(255), nullable=False),  # URL-friendly name
         sa.Column('description', sa.Text),
-        sa.Column('difficulty', sa.String(50)),  # beginner, intermediate, advanced
+        sa.Column('difficulty', difficulty_enum, nullable=False, server_default='beginner'),
         sa.Column('estimated_hours', sa.Float),  # Time to master
         sa.Column('example_code', sa.Text),  # Optional example
         sa.Column('keywords', JSONB),  # For search
         sa.Column('created_at', sa.DateTime, server_default=sa.func.now()),
         sa.Column('updated_at', sa.DateTime, server_default=sa.func.now(), onupdate=sa.func.now()),
+        # Constraints for data integrity
+        sa.UniqueConstraint('course_id', 'slug', name='unique_concept_slug_per_course'),
+        sa.CheckConstraint('estimated_hours > 0', name='positive_estimated_hours')
     )
 
     # Concept dependencies table
@@ -68,20 +78,29 @@ def upgrade():
         sa.Column('id', UUID(as_uuid=True), primary_key=True, server_default=sa.text('gen_random_uuid()')),
         sa.Column('concept_id', UUID(as_uuid=True), sa.ForeignKey('concepts.id', ondelete='CASCADE'), nullable=False),
         sa.Column('prerequisite_id', UUID(as_uuid=True), sa.ForeignKey('concepts.id', ondelete='CASCADE'), nullable=False),
-        sa.Column('strength', sa.String(50), default='required'),  # required, recommended, optional
+        sa.Column('strength', strength_enum, nullable=False, server_default='required'),
         sa.Column('created_at', sa.DateTime, server_default=sa.func.now()),
-        sa.UniqueConstraint('concept_id', 'prerequisite_id', name='unique_dependency')
+        # Prevent duplicate dependencies
+        sa.UniqueConstraint('concept_id', 'prerequisite_id', name='unique_dependency'),
+        # Prevent self-dependencies
+        sa.CheckConstraint('concept_id != prerequisite_id', name='no_self_dependency')
     )
 
-    # Create indexes
+    # Create indexes for performance
     op.create_index('idx_concepts_course_id', 'concepts', ['course_id'])
     op.create_index('idx_concepts_difficulty', 'concepts', ['difficulty'])
+    op.create_index('idx_concepts_slug', 'concepts', ['slug'])
     op.create_index('idx_concept_deps_concept', 'concept_dependencies', ['concept_id'])
     op.create_index('idx_concept_deps_prereq', 'concept_dependencies', ['prerequisite_id'])
 
 def downgrade():
+    # Drop tables
     op.drop_table('concept_dependencies')
     op.drop_table('concepts')
+
+    # Drop ENUMs
+    sa.Enum(name='dependency_strength').drop(op.get_bind())
+    sa.Enum(name='difficulty_level').drop(op.get_bind())
 ```
 
 ### Task 1.2: Create SQLAlchemy Models
@@ -89,13 +108,29 @@ def downgrade():
 ```python
 # File: backend/app/models/concept.py
 
-from sqlalchemy import Column, String, Text, Float, DateTime, ForeignKey, UniqueConstraint
+from sqlalchemy import Column, String, Text, Float, DateTime, ForeignKey, UniqueConstraint, Enum, CheckConstraint
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 import uuid
+import enum
 
 from app.core.database import Base
+
+
+class DifficultyLevel(str, enum.Enum):
+    """Enum for concept difficulty levels"""
+    BEGINNER = "beginner"
+    INTERMEDIATE = "intermediate"
+    ADVANCED = "advanced"
+
+
+class DependencyStrength(str, enum.Enum):
+    """Enum for prerequisite dependency strength"""
+    REQUIRED = "required"
+    RECOMMENDED = "recommended"
+    OPTIONAL = "optional"
+
 
 class Concept(Base):
     """
@@ -103,13 +138,17 @@ class Concept(Base):
     Examples: "for loops", "arrays", "pointers", "recursion"
     """
     __tablename__ = "concepts"
+    __table_args__ = (
+        UniqueConstraint('course_id', 'slug', name='unique_concept_slug_per_course'),
+        CheckConstraint('estimated_hours > 0', name='positive_estimated_hours'),
+    )
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     course_id = Column(UUID(as_uuid=True), ForeignKey("content.id"), nullable=False)
     name = Column(String(255), nullable=False)
     slug = Column(String(255), nullable=False)
     description = Column(Text)
-    difficulty = Column(String(50))  # beginner, intermediate, advanced
+    difficulty = Column(Enum(DifficultyLevel), nullable=False, server_default=DifficultyLevel.BEGINNER.value)
     estimated_hours = Column(Float)
     example_code = Column(Text)
     keywords = Column(JSONB)  # ["loop", "iteration", "for", "while"]
@@ -127,7 +166,7 @@ class Concept(Base):
     )
 
     def __repr__(self):
-        return f"<Concept {self.name} (difficulty={self.difficulty})>"
+        return f"<Concept {self.name} (difficulty={self.difficulty.value})>"
 
 
 class ConceptDependency(Base):
@@ -138,16 +177,17 @@ class ConceptDependency(Base):
     __tablename__ = "concept_dependencies"
     __table_args__ = (
         UniqueConstraint('concept_id', 'prerequisite_id', name='unique_dependency'),
+        CheckConstraint('concept_id != prerequisite_id', name='no_self_dependency'),
     )
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     concept_id = Column(UUID(as_uuid=True), ForeignKey("concepts.id", ondelete="CASCADE"), nullable=False)
     prerequisite_id = Column(UUID(as_uuid=True), ForeignKey("concepts.id", ondelete="CASCADE"), nullable=False)
-    strength = Column(String(50), default="required")  # required, recommended, optional
+    strength = Column(Enum(DependencyStrength), nullable=False, server_default=DependencyStrength.REQUIRED.value)
     created_at = Column(DateTime, server_default=func.now())
 
     def __repr__(self):
-        return f"<Dependency {self.concept_id} requires {self.prerequisite_id}>"
+        return f"<Dependency {self.concept_id} requires {self.prerequisite_id} ({self.strength.value})>"
 ```
 
 ### Task 1.3: Create Pydantic Schemas
