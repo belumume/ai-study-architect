@@ -134,9 +134,9 @@ export const mockFormData = {
 
 // Mock file for upload testing
 export const createMockFile = (
-  name: string = 'test.pdf',
-  size: number = 1024,
-  type: string = 'application/pdf'
+  name = 'test.pdf',
+  _size = 1024,
+  type = 'application/pdf'
 ) => {
   const blob = new Blob(['test content'], { type })
   return new File([blob], name, { type })

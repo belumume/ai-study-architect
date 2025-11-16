@@ -3,10 +3,9 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, fireEvent, waitFor } from '../../../test/test-utils'
+import { render, screen, fireEvent, waitFor, mockTokens } from '../../../test/test-utils'
 import { LoginForm } from '../LoginForm'
 import * as AuthContext from '../../../contexts/AuthContext'
-import { mockTokens } from '../../../test/mocks'
 
 describe('LoginForm', () => {
   const mockLogin = vi.fn()
