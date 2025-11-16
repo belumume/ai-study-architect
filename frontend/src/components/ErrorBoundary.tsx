@@ -2,6 +2,24 @@ import { Component, ErrorInfo, ReactNode } from 'react'
 import { Box, Typography, Button, Paper, Alert } from '@mui/material'
 import { ErrorOutline, Refresh } from '@mui/icons-material'
 
+/**
+ * Sanitize error messages to prevent sensitive information leakage
+ */
+function sanitizeErrorMessage(message: string): string {
+  if (!message) return message
+
+  // Redact potential API keys (patterns like sk-xxx, api_xxx, key_xxx)
+  let sanitized = message.replace(/\b(sk|api|key)[-_][a-zA-Z0-9]{10,}\b/gi, '[REDACTED_KEY]')
+
+  // Redact potential file paths
+  sanitized = sanitized.replace(/([A-Z]:\\|\/)[^\s)]+/g, '[REDACTED_PATH]')
+
+  // Redact potential URLs with credentials
+  sanitized = sanitized.replace(/https?:\/\/[^:]+:[^@]+@[^\s]+/g, '[REDACTED_URL]')
+
+  return sanitized
+}
+
 interface Props {
   children: ReactNode
   fallback?: ReactNode
@@ -106,13 +124,13 @@ export class ErrorBoundary extends Component<Props, State> {
               Try refreshing the page or click the button below to try again.
             </Typography>
 
-            {process.env.NODE_ENV === 'development' && this.state.error && (
+            {import.meta.env.DEV && this.state.error && (
               <Alert severity="error" sx={{ mt: 2, mb: 2, textAlign: 'left' }}>
                 <Typography variant="subtitle2" gutterBottom>
                   Error Details (Development Only):
                 </Typography>
                 <Typography variant="body2" component="pre" sx={{ fontSize: '0.75rem' }}>
-                  {this.state.error.toString()}
+                  {sanitizeErrorMessage(this.state.error.toString())}
                 </Typography>
                 {this.state.errorInfo && (
                   <Typography variant="body2" component="pre" sx={{ fontSize: '0.75rem', mt: 1 }}>
