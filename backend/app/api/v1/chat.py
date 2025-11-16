@@ -413,18 +413,20 @@ NEVER:
         redis_cache.set(cache_key, conversation, 3600)  # 1 hour cache
 
         # Save messages to database for persistent storage
-        # Save user messages (only 'user' role, skip 'system' prompts)
-        for msg in request.messages:
-            if msg.role == "user":
-                save_chat_messages(
-                    db=db,
-                    user_id=user.id,
-                    session_id=session_id,
-                    new_message_role=msg.role,
-                    new_message_content=msg.content,
-                    new_message_metadata=msg.metadata,
-                    content_ids=request.content_ids
-                )
+        # Only save the latest user message (the new one from this request)
+        # request.messages contains full conversation history, but only the last user message is new
+        user_messages = [msg for msg in request.messages if msg.role == "user"]
+        if user_messages:
+            latest_user_msg = user_messages[-1]
+            save_chat_messages(
+                db=db,
+                user_id=user.id,
+                session_id=session_id,
+                new_message_role=latest_user_msg.role,
+                new_message_content=latest_user_msg.content,
+                new_message_metadata=latest_user_msg.metadata,
+                content_ids=request.content_ids
+            )
 
         # Save assistant response
         save_chat_messages(
@@ -675,18 +677,20 @@ NEVER:
         redis_cache.set(cache_key, conversation, 3600)  # 1 hour cache
 
         # Save messages to database for persistent storage
-        # Save user messages (only 'user' role, skip 'system' prompts)
-        for msg in request.messages:
-            if msg.role == "user":
-                save_chat_messages(
-                    db=db,
-                    user_id=current_user.id,
-                    session_id=session_id,
-                    new_message_role=msg.role,
-                    new_message_content=msg.content,
-                    new_message_metadata=msg.metadata,
-                    content_ids=request.content_ids
-                )
+        # Only save the latest user message (the new one from this request)
+        # request.messages contains full conversation history, but only the last user message is new
+        user_messages = [msg for msg in request.messages if msg.role == "user"]
+        if user_messages:
+            latest_user_msg = user_messages[-1]
+            save_chat_messages(
+                db=db,
+                user_id=current_user.id,
+                session_id=session_id,
+                new_message_role=latest_user_msg.role,
+                new_message_content=latest_user_msg.content,
+                new_message_metadata=latest_user_msg.metadata,
+                content_ids=request.content_ids
+            )
 
         # Save assistant response
         save_chat_messages(
