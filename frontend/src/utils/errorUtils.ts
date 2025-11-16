@@ -2,6 +2,27 @@
  * Utility functions for consistent error handling and user-friendly error messages
  */
 
+/**
+ * Sanitize error messages to prevent sensitive information leakage
+ */
+function sanitizeErrorMessage(message: string): string {
+  if (!message) return message
+
+  // Redact potential API keys (patterns like sk-xxx, api_xxx, key_xxx)
+  let sanitized = message.replace(/\b(sk|api|key)[-_][a-zA-Z0-9]{10,}\b/gi, '[REDACTED_KEY]')
+
+  // Redact potential file paths
+  sanitized = sanitized.replace(/([A-Z]:\\|\/)[^\s)]+/g, '[REDACTED_PATH]')
+
+  // Redact potential URLs with credentials
+  sanitized = sanitized.replace(/https?:\/\/[^:]+:[^@]+@[^\s]+/g, '[REDACTED_URL]')
+
+  // Redact email addresses
+  sanitized = sanitized.replace(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g, '[REDACTED_EMAIL]')
+
+  return sanitized
+}
+
 export interface ApiError {
   response?: {
     status?: number
@@ -69,20 +90,26 @@ export function getErrorMessage(error: unknown, fallbackMessage = 'An unexpected
   if (data?.detail) {
     // Handle array of validation errors
     if (Array.isArray(data.detail)) {
-      const messages = data.detail.map((e: any) =>
+      const MAX_ERRORS_TO_SHOW = 5
+      const errorMessages = data.detail.map((e: any) =>
         typeof e === 'string' ? e : e.msg || 'Validation error'
       )
-      return messages.join(', ')
+
+      // Limit number of errors shown for better UX
+      const limitedMessages = errorMessages.slice(0, MAX_ERRORS_TO_SHOW)
+      const hasMore = errorMessages.length > MAX_ERRORS_TO_SHOW
+
+      return limitedMessages.join(', ') + (hasMore ? ` (and ${errorMessages.length - MAX_ERRORS_TO_SHOW} more)` : '')
     }
 
     // Handle string detail
     if (typeof data.detail === 'string') {
-      return data.detail
+      return sanitizeErrorMessage(data.detail)
     }
 
     // Handle object with msg
-    if (typeof data.detail === 'object' && 'msg' in data.detail) {
-      return data.detail.msg
+    if (typeof data.detail === 'object' && data.detail !== null && 'msg' in data.detail) {
+      return sanitizeErrorMessage((data.detail as { msg: string }).msg)
     }
   }
 
@@ -134,12 +161,33 @@ export function isValidationError(error: unknown): boolean {
  * Log error to console in development, and potentially to error tracking service in production
  */
 export function logError(error: unknown, context?: string) {
-  if (process.env.NODE_ENV === 'development') {
-    console.error(`Error${context ? ` in ${context}` : ''}:`, error)
+  const timestamp = new Date().toISOString()
+  const apiError = error as ApiError
+
+  // Structured error object for logging
+  const errorLog = {
+    timestamp,
+    context: context || 'unknown',
+    message: getErrorMessage(error),
+    status: apiError.response?.status,
+    type: isNetworkError(error) ? 'network' : isAuthError(error) ? 'auth' : 'other',
   }
 
-  // In production, you could send to error tracking service (e.g., Sentry)
-  // if (process.env.NODE_ENV === 'production') {
-  //   Sentry.captureException(error, { extra: { context } })
-  // }
+  if (import.meta.env.DEV) {
+    // Development: detailed console logging
+    console.error(`[${timestamp}] Error${context ? ` in ${context}` : ''}:`, error)
+    console.error('Structured error:', errorLog)
+  } else {
+    // Production: structured logging (ready for error tracking services)
+    console.error(JSON.stringify(errorLog))
+
+    // TODO: Send to error tracking service (e.g., Sentry, LogRocket)
+    // Example:
+    // if (window.Sentry) {
+    //   Sentry.captureException(error, {
+    //     extra: errorLog,
+    //     tags: { context: errorLog.context, type: errorLog.type }
+    //   })
+    // }
+  }
 }
