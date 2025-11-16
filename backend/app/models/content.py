@@ -107,6 +107,7 @@ class Content(Base):
     # Relationships
     user = relationship("User", back_populates="content_items")
     study_sessions = relationship("StudySession", secondary="study_session_content", back_populates="content_items")
-    
+    concepts = relationship("Concept", back_populates="content", cascade="all, delete-orphan")
+
     def __repr__(self) -> str:
         return f"<Content {self.title} ({self.content_type})>"
