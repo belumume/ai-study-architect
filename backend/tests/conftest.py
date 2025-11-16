@@ -15,10 +15,15 @@ from app.main import app
 from app.api.dependencies import get_db
 
 # Test database URL
-TEST_DATABASE_URL = settings.DATABASE_URL.unicode_string().replace(
-    settings.POSTGRES_DB, 
-    f"{settings.POSTGRES_DB}_test"
-)
+# Use in-memory SQLite for testing if no DATABASE_URL is configured
+if settings.DATABASE_URL:
+    TEST_DATABASE_URL = settings.DATABASE_URL.unicode_string().replace(
+        settings.POSTGRES_DB,
+        f"{settings.POSTGRES_DB}_test"
+    )
+else:
+    # Fallback to SQLite for testing
+    TEST_DATABASE_URL = "sqlite+aiosqlite:///:memory:"
 
 # Create test engine
 test_engine = create_async_engine(
