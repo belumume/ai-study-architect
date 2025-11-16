@@ -27,7 +27,7 @@ export interface ApiError {
   response?: {
     status?: number
     data?: {
-      detail?: string | any[]
+      detail?: string | any[] | { msg: string }
       error?: string
       message?: string
     }
@@ -178,16 +178,23 @@ export function logError(error: unknown, context?: string) {
     console.error(`[${timestamp}] Error${context ? ` in ${context}` : ''}:`, error)
     console.error('Structured error:', errorLog)
   } else {
-    // Production: structured logging (ready for error tracking services)
+    // Production: structured logging and error tracking
     console.error(JSON.stringify(errorLog))
 
-    // TODO: Send to error tracking service (e.g., Sentry, LogRocket)
-    // Example:
-    // if (window.Sentry) {
-    //   Sentry.captureException(error, {
-    //     extra: errorLog,
-    //     tags: { context: errorLog.context, type: errorLog.type }
-    //   })
-    // }
+    // Send to Sentry error tracking service
+    // Dynamic import to avoid issues if Sentry is not configured
+    import('../config/sentry')
+      .then(({ captureException }) => {
+        captureException(error, {
+          context: errorLog.context,
+          type: errorLog.type,
+          status: errorLog.status,
+          timestamp: errorLog.timestamp,
+        })
+      })
+      .catch(err => {
+        // Sentry reporting failed - log but don't crash
+        console.error('[Sentry] Failed to report error:', err)
+      })
   }
 }
