@@ -33,6 +33,10 @@ def upgrade() -> None:
         sa.Column('created_at', sa.DateTime(), nullable=False),
         sa.PrimaryKeyConstraint('id'),
         sa.ForeignKeyConstraint(['user_id'], ['users.id'], ondelete='CASCADE'),
+        sa.CheckConstraint(
+            "role IN ('user', 'assistant', 'system')",
+            name='check_chat_message_role'
+        ),
     )
 
     # Create indexes for efficient queries

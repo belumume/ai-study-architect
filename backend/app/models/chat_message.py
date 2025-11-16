@@ -4,7 +4,7 @@ Chat Message model for persistent chat history
 
 from datetime import datetime
 from typing import Optional
-from sqlalchemy import Column, DateTime, ForeignKey, String, Text, JSON
+from sqlalchemy import Column, DateTime, ForeignKey, String, Text, JSON, CheckConstraint
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 import uuid
@@ -36,6 +36,14 @@ class ChatMessage(Base):
 
     # Relationships
     user = relationship("User", back_populates="chat_messages")
+
+    # Constraints
+    __table_args__ = (
+        CheckConstraint(
+            "role IN ('user', 'assistant', 'system')",
+            name="check_chat_message_role"
+        ),
+    )
 
     def __repr__(self) -> str:
         return f"<ChatMessage {self.role} from session {self.session_id[:8]}...>"
