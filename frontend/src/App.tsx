@@ -8,6 +8,7 @@ import { AuthProvider, useAuth } from './contexts/AuthContext'
 import { LoginForm, RegisterForm, ProtectedRoute } from './components/auth'
 import { ContentUpload, ContentList, ContentSelector } from './components/content'
 import { ChatInterface } from './components/chat'
+import { ErrorBoundary } from './components/ErrorBoundary'
 import api from './services/api'
 import tokenStorage from './services/tokenStorage'
 
@@ -100,43 +101,45 @@ function AppContent() {
       {/* Main Content */}
       <Box component="main" sx={{ flex: 1, py: 4 }}>
         <Container maxWidth="lg">
-          <Routes>
-            <Route path="/login" element={<LoginForm />} />
-            <Route path="/register" element={<RegisterForm />} />
-            <Route
-              path="/"
-              element={
-                <ProtectedRoute>
-                  <HomePage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/study"
-              element={
-                <ProtectedRoute>
-                  <StudyPage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/content"
-              element={
-                <ProtectedRoute>
-                  <ContentPage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/practice"
-              element={
-                <ProtectedRoute>
-                  <PracticePage />
-                </ProtectedRoute>
-              }
-            />
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
+          <ErrorBoundary>
+            <Routes>
+              <Route path="/login" element={<LoginForm />} />
+              <Route path="/register" element={<RegisterForm />} />
+              <Route
+                path="/"
+                element={
+                  <ProtectedRoute>
+                    <HomePage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/study"
+                element={
+                  <ProtectedRoute>
+                    <StudyPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/content"
+                element={
+                  <ProtectedRoute>
+                    <ContentPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/practice"
+                element={
+                  <ProtectedRoute>
+                    <PracticePage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </ErrorBoundary>
         </Container>
       </Box>
 
@@ -177,9 +180,11 @@ function App() {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <AuthProvider>
-        <AppContent />
-      </AuthProvider>
+      <ErrorBoundary>
+        <AuthProvider>
+          <AppContent />
+        </AuthProvider>
+      </ErrorBoundary>
     </ThemeProvider>
   )
 }
