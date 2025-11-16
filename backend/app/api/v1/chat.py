@@ -14,6 +14,7 @@ from sqlalchemy.orm import Session
 from app.api.dependencies import get_current_active_user, get_db
 from app.models.user import User
 from app.models.content import Content
+from app.models.chat_message import ChatMessage as ChatMessageModel
 from app.core.cache import redis_cache
 from app.core.agent_manager import agent_manager
 from app.services.claude_service import claude_service
@@ -50,6 +51,63 @@ class ChatResponse(BaseModel):
     message: ChatMessage
     session_id: str
     usage: Optional[dict] = None
+
+
+def save_chat_messages(
+    db: Session,
+    user_id: UUID,
+    session_id: str,
+    new_message_role: str,
+    new_message_content: str,
+    new_message_metadata: Optional[dict] = None,
+    content_ids: Optional[List[UUID]] = None
+) -> None:
+    """
+    Save a new chat message to the database with deduplication.
+
+    Only saves messages that don't already exist in the database to prevent
+    duplicates when conversation history is re-sent.
+
+    Args:
+        db: Database session
+        user_id: User ID
+        session_id: Chat session ID
+        new_message_role: Role of the message ('user', 'assistant', 'system')
+        new_message_content: Content of the message
+        new_message_metadata: Optional metadata dictionary
+        content_ids: Optional list of content IDs referenced
+    """
+    try:
+        # Check if this exact message already exists in the database
+        # We check by session_id, role, and content to detect duplicates
+        existing_message = db.query(ChatMessageModel).filter(
+            ChatMessageModel.user_id == user_id,
+            ChatMessageModel.session_id == session_id,
+            ChatMessageModel.role == new_message_role,
+            ChatMessageModel.content == new_message_content
+        ).first()
+
+        if existing_message:
+            logger.debug(f"Message already exists in database for session {session_id}, skipping save")
+            return
+
+        # Save the new message
+        db_message = ChatMessageModel(
+            user_id=user_id,
+            session_id=session_id,
+            role=new_message_role,
+            content=new_message_content,
+            metadata=new_message_metadata,
+            content_ids=content_ids
+        )
+        db.add(db_message)
+        db.commit()
+        logger.info(f"Saved new {new_message_role} message to database for session {session_id}")
+
+    except Exception as e:
+        logger.error(f"Failed to save chat message to database: {str(e)}")
+        db.rollback()
+        raise
 
 
 async def stream_chat_response(
@@ -353,7 +411,32 @@ NEVER:
             "created_at": datetime.utcnow().isoformat()
         }
         redis_cache.set(cache_key, conversation, 3600)  # 1 hour cache
-        
+
+        # Save messages to database for persistent storage
+        # Save user messages (only 'user' role, skip 'system' prompts)
+        for msg in request.messages:
+            if msg.role == "user":
+                save_chat_messages(
+                    db=db,
+                    user_id=user.id,
+                    session_id=session_id,
+                    new_message_role=msg.role,
+                    new_message_content=msg.content,
+                    new_message_metadata=msg.metadata,
+                    content_ids=request.content_ids
+                )
+
+        # Save assistant response
+        save_chat_messages(
+            db=db,
+            user_id=user.id,
+            session_id=session_id,
+            new_message_role="assistant",
+            new_message_content=full_response,
+            new_message_metadata=complete_data.get("usage"),
+            content_ids=request.content_ids
+        )
+
         logger.info(f"Completed AI chat session {session_id}")
         
     except Exception as e:
@@ -590,7 +673,36 @@ NEVER:
             "created_at": datetime.utcnow().isoformat()
         }
         redis_cache.set(cache_key, conversation, 3600)  # 1 hour cache
-        
+
+        # Save messages to database for persistent storage
+        # Save user messages (only 'user' role, skip 'system' prompts)
+        for msg in request.messages:
+            if msg.role == "user":
+                save_chat_messages(
+                    db=db,
+                    user_id=current_user.id,
+                    session_id=session_id,
+                    new_message_role=msg.role,
+                    new_message_content=msg.content,
+                    new_message_metadata=msg.metadata,
+                    content_ids=request.content_ids
+                )
+
+        # Save assistant response
+        save_chat_messages(
+            db=db,
+            user_id=current_user.id,
+            session_id=session_id,
+            new_message_role="assistant",
+            new_message_content=response_text,
+            new_message_metadata={
+                "prompt_tokens": sum(len(m.content.split()) for m in request.messages),
+                "completion_tokens": len(response_text.split()),
+                "total_tokens": sum(len(m.content.split()) for m in request.messages) + len(response_text.split())
+            },
+            content_ids=request.content_ids
+        )
+
         return ChatResponse(
             message=message,
             session_id=session_id,
@@ -605,18 +717,84 @@ NEVER:
 @router.get("/history")
 async def get_chat_history(
     limit: int = 10,
+    offset: int = 0,
     current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db)
 ):
     """
     Get user's chat history.
-    
-    TODO: Implement persistent chat history storage in database.
-    For now, returns empty list.
+
+    Returns paginated list of chat sessions with their messages.
+    Groups messages by session_id and returns most recent sessions first.
     """
+    # Get distinct session IDs for the user, ordered by most recent message
+    from sqlalchemy import func, distinct
+
+    # Get all messages for the user, ordered by creation time
+    messages_query = db.query(ChatMessageModel).filter(
+        ChatMessageModel.user_id == current_user.id
+    ).order_by(ChatMessageModel.created_at.desc())
+
+    # Get total count of distinct sessions
+    total_sessions = db.query(func.count(distinct(ChatMessageModel.session_id))).filter(
+        ChatMessageModel.user_id == current_user.id
+    ).scalar() or 0
+
+    # Get all messages (we'll group them by session in Python)
+    all_messages = messages_query.all()
+
+    # Group messages by session_id
+    sessions = {}
+    for msg in all_messages:
+        if msg.session_id not in sessions:
+            sessions[msg.session_id] = {
+                "session_id": msg.session_id,
+                "messages": [],
+                "created_at": msg.created_at,
+                "updated_at": msg.created_at
+            }
+
+        sessions[msg.session_id]["messages"].append({
+            "id": str(msg.id),
+            "role": msg.role,
+            "content": msg.content,
+            "timestamp": msg.created_at.isoformat(),
+            "metadata": msg.metadata,
+            "content_ids": msg.content_ids
+        })
+
+        # Update session timestamps
+        if msg.created_at < sessions[msg.session_id]["created_at"]:
+            sessions[msg.session_id]["created_at"] = msg.created_at
+        if msg.created_at > sessions[msg.session_id]["updated_at"]:
+            sessions[msg.session_id]["updated_at"] = msg.created_at
+
+    # Convert to list and sort by most recent activity
+    session_list = list(sessions.values())
+    session_list.sort(key=lambda x: x["updated_at"], reverse=True)
+
+    # Apply pagination
+    paginated_sessions = session_list[offset:offset + limit]
+
+    # Format response
+    history = []
+    for session in paginated_sessions:
+        # Sort messages within session by timestamp
+        session["messages"].sort(key=lambda x: x["timestamp"])
+
+        history.append({
+            "session_id": session["session_id"],
+            "messages": session["messages"],
+            "created_at": session["created_at"].isoformat(),
+            "updated_at": session["updated_at"].isoformat(),
+            "message_count": len(session["messages"])
+        })
+
     return {
-        "history": [],
-        "total": 0
+        "history": history,
+        "total": total_sessions,
+        "limit": limit,
+        "offset": offset
     }
 
 
@@ -628,24 +806,44 @@ async def get_chat_session(
 ):
     """
     Get a specific chat session by ID.
+    Tries cache first, then falls back to database.
     """
     # Try to get from cache
     cache_key = f"chat:session:{session_id}"
     session_data = redis_cache.get(cache_key)
-    
+
     if not session_data:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Chat session not found"
-        )
-    
+        # Fall back to database
+        messages = db.query(ChatMessageModel).filter(
+            ChatMessageModel.session_id == session_id,
+            ChatMessageModel.user_id == current_user.id
+        ).order_by(ChatMessageModel.created_at.asc()).all()
+
+        if not messages:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Chat session not found"
+            )
+
+        # Reconstruct session data from database
+        session_data = {
+            "user_id": str(current_user.id),
+            "session_id": session_id,
+            "messages": [msg.to_dict() for msg in messages],
+            "created_at": messages[0].created_at.isoformat(),
+            "updated_at": messages[-1].created_at.isoformat()
+        }
+
+        # Cache it for future requests
+        redis_cache.set(cache_key, session_data, 3600)  # 1 hour cache
+
     # Verify user owns this session
     if session_data.get("user_id") != str(current_user.id):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Access denied"
         )
-    
+
     return session_data
 
 

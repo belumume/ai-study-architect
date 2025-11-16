@@ -212,16 +212,15 @@ This document tracks the current implementation status of AI Study Architect. Fo
 
 ## Known Issues
 
-1. **Chat History**: Not persisting between sessions (TODO in backend/app/api/v1/chat.py:653)
-2. **File Processing**: Large PDFs (>5MB) slow to process
-3. **Error Messages**: Some still too technical for users
-4. **Mobile UI**: Not fully responsive
+1. **File Processing**: Large PDFs (>5MB) slow to process
+2. **Error Messages**: Some still too technical for users
+3. **Mobile UI**: Not fully responsive
 
 ## Next Implementation Priorities
 
 ### Week 1-2 (Current Sprint)
 1. Complete CSRF protection
-2. Implement chat history persistence
+2. ✅ Implement chat history persistence (COMPLETED)
 3. Add loading states for all async operations
 4. Basic error handling improvements
 

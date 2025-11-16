@@ -47,6 +47,7 @@ class User(Base):
     study_sessions = relationship("StudySession", back_populates="user", cascade="all, delete-orphan")
     content_items = relationship("Content", back_populates="user", cascade="all, delete-orphan")
     practice_sessions = relationship("PracticeSession", back_populates="user", cascade="all, delete-orphan")
+    chat_messages = relationship("ChatMessage", back_populates="user", cascade="all, delete-orphan")
     
     def __repr__(self) -> str:
         return f"<User {self.username} ({self.email})>"
