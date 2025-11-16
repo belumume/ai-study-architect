@@ -53,6 +53,63 @@ class ChatResponse(BaseModel):
     usage: Optional[dict] = None
 
 
+def save_chat_messages(
+    db: Session,
+    user_id: UUID,
+    session_id: str,
+    new_message_role: str,
+    new_message_content: str,
+    new_message_metadata: Optional[dict] = None,
+    content_ids: Optional[List[UUID]] = None
+) -> None:
+    """
+    Save a new chat message to the database with deduplication.
+
+    Only saves messages that don't already exist in the database to prevent
+    duplicates when conversation history is re-sent.
+
+    Args:
+        db: Database session
+        user_id: User ID
+        session_id: Chat session ID
+        new_message_role: Role of the message ('user', 'assistant', 'system')
+        new_message_content: Content of the message
+        new_message_metadata: Optional metadata dictionary
+        content_ids: Optional list of content IDs referenced
+    """
+    try:
+        # Check if this exact message already exists in the database
+        # We check by session_id, role, and content to detect duplicates
+        existing_message = db.query(ChatMessageModel).filter(
+            ChatMessageModel.user_id == user_id,
+            ChatMessageModel.session_id == session_id,
+            ChatMessageModel.role == new_message_role,
+            ChatMessageModel.content == new_message_content
+        ).first()
+
+        if existing_message:
+            logger.debug(f"Message already exists in database for session {session_id}, skipping save")
+            return
+
+        # Save the new message
+        db_message = ChatMessageModel(
+            user_id=user_id,
+            session_id=session_id,
+            role=new_message_role,
+            content=new_message_content,
+            metadata=new_message_metadata,
+            content_ids=content_ids
+        )
+        db.add(db_message)
+        db.commit()
+        logger.info(f"Saved new {new_message_role} message to database for session {session_id}")
+
+    except Exception as e:
+        logger.error(f"Failed to save chat message to database: {str(e)}")
+        db.rollback()
+        raise
+
+
 async def stream_chat_response(
     request: ChatRequest,
     user: User,
@@ -356,35 +413,29 @@ NEVER:
         redis_cache.set(cache_key, conversation, 3600)  # 1 hour cache
 
         # Save messages to database for persistent storage
-        try:
-            # Save user messages
-            for msg in request.messages:
-                if msg.role == "user":  # Only save user messages, not system prompts
-                    db_message = ChatMessageModel(
-                        user_id=user.id,
-                        session_id=session_id,
-                        role=msg.role,
-                        content=msg.content,
-                        metadata=msg.metadata,
-                        content_ids=request.content_ids
-                    )
-                    db.add(db_message)
+        # Save user messages (only 'user' role, skip 'system' prompts)
+        for msg in request.messages:
+            if msg.role == "user":
+                save_chat_messages(
+                    db=db,
+                    user_id=user.id,
+                    session_id=session_id,
+                    new_message_role=msg.role,
+                    new_message_content=msg.content,
+                    new_message_metadata=msg.metadata,
+                    content_ids=request.content_ids
+                )
 
-            # Save assistant response
-            assistant_message = ChatMessageModel(
-                user_id=user.id,
-                session_id=session_id,
-                role="assistant",
-                content=full_response,
-                metadata=complete_data.get("usage"),
-                content_ids=request.content_ids
-            )
-            db.add(assistant_message)
-            db.commit()
-            logger.info(f"Saved chat messages to database for session {session_id}")
-        except Exception as e:
-            logger.error(f"Failed to save chat messages to database: {str(e)}")
-            db.rollback()
+        # Save assistant response
+        save_chat_messages(
+            db=db,
+            user_id=user.id,
+            session_id=session_id,
+            new_message_role="assistant",
+            new_message_content=full_response,
+            new_message_metadata=complete_data.get("usage"),
+            content_ids=request.content_ids
+        )
 
         logger.info(f"Completed AI chat session {session_id}")
         
@@ -624,39 +675,33 @@ NEVER:
         redis_cache.set(cache_key, conversation, 3600)  # 1 hour cache
 
         # Save messages to database for persistent storage
-        try:
-            # Save user messages
-            for msg in request.messages:
-                if msg.role == "user":  # Only save user messages, not system prompts
-                    db_message = ChatMessageModel(
-                        user_id=current_user.id,
-                        session_id=session_id,
-                        role=msg.role,
-                        content=msg.content,
-                        metadata=msg.metadata,
-                        content_ids=request.content_ids
-                    )
-                    db.add(db_message)
+        # Save user messages (only 'user' role, skip 'system' prompts)
+        for msg in request.messages:
+            if msg.role == "user":
+                save_chat_messages(
+                    db=db,
+                    user_id=current_user.id,
+                    session_id=session_id,
+                    new_message_role=msg.role,
+                    new_message_content=msg.content,
+                    new_message_metadata=msg.metadata,
+                    content_ids=request.content_ids
+                )
 
-            # Save assistant response
-            assistant_message = ChatMessageModel(
-                user_id=current_user.id,
-                session_id=session_id,
-                role="assistant",
-                content=response_text,
-                metadata={
-                    "prompt_tokens": sum(len(m.content.split()) for m in request.messages),
-                    "completion_tokens": len(response_text.split()),
-                    "total_tokens": sum(len(m.content.split()) for m in request.messages) + len(response_text.split())
-                },
-                content_ids=request.content_ids
-            )
-            db.add(assistant_message)
-            db.commit()
-            logger.info(f"Saved chat messages to database for session {session_id}")
-        except Exception as e:
-            logger.error(f"Failed to save chat messages to database: {str(e)}")
-            db.rollback()
+        # Save assistant response
+        save_chat_messages(
+            db=db,
+            user_id=current_user.id,
+            session_id=session_id,
+            new_message_role="assistant",
+            new_message_content=response_text,
+            new_message_metadata={
+                "prompt_tokens": sum(len(m.content.split()) for m in request.messages),
+                "completion_tokens": len(response_text.split()),
+                "total_tokens": sum(len(m.content.split()) for m in request.messages) + len(response_text.split())
+            },
+            content_ids=request.content_ids
+        )
 
         return ChatResponse(
             message=message,
