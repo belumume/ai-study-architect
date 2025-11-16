@@ -6,13 +6,17 @@ import asyncio
 from typing import AsyncGenerator, Generator
 import pytest
 from httpx import AsyncClient
+from sqlalchemy import create_engine
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
+from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import NullPool
 
 from app.core.database import Base
 from app.core.config import settings
 from app.main import app
 from app.api.dependencies import get_db
+from app.models.user import User
+from app.core.security import get_password_hash, create_access_token
 
 # Test database URL
 # Use in-memory SQLite for testing if no DATABASE_URL is configured
@@ -125,3 +129,62 @@ async def authenticated_client(
     }
     
     yield client, user_data
+
+
+# Synchronous database fixtures for testing sync endpoints
+# Create sync test engine
+SYNC_TEST_DATABASE_URL = TEST_DATABASE_URL.replace("+aiosqlite", "")  # Remove async driver
+sync_test_engine = create_engine(
+    SYNC_TEST_DATABASE_URL if "sqlite" in SYNC_TEST_DATABASE_URL else TEST_DATABASE_URL,
+    poolclass=NullPool,
+)
+
+# Create sync session factory
+SyncTestSessionLocal = sessionmaker(
+    bind=sync_test_engine,
+    autocommit=False,
+    autoflush=False,
+)
+
+
+@pytest.fixture(scope="session")
+def sync_setup_database():
+    """Create test database tables for sync tests."""
+    Base.metadata.create_all(bind=sync_test_engine)
+    yield
+    Base.metadata.drop_all(bind=sync_test_engine)
+
+
+@pytest.fixture
+def db(sync_setup_database) -> Generator[Session, None, None]:
+    """Get synchronous test database session."""
+    session = SyncTestSessionLocal()
+    try:
+        yield session
+    finally:
+        session.rollback()
+        session.close()
+
+
+@pytest.fixture
+def test_user(db: Session) -> User:
+    """Create a test user."""
+    user = User(
+        email="test@example.com",
+        username="testuser",
+        hashed_password=get_password_hash("testpassword123"),
+        full_name="Test User",
+        is_active=True,
+        is_verified=True,
+    )
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+    return user
+
+
+@pytest.fixture
+def auth_headers(test_user: User) -> dict:
+    """Get authorization headers for test user."""
+    token = create_access_token(data={"sub": test_user.username})
+    return {"Authorization": f"Bearer {token}"}
