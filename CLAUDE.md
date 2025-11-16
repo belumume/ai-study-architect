@@ -81,6 +81,105 @@ npx playwright test --ui                      # Run with UI mode
 npx playwright test streaming-scroll          # Run specific test
 ```
 
+### Test Coverage & Quality Checks
+```bash
+# Backend test coverage
+cd backend
+coverage run -m pytest                        # Run tests with coverage tracking
+coverage report                                # Display coverage report
+coverage html                                  # Generate HTML coverage report
+coverage report --fail-under=80               # Fail if coverage < 80%
+
+# Frontend test coverage
+cd frontend
+npm run test:coverage                         # Generate coverage report
+npm run test:coverage -- --reporter=html      # HTML coverage report
+
+# Full quality check (backend)
+cd backend
+ruff check app/ && mypy app/ && pytest tests/ -v
+
+# Full quality check (frontend)
+cd frontend
+npm run lint && npm run typecheck && npm test
+```
+
+### Environment Validation
+```bash
+# Check all required services are running
+cd backend
+python -c "
+import sys
+import socket
+
+def check_port(port, service):
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    result = sock.connect_ex(('127.0.0.1', port))
+    sock.close()
+    if result == 0:
+        print(f'[OK] {service} on port {port}')
+        return True
+    else:
+        print(f'[FAIL] {service} on port {port} - not running')
+        return False
+
+# Check PostgreSQL
+check_port(5432, 'PostgreSQL') or check_port(5433, 'PostgreSQL (Windows)')
+
+# Check Redis
+check_port(6379, 'Redis')
+
+print('\nChecking Python dependencies...')
+try:
+    import fastapi
+    import sqlalchemy
+    import anthropic
+    print('[OK] Core Python dependencies installed')
+except ImportError as e:
+    print(f'[FAIL] Missing dependency: {e}')
+    sys.exit(1)
+"
+
+# Check frontend dependencies
+cd frontend
+node -e "
+try {
+  require('react');
+  require('@mui/material');
+  require('axios');
+  console.log('[OK] Core frontend dependencies installed');
+} catch (e) {
+  console.log('[FAIL] Missing dependency:', e.message);
+  process.exit(1);
+}
+"
+
+# Verify environment variables
+cd backend
+python -c "
+import os
+from dotenv import load_dotenv
+load_dotenv()
+
+required = ['DATABASE_URL', 'JWT_SECRET_KEY']
+optional = ['ANTHROPIC_API_KEY', 'OPENAI_API_KEY']
+
+print('Checking required environment variables...')
+for var in required:
+    if os.getenv(var):
+        print(f'[OK] {var}')
+    else:
+        print(f'[FAIL] {var} - REQUIRED')
+
+print('\nChecking optional environment variables...')
+for var in optional:
+    if os.getenv(var):
+        print(f'[OK] {var}')
+    else:
+        print(f'[WARN] {var} - Optional but recommended')
+"
+```
+
 ## High-Level Architecture
 
 ### Mastery-Based Learning System
@@ -267,6 +366,42 @@ Request → AI Service Manager
     Claude Available?
          ├─ Yes → Claude Service → Stream Response
          └─ No → OpenAI Service → Stream Response
+```
+
+### Security Verification
+```bash
+# Check JWT configuration
+cd backend
+python -c "
+import os
+from dotenv import load_dotenv
+load_dotenv()
+
+print('JWT Configuration:')
+print(f'Algorithm: {os.getenv(\"JWT_ALGORITHM\", \"RS256\")}')
+print(f'Access Token Expiry: {os.getenv(\"JWT_ACCESS_TOKEN_EXPIRE_MINUTES\", \"30\")} minutes')
+
+# Check if RSA keys exist
+import os.path
+if os.path.exists('keys/private.pem') and os.path.exists('keys/public.pem'):
+    print('[OK] RSA keys found')
+else:
+    print('[WARN] RSA keys not found - using HS256 fallback')
+"
+
+# Verify CSRF protection
+grep -r "CSRFProtect\|csrf_protect" backend/app/core/csrf.py && echo "[OK] CSRF protection enabled"
+
+# Check for hardcoded secrets
+cd backend
+echo "Checking for hardcoded secrets..."
+! grep -r "sk-[a-zA-Z0-9]" --exclude-dir=venv --exclude-dir=.git app/ && echo "[OK] No hardcoded API keys found"
+
+# Security headers check
+grep -A 10 "security_headers" backend/app/main.py && echo "[OK] Security headers middleware configured"
+
+# Test authentication on local server (requires server running)
+# curl -s http://localhost:8000/api/v1/users/me | grep -q "Not authenticated" && echo "[OK] Protected endpoints require auth"
 ```
 
 ## Platform-Specific Considerations
