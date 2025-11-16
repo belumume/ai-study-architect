@@ -4,6 +4,10 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { BrowserRouter } from 'react-router-dom'
 import App from './App.tsx'
 import './index.css'
+import { initSentry } from './config/sentry'
+
+// Initialize Sentry error tracking (must be done before rendering)
+initSentry()
 
 // Create a client for React Query
 const queryClient = new QueryClient({

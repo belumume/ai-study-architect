@@ -68,8 +68,19 @@ export class ErrorBoundary extends Component<Props, State> {
       errorInfo,
     })
 
-    // You could also log to an error reporting service here
-    // e.g., Sentry.captureException(error, { extra: errorInfo })
+    // Send to Sentry error tracking service
+    // Dynamic import to avoid issues if Sentry is not configured
+    import('../config/sentry')
+      .then(({ captureException }) => {
+        captureException(error, {
+          errorBoundary: true,
+          componentStack: errorInfo.componentStack,
+        })
+      })
+      .catch(err => {
+        // Sentry reporting failed - log but don't crash
+        console.error('[Sentry] Failed to report error from Error Boundary:', err)
+      })
   }
 
   handleReset = () => {
