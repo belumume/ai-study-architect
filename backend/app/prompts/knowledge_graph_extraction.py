@@ -258,6 +258,22 @@ def validate_extraction_response(response: dict) -> tuple[bool, list[str]]:
                 if field not in concept:
                     errors.append(f"Concept {i} missing required field: {field}")
 
+            # Validate name
+            if "name" in concept:
+                name = concept["name"]
+                if not isinstance(name, str) or not name.strip():
+                    errors.append(f"Concept {i} name must be a non-empty string")
+                elif len(name) > 255:
+                    errors.append(f"Concept {i} name exceeds 255 characters")
+
+            # Validate description
+            if "description" in concept:
+                desc = concept["description"]
+                if not isinstance(desc, str) or not desc.strip():
+                    errors.append(f"Concept {i} description must be a non-empty string")
+                elif len(desc) > 2000:
+                    errors.append(f"Concept {i} description exceeds 2000 characters")
+
             # Validate enums
             if "concept_type" in concept and concept["concept_type"] not in CONCEPT_TYPES:
                 errors.append(f"Concept {i} has invalid concept_type: {concept['concept_type']}")
@@ -270,6 +286,20 @@ def validate_extraction_response(response: dict) -> tuple[bool, list[str]]:
                 minutes = concept["estimated_minutes"]
                 if not isinstance(minutes, (int, float)) or minutes < 0 or minutes > 480:
                     errors.append(f"Concept {i} estimated_minutes must be between 0 and 480")
+
+            # Validate examples is a list of strings
+            if "examples" in concept and concept["examples"] is not None:
+                if not isinstance(concept["examples"], list):
+                    errors.append(f"Concept {i} examples must be an array")
+                elif not all(isinstance(e, str) for e in concept["examples"]):
+                    errors.append(f"Concept {i} examples must be an array of strings")
+
+            # Validate keywords is a list of strings
+            if "keywords" in concept and concept["keywords"] is not None:
+                if not isinstance(concept["keywords"], list):
+                    errors.append(f"Concept {i} keywords must be an array")
+                elif not all(isinstance(k, str) for k in concept["keywords"]):
+                    errors.append(f"Concept {i} keywords must be an array of strings")
 
     # Validate dependencies
     if not isinstance(dependencies, list):
@@ -304,6 +334,14 @@ def validate_extraction_response(response: dict) -> tuple[bool, list[str]]:
             # Check for self-dependencies
             if dep.get("prerequisite_name") == dep.get("dependent_name"):
                 errors.append(f"Dependency {i} is a self-dependency (concept depends on itself)")
+
+            # Validate reason if provided
+            if "reason" in dep and dep["reason"] is not None:
+                reason = dep["reason"]
+                if not isinstance(reason, str):
+                    errors.append(f"Dependency {i} reason must be a string")
+                elif len(reason) > 500:
+                    errors.append(f"Dependency {i} reason exceeds 500 characters")
 
     return len(errors) == 0, errors
 
