@@ -6,8 +6,14 @@ These schemas support the mastery-based learning system for concept management.
 
 from datetime import datetime
 from typing import List, Optional, Dict, Any
-from pydantic import BaseModel, Field, ConfigDict, field_validator
+from pydantic import BaseModel, Field, ConfigDict, field_validator, HttpUrl
 from uuid import UUID
+
+
+class ExternalResource(BaseModel):
+    """Schema for external resource links with URL validation"""
+    url: HttpUrl = Field(..., description="URL of the external resource")
+    title: str = Field(..., min_length=1, max_length=255, description="Title of the resource")
 
 
 # ============================================================================
@@ -17,7 +23,7 @@ from uuid import UUID
 class ConceptBase(BaseModel):
     """Base concept schema with common attributes"""
     name: str = Field(..., min_length=1, max_length=255, description="Concept name")
-    description: str = Field(..., min_length=1, description="Detailed concept description")
+    description: str = Field(..., min_length=1, max_length=2000, description="Detailed concept description")
     concept_type: str = Field(
         ...,
         description="Type of concept",
@@ -42,9 +48,9 @@ class ConceptBase(BaseModel):
         default=None,
         description="Related keywords for search"
     )
-    external_resources: Optional[List[Dict[str, str]]] = Field(
+    external_resources: Optional[List[ExternalResource]] = Field(
         default=None,
-        description="Links to additional resources (url, title)"
+        description="Links to additional resources with validated URLs"
     )
 
 
@@ -65,20 +71,20 @@ class ConceptCreate(ConceptBase):
 
 class ConceptUpdate(BaseModel):
     """Schema for updating a concept"""
-    name: Optional[str] = Field(None, min_length=1, max_length=255)
-    description: Optional[str] = Field(None, min_length=1)
+    name: Optional[str] = Field(default=None, min_length=1, max_length=255)
+    description: Optional[str] = Field(default=None, min_length=1, max_length=2000)
     concept_type: Optional[str] = Field(
-        None,
+        default=None,
         pattern="^(definition|procedure|principle|example|application|comparison)$"
     )
     difficulty: Optional[str] = Field(
-        None,
+        default=None,
         pattern="^(beginner|intermediate|advanced|expert)$"
     )
-    estimated_minutes: Optional[int] = Field(None, ge=0, le=480)
-    examples: Optional[List[str]] = None
-    keywords: Optional[List[str]] = None
-    external_resources: Optional[List[Dict[str, str]]] = None
+    estimated_minutes: Optional[int] = Field(default=None, ge=0, le=480)
+    examples: Optional[List[str]] = Field(default=None)
+    keywords: Optional[List[str]] = Field(default=None)
+    external_resources: Optional[List[ExternalResource]] = Field(default=None)
 
     model_config = ConfigDict(extra='forbid')
 
@@ -125,7 +131,8 @@ class ConceptDependencyBase(BaseModel):
         description="Dependency strength (0.0=optional, 1.0=required)"
     )
     reason: Optional[str] = Field(
-        None,
+        default=None,
+        max_length=500,
         description="Why this dependency exists"
     )
 
@@ -262,3 +269,11 @@ class ConceptBulkCreateResponse(BaseModel):
     concept_ids: List[UUID]
     dependency_ids: List[UUID]
     errors: List[str] = Field(default_factory=list, description="Any errors during creation")
+
+
+# ============================================================================
+# Forward Reference Resolution
+# ============================================================================
+# Rebuild models to resolve forward references for circular dependencies
+ConceptDetail.model_rebuild()
+ConceptDependencyDetail.model_rebuild()
