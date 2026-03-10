@@ -230,6 +230,14 @@ psql $DATABASE_URL -c "SELECT 1"
 # 3. Check firewall rules
 ```
 
+## Vercel Proxy Setup
+
+For same-origin cookie authentication, `VITE_API_URL` must be empty in Vercel:
+
+1. Vercel Dashboard → ai-study-architect → Settings → Environment Variables
+2. Set `VITE_API_URL` to empty string (not the Render URL)
+3. This makes axios use relative paths → `/api/*` routes through vercel.json proxy → cookies work as same-origin
+
 ## Emergency Contacts
 
 - **Render Support**: https://render.com/support
