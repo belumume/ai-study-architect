@@ -97,12 +97,18 @@ async def client(db_session: Session) -> AsyncClient:
 @pytest.fixture
 async def authenticated_client(client: AsyncClient, db_session: Session):
     """Get authenticated test client with user data."""
+    import uuid
     from app.models.user import User
     from app.core.security import get_password_hash
 
+    # Use unique email/username per fixture invocation to prevent UniqueViolation
+    unique_id = uuid.uuid4().hex[:8]
+    email = f"auth_test_{unique_id}@example.com"
+    username = f"auth_test_{unique_id}"
+
     user = User(
-        email="auth_test@example.com",
-        username="auth_test_user",
+        email=email,
+        username=username,
         hashed_password=get_password_hash("testpassword123"),
         full_name="Auth Test User",
         is_active=True,
@@ -114,9 +120,10 @@ async def authenticated_client(client: AsyncClient, db_session: Session):
 
     response = await client.post(
         "/api/v1/auth/login",
-        json={
-            "username_or_email": "auth_test@example.com",
+        data={
+            "username": email,
             "password": "testpassword123",
+            "remember_me": "false",
         },
     )
     tokens = response.json()
@@ -126,13 +133,13 @@ async def authenticated_client(client: AsyncClient, db_session: Session):
     user_data = {
         "user": user,
         "tokens": tokens,
-        "email": "auth_test@example.com",
+        "email": email,
         "password": "testpassword123",
     }
 
     yield client, user_data
 
-    # Cleanup: delete test user to prevent UniqueViolation in other tests
+    # Cleanup
     try:
         db_session.delete(user)
         db_session.commit()
