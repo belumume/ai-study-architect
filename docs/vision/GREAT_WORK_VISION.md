@@ -5,8 +5,10 @@ Document Level: 1
 Created: July 2025
 Last Updated: August 2025
 Supersedes: None
-Status: Active
+Status: Active — Long-term Vision
 ---
+
+> **Scope Note**: This document captures long-term aspirational vision. Items like "adversarial agents" and "emotion-aware tutoring" are future explorations, not part of the current MVP. See [`docs/direction/NEW_DIRECTION_2025.md`](../direction/NEW_DIRECTION_2025.md) for current scope.
 
 ## The North Star: Transforming How Humanity Learns
 

@@ -4,15 +4,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-AI Study Architect - A mastery-based learning system that proves students actually learned through knowledge graphs, spaced repetition, and measurable retention. Currently focused on CS education (CS50) as beachhead market. Uses Claude API (primary) and OpenAI (fallback) for AI-powered concept extraction and practice generation.
+**Study Architect** by Quantelect — Mastery-based AI study companion that proves you learned it. Currently focused on CS education as beachhead market. Uses Claude API (primary) and OpenAI (fallback).
 
-**Live Application**: https://ai-study-architect.onrender.com
-**Frontend**: https://aistudyarchitect.com (Vercel hosted, Cloudflare Worker routing)
+**Live**: https://ai-study-architect.onrender.com | https://aistudyarchitect.com
 **Core Philosophy**: "Build cognitive strength, not cognitive debt"
-
-**Current Phase**: Strategic pivot to mastery-based learning (see docs/NEW_DIRECTION_2025.md)
-- FROM: "7-agent Socratic chatbot"
-- TO: "Mastery-based system with proven retention" (MathAcademy-inspired)
+**Strategic Direction**: See [docs/direction/NEW_DIRECTION_2025.md](docs/direction/NEW_DIRECTION_2025.md)
+**Design Direction**: Analytics Pro "cyberpunk telemetry" aesthetic — see [design/PRD.md](design/PRD.md)
+**Related Repos**: `quantelect/` (company/pitch), `cs50/` (course history)
 
 ## Important Development Rules
 
@@ -191,15 +189,17 @@ for var in optional:
 - User authentication with JWT (RS256) [IMPLEMENTED]
 - PostgreSQL database with session management [IMPLEMENTED]
 
-**Planned Components** (see DAILY_DEV_PLAN.md for timeline):
-1. **Knowledge Graph Extractor** - Extract atomic concepts and dependencies from course materials
-2. **Practice Problem Generator** - Create auto-graded programming exercises
-3. **Mastery Tracker** - Enforce 90%+ gates before concept unlock
-4. **Spaced Repetition Scheduler** - SM-2 algorithm for optimal review timing
-5. **Retention Analyzer** - Track long-term learning (weeks/months later)
+**MVP Scope** (current focus):
+- Analytics dashboard with study time tracking (Stitch design in `design/`)
+- Subject progress visualization
+- Basic analytics and learning velocity
 
-**Legacy Reference** (Original 7-Agent Vision):
-The original architecture envisioned 7 specialized agents (Lead Tutor, Content Understanding, Knowledge Synthesis, Practice Generation, Progress Tracking, Assessment, Collaboration). The strategic pivot focuses on measurable mastery-based learning instead.
+**Phase 2** (not in MVP scope — see [docs/direction/NEW_DIRECTION_2025.md](docs/direction/NEW_DIRECTION_2025.md)):
+1. **Knowledge Graph Extractor** - Extract atomic concepts and dependencies
+2. **Practice Problem Generator** - Auto-graded programming exercises
+3. **Mastery Tracker** - 90%+ gates before concept unlock
+4. **Spaced Repetition Scheduler** - SM-2 algorithm
+5. **Retention Analyzer** - Long-term learning measurement
 
 ### Backend Architecture (FastAPI)
 
@@ -337,7 +337,7 @@ frontend/
 - `practice_problems` - Generated exercises with difficulty levels
 - `chat_messages` - Conversation history with context (schema exists, full implementation pending)
 
-**Planned (Week 1-2 of mastery-based development):**
+**Phase 2 (not in MVP scope):**
 - `concepts` - Atomic learning concepts extracted from materials
 - `concept_dependencies` - Prerequisite relationships between concepts
 - `user_attempts` - Student problem-solving attempts
@@ -436,9 +436,9 @@ grep -A 10 "security_headers" backend/app/main.py && echo "[OK] Security headers
 
 ### Development Workflow
 - **Mastery-based focus** - Building for measurable learning outcomes, not agent count
-- **Daily dev sessions** - See DAILY_DEV_PLAN.md for 1-2 hour incremental progress
-- **Strategic pivot** - Focus on mastery-based features per NEW_DIRECTION_2025.md
-- **Documentation hierarchy** - See docs/DOCUMENTATION_HIERARCHY.md for doc structure
+- **Daily dev sessions** - See docs/planning/DAILY_DEV_PLAN.md for incremental progress
+- **Strategic direction** - See docs/direction/NEW_DIRECTION_2025.md for current focus
+- **Documentation** - See docs/README.md for organized doc navigation
 
 ### Database & Backend
 - **Pre-Deploy MUST be empty** - Any migration command will fail on Render
@@ -505,33 +505,32 @@ grep -A 10 "security_headers" backend/app/main.py && echo "[OK] Security headers
 - [DEPLOYMENT.md](DEPLOYMENT.md) - Production deployment guide
 
 **Strategic Direction:**
-- [docs/NEW_DIRECTION_2025.md](docs/NEW_DIRECTION_2025.md) - Strategic pivot to mastery-based learning
-- [DAILY_DEV_PLAN.md](DAILY_DEV_PLAN.md) - 1-2 hour daily development sessions
-- [STRATEGIC_PIVOT_SUMMARY.md](STRATEGIC_PIVOT_SUMMARY.md) - Pivot summary
+- [docs/direction/NEW_DIRECTION_2025.md](docs/direction/NEW_DIRECTION_2025.md) — Canonical strategic document
 
-**Architecture & Implementation:**
-- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) - System architecture details
-- [docs/IMPLEMENTATION_STATUS.md](docs/IMPLEMENTATION_STATUS.md) - Current implementation status
-- [docs/API_REFERENCE.md](docs/API_REFERENCE.md) - API documentation
+**Technical:**
+- [docs/technical/ARCHITECTURE.md](docs/technical/ARCHITECTURE.md) — System architecture
+- [docs/technical/IMPLEMENTATION_STATUS.md](docs/technical/IMPLEMENTATION_STATUS.md) — Current status
+- [docs/technical/API_REFERENCE.md](docs/technical/API_REFERENCE.md) — API documentation
 
-**Security & Operations:**
-- [SECURITY.md](SECURITY.md) - Security implementation
-- [SECURITY_AUDIT_2025.md](SECURITY_AUDIT_2025.md) - Security audit procedures
-- [BACKUP_SECURITY.md](BACKUP_SECURITY.md) - Backup system architecture
-- [TROUBLESHOOTING.md](TROUBLESHOOTING.md) - Common issues and solutions
+**Planning:**
+- [docs/planning/DAILY_DEV_PLAN.md](docs/planning/DAILY_DEV_PLAN.md) — Daily dev sessions
 
-**Project History & Vision:**
-- [docs/PROJECT_GENESIS.md](docs/PROJECT_GENESIS.md) - How the project started
-- [docs/PROBLEM_STATEMENT.md](docs/PROBLEM_STATEMENT.md) - The AI learning paradox
-- [docs/COLLECTIVE_INTELLIGENCE_VISION.md](docs/COLLECTIVE_INTELLIGENCE_VISION.md) - Future collective learning vision
+**Design:**
+- [design/README.md](design/README.md) — Stitch design pipeline
+- [design/PRD.md](design/PRD.md) — Analytics Pro PRD
+
+**Vision:**
+- [docs/vision/](docs/vision/) — Product DNA (Karpathy, PG, genesis, philosophy)
+
+**Full docs index:** [docs/README.md](docs/README.md)
 
 ## Best Practices for AI Assistants
 
 ### Before Starting Work
-1. Read relevant documentation (check DOCUMENTATION_INDEX.md)
+1. Read [docs/README.md](docs/README.md) for documentation overview
 2. Review recent commits to understand latest changes
-3. Check IMPLEMENTATION_STATUS.md for current state
-4. Understand the mastery-based learning focus
+3. Check [docs/technical/IMPLEMENTATION_STATUS.md](docs/technical/IMPLEMENTATION_STATUS.md) for current state
+4. Understand the mastery-based learning focus (see [docs/direction/](docs/direction/))
 
 ### During Development
 1. Follow the NO EMOJIS rule strictly
@@ -577,29 +576,25 @@ grep -A 10 "security_headers" backend/app/main.py && echo "[OK] Security headers
 - Chat: `frontend/src/components/chat/`
 - Content: `frontend/src/components/content/`
 
-## Current Development Focus (November 2025)
+## Current Development Focus
 
-As outlined in DAILY_DEV_PLAN.md, the current focus is on implementing the mastery-based learning system:
-
-**Week 1-2 Goals:**
-1. Knowledge Graph database schema (concepts, concept_dependencies)
-2. Concept extraction service using Claude API
-3. Knowledge Graph API endpoints
-4. Testing with real CS50 materials
+**MVP scope**: FastAPI backend + React frontend + Analytics Pro dashboard (Stitch design), subject time tracking, basic analytics.
 
 **Implementation Status:**
-- Lead Tutor Agent with Socratic questioning: ✅ COMPLETE
-- Multi-provider AI integration: ✅ COMPLETE
-- File upload and processing: ✅ COMPLETE
-- Chat interface with streaming: ✅ COMPLETE
-- Knowledge Graph extraction: ❌ PLANNED (Week 1-2)
-- Practice generation: ❌ PLANNED (Week 3-4)
-- Mastery gates: ❌ PLANNED (Week 5-6)
-- Spaced repetition: ❌ PLANNED (Week 6-7)
+- Lead Tutor Agent with Socratic questioning: COMPLETE
+- Multi-provider AI integration: COMPLETE
+- File upload and processing: COMPLETE
+- Chat interface with streaming: COMPLETE
+- Analytics dashboard: DESIGNED (Stitch mockups in design/)
+- Subject time tracking: PLANNED (MVP)
+- Knowledge Graph extraction: Phase 2
+- Practice generation: Phase 2
+- Mastery gates: Phase 2
+- Spaced repetition: Phase 2
 
-See [docs/IMPLEMENTATION_STATUS.md](docs/IMPLEMENTATION_STATUS.md) for detailed status tracking.
+See [docs/technical/IMPLEMENTATION_STATUS.md](docs/technical/IMPLEMENTATION_STATUS.md) for detailed status.
 
 ---
 
-**Last Updated**: November 2025
-**For questions or issues**: Check TROUBLESHOOTING.md or review the documentation index above.
+**Last Updated**: March 2026
+**For questions or issues**: Check TROUBLESHOOTING.md or [docs/README.md](docs/README.md).
