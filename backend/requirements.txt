@@ -69,4 +69,4 @@ pytesseract==0.3.10  # Stable version
 nest-asyncio==1.6.0  # For async/sync compatibility in vision processing
 
 # Cloud storage for backups
-boto3==1.34.23  # AWS S3 SDK for backup uploads
+boto3==1.34.23  # AWS S3 SDK for backup uploadspytest-timeout>=2.0
