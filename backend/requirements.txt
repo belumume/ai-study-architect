@@ -17,6 +17,7 @@ redis==5.0.1
 # Authentication & Security
 python-jose[cryptography]==3.3.0
 passlib[bcrypt]==1.7.4
+bcrypt==4.0.1
 cryptography==42.0.2
 python-dotenv==1.0.0
 pydantic==2.9.0  # Core validation library

@@ -18,9 +18,12 @@ def get_mime_type(file_content: bytes) -> str:
         import magic
 
         mime = magic.Magic(mime=True)
-        return mime.from_buffer(file_content)
+        result = mime.from_buffer(file_content)
+        if result and result != "application/octet-stream":
+            return result
     except Exception:
-        return _basic_mime_detection(file_content)
+        pass
+    return _basic_mime_detection(file_content)
 
 
 def _basic_mime_detection(content: bytes) -> str:
