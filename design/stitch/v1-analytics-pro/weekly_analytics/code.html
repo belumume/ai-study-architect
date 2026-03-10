@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Analytics Pro Study Companion - Weekly Analytics</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&amp;family=IBM+Plex+Sans:wght@400;500&amp;family=JetBrains+Mono:wght@400;500;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#D4FF00",
+                        "secondary": "#00F2FE",
+                        "background-light": "#050505",
+                        "background-dark": "#050505",
+                        "surface": "#121212",
+                        "surface-hover": "#1E1E1E",
+                        "text-main": "#E0E0E0",
+                        "muted": "#6B6B6B",
+                        "danger": "#FF0055",
+                    },
+                    fontFamily: {
+                        "display": ["Space Grotesk", "sans-serif"],
+                        "body": ["IBM Plex Sans", "sans-serif"],
+                        "mono": ["JetBrains Mono", "monospace"],
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0px",
+                        "sm": "0px",
+                        "md": "0px",
+                        "lg": "0px",
+                        "xl": "0px",
+                        "full": "0px",
+                    },
+                    boxShadow: {
+                        'neon': '0 0 8px rgba(212, 255, 0, 0.4)',
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        body {
+            background-color: #050505;
+            color: #E0E0E0;
+        }
+        .border-thin {
+            border: 1px solid #1E1E1E;
+        }
+        
+        /* Custom Scrollbar for terminal feel */
+        ::-webkit-scrollbar {
+            width: 4px;
+            height: 4px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #050505;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #1E1E1E;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #6B6B6B;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-dark text-text-main font-body min-h-screen flex flex-col antialiased selection:bg-primary selection:text-background-dark overflow-x-hidden">
+<!-- Header -->
+<header class="sticky top-0 z-50 bg-background-dark/95 backdrop-blur border-b border-surface-hover px-4 py-3 flex items-center justify-between">
+<div class="flex items-center gap-3">
+<button class="text-text-main hover:text-primary transition-colors flex items-center justify-center w-8 h-8">
+<span class="material-symbols-outlined text-2xl">arrow_back_ios_new</span>
+</button>
+<h1 class="font-display font-bold text-lg tracking-[-0.02em] uppercase">Telemetry Review</h1>
+</div>
+<button class="text-text-main hover:text-primary transition-colors flex items-center justify-center w-8 h-8">
+<span class="material-symbols-outlined text-2xl">more_vert</span>
+</button>
+</header>
+<main class="flex-1 flex flex-col p-4 gap-6 pb-24 max-w-2xl mx-auto w-full">
+<!-- Segmented Control -->
+<div class="flex border-thin bg-surface p-1">
+<button class="flex-1 py-2 font-mono text-xs font-bold uppercase tracking-[0.1em] bg-primary text-background-dark shadow-neon transition-all">Week</button>
+<button class="flex-1 py-2 font-mono text-xs font-bold uppercase tracking-[0.1em] text-muted hover:text-text-main transition-all">Month</button>
+</div>
+<!-- Peak Performance Callout -->
+<div class="border-thin bg-surface p-4 flex flex-col gap-2 relative overflow-hidden group">
+<div class="absolute top-0 left-0 w-1 h-full bg-primary shadow-neon"></div>
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-sm">bolt</span>
+<span class="font-mono text-[10px] font-bold uppercase tracking-[0.1em] text-primary">Peak Performance Window</span>
+</div>
+<div class="font-mono text-2xl font-medium tracking-[-0.05em] text-text-main">
+                06:00 <span class="text-muted">-</span> 09:00
+            </div>
+<div class="font-body text-xs text-muted">
+                Efficiency peaks at 94% during this block. Recommended for high-cognitive load subjects.
+            </div>
+</div>
+<!-- Focus Degradation Chart -->
+<section class="border-thin bg-surface flex flex-col">
+<div class="p-4 border-b border-surface-hover flex justify-between items-center">
+<h2 class="font-display font-bold text-sm tracking-[-0.02em] uppercase">Focus Degradation</h2>
+<span class="font-mono text-[10px] text-muted uppercase tracking-[0.1em]">24H Cycle</span>
+</div>
+<div class="h-[240px] p-4 relative w-full">
+<!-- Y-Axis Labels -->
+<div class="absolute left-4 top-4 bottom-8 flex flex-col justify-between font-mono text-[10px] text-muted">
+<span>100</span>
+<span>75</span>
+<span>50</span>
+<span>25</span>
+<span>0</span>
+</div>
+<!-- Chart Area -->
+<div class="ml-6 h-full relative border-l border-b border-surface-hover flex items-end">
+<!-- Grid Lines -->
+<div class="absolute inset-0 flex flex-col justify-between pointer-events-none opacity-20">
+<div class="w-full border-t border-surface-hover h-0"></div>
+<div class="w-full border-t border-surface-hover h-0"></div>
+<div class="w-full border-t border-surface-hover h-0"></div>
+<div class="w-full border-t border-surface-hover h-0"></div>
+<div class="w-full border-t border-surface-hover h-0"></div>
+</div>
+<!-- SVG Line Chart (Simulated) -->
+<svg class="w-full h-full absolute inset-0 overflow-visible" preserveaspectratio="none" viewbox="0 0 100 100">
+<!-- Gradient Fill under line -->
+<defs>
+<lineargradient id="fade" x1="0" x2="0" y1="0" y2="1">
+<stop offset="0%" stop-color="#D4FF00" stop-opacity="0.2"></stop>
+<stop offset="100%" stop-color="#D4FF00" stop-opacity="0"></stop>
+</lineargradient>
+</defs>
+<path class="shadow-neon" d="M0,80 L10,75 L20,70 L25,20 L35,15 L45,30 L50,45 L60,50 L70,80 L80,85 L90,90 L100,95" fill="none" stroke="#D4FF00" stroke-width="1" vector-effect="non-scaling-stroke"></path>
+<path d="M0,80 L10,75 L20,70 L25,20 L35,15 L45,30 L50,45 L60,50 L70,80 L80,85 L90,90 L100,95 L100,100 L0,100 Z" fill="url(#fade)" opacity="0.5"></path>
+<!-- Crosshair (Simulated active state) -->
+<line stroke="#1E1E1E" stroke-dasharray="2 2" stroke-width="1" vector-effect="non-scaling-stroke" x1="35" x2="35" y1="0" y2="100"></line>
+<circle cx="35" cy="15" fill="#050505" r="2" stroke="#D4FF00" stroke-width="1" vector-effect="non-scaling-stroke"></circle>
+</svg>
+<!-- Tooltip (Simulated active state) -->
+<div class="absolute left-[35%] top-[5%] -translate-x-1/2 -translate-y-full bg-surface border-thin p-2 pointer-events-none z-10 mb-2">
+<div class="font-mono text-[10px] text-muted mb-1">08:24</div>
+<div class="font-mono text-xs text-primary font-bold">92% EFF</div>
+</div>
+</div>
+<!-- X-Axis Labels -->
+<div class="ml-6 mt-2 flex justify-between font-mono text-[10px] text-muted">
+<span>00</span>
+<span>06</span>
+<span>12</span>
+<span>18</span>
+<span>24</span>
+</div>
+</div>
+</section>
+<!-- Subject Allocation -->
+<section class="border-thin bg-surface flex flex-col">
+<div class="p-4 border-b border-surface-hover flex justify-between items-center">
+<h2 class="font-display font-bold text-sm tracking-[-0.02em] uppercase">Subject Allocation</h2>
+<span class="font-mono text-[10px] text-muted uppercase tracking-[0.1em]">Total: 42.5h</span>
+</div>
+<div class="p-4 flex flex-col md:flex-row gap-6 items-center">
+<!-- Donut Chart Container -->
+<div class="w-48 h-48 relative shrink-0">
+<svg class="w-full h-full transform -rotate-90" viewbox="0 0 100 100">
+<!-- Background track -->
+<circle cx="50" cy="50" fill="none" r="40" stroke="#1E1E1E" stroke-width="2"></circle>
+<!-- Segments (Simulated) -->
+<!-- Pharmacology (Primary) -->
+<circle cx="50" cy="50" fill="none" r="40" stroke="#D4FF00" stroke-dasharray="100 151.3" stroke-dashoffset="0" stroke-width="2"></circle>
+<!-- Neuroanatomy (Secondary) -->
+<circle cx="50" cy="50" fill="none" r="40" stroke="#00F2FE" stroke-dasharray="75 176.3" stroke-dashoffset="-100" stroke-width="2"></circle>
+<!-- Organic Chem (White) -->
+<circle cx="50" cy="50" fill="none" r="40" stroke="#FFFFFF" stroke-dasharray="50 201.3" stroke-dashoffset="-175" stroke-width="2"></circle>
+</svg>
+<!-- Center Metric -->
+<div class="absolute inset-0 flex flex-col items-center justify-center">
+<span class="font-mono text-2xl font-bold text-text-main">42.5</span>
+<span class="font-mono text-[10px] text-muted uppercase tracking-[0.1em]">HOURS</span>
+</div>
+</div>
+<!-- Legend / List -->
+<div class="flex-1 w-full flex flex-col gap-3">
+<!-- Item 1 -->
+<div class="flex items-center justify-between group hover:bg-surface-hover p-2 -mx-2 transition-colors cursor-pointer border-l-2 border-primary">
+<div class="flex items-center gap-3">
+<div class="w-2 h-2 bg-primary"></div>
+<span class="font-mono text-sm text-text-main group-hover:text-primary transition-colors">Pharmacology</span>
+</div>
+<div class="font-mono text-sm">18.2h</div>
+</div>
+<!-- Item 2 -->
+<div class="flex items-center justify-between group hover:bg-surface-hover p-2 -mx-2 transition-colors cursor-pointer border-l-2 border-transparent hover:border-secondary">
+<div class="flex items-center gap-3">
+<div class="w-2 h-2 bg-secondary"></div>
+<span class="font-mono text-sm text-text-main group-hover:text-secondary transition-colors">Neuroanatomy</span>
+</div>
+<div class="font-mono text-sm">14.5h</div>
+</div>
+<!-- Item 3 -->
+<div class="flex items-center justify-between group hover:bg-surface-hover p-2 -mx-2 transition-colors cursor-pointer border-l-2 border-transparent hover:border-white">
+<div class="flex items-center gap-3">
+<div class="w-2 h-2 bg-white"></div>
+<span class="font-mono text-sm text-text-main group-hover:text-white transition-colors">Organic Chem</span>
+</div>
+<div class="font-mono text-sm">9.8h</div>
+</div>
+</div>
+</div>
+</section>
+</main>
+<!-- Bottom Navigation (Reused from components, adjusted to theme) -->
+<nav class="fixed bottom-0 w-full border-t border-surface-hover bg-background-dark/95 backdrop-blur z-50">
+<div class="max-w-2xl mx-auto w-full flex gap-2 px-4 pb-4 pt-2">
+<a class="flex flex-1 flex-col items-center justify-end gap-1 text-muted hover:text-text-main transition-colors" href="#">
+<div class="flex h-8 items-center justify-center">
+<span class="material-symbols-outlined text-2xl">grid_view</span>
+</div>
+<span class="font-mono text-[10px] uppercase tracking-[0.1em]">Dash</span>
+</a>
+<a class="flex flex-1 flex-col items-center justify-end gap-1 text-muted hover:text-text-main transition-colors" href="#">
+<div class="flex h-8 items-center justify-center">
+<span class="material-symbols-outlined text-2xl">timer</span>
+</div>
+<span class="font-mono text-[10px] uppercase tracking-[0.1em]">Focus</span>
+</a>
+<a class="flex flex-1 flex-col items-center justify-end gap-1 text-primary relative" href="#">
+<!-- Active Indicator -->
+<div class="absolute top-0 w-8 h-[2px] bg-primary shadow-neon"></div>
+<div class="flex h-8 items-center justify-center">
+<span class="material-symbols-outlined text-2xl">insights</span>
+</div>
+<span class="font-mono text-[10px] uppercase tracking-[0.1em]">Data</span>
+</a>
+</div>
+</nav>
+</body></html>

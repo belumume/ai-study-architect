@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Analytics Pro - Subject Detail</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&amp;family=IBM+Plex+Sans:wght@400;500&amp;family=JetBrains+Mono:wght@500;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+  tailwind.config = {
+    darkMode: "class",
+    theme: {
+      extend: {
+        colors: {
+          "primary": "#ccf20d",
+          "secondary": "#00F2FE",
+          "background-light": "#f8f8f5",
+          "background-dark": "#050505",
+          "surface": "#121212",
+          "surface-hover": "#1E1E1E",
+          "text-main": "#E0E0E0",
+          "text-muted": "#6B6B6B",
+          "danger": "#FF0055",
+        },
+        fontFamily: {
+          "display": ["Space Grotesk", "sans-serif"],
+          "body": ["IBM Plex Sans", "sans-serif"],
+          "mono": ["JetBrains Mono", "monospace"],
+        },
+        borderRadius: {"DEFAULT": "0px", "lg": "0px", "xl": "0px", "full": "9999px"},
+      },
+    },
+  }
+</script>
+<style>
+  body {
+    background-color: #050505;
+    color: #E0E0E0;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  .neon-text-primary {
+    text-shadow: 0 0 8px rgba(204, 242, 13, 0.4);
+  }
+  .neon-text-danger {
+    text-shadow: 0 0 8px rgba(255, 0, 85, 0.4);
+  }
+  
+  /* Hide scrollbar for Chrome, Safari and Opera */
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  /* Hide scrollbar for IE, Edge and Firefox */
+  .no-scrollbar {
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
+  }
+</style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-text-main font-body min-h-screen flex flex-col overflow-x-hidden selection:bg-primary selection:text-background-dark">
+<!-- TopAppBar -->
+<div class="sticky top-0 z-50 bg-background-dark/95 backdrop-blur border-b border-surface-hover">
+<div class="flex items-center p-4 pb-3 justify-between">
+<button aria-label="Go back" class="text-text-main hover:text-primary transition-colors flex size-12 shrink-0 items-center justify-center -ml-2 rounded-full active:bg-surface-hover">
+<span class="material-symbols-outlined text-2xl">arrow_back_ios_new</span>
+</button>
+<h2 class="text-text-main text-lg font-display font-bold leading-tight tracking-[0.1em] uppercase flex-1 text-center truncate pr-10">
+        ORGANIC CHEMISTRY
+      </h2>
+</div>
+</div>
+<main class="flex-1 pb-12">
+<!-- Header Section -->
+<div class="px-5 pt-6 pb-8 border-b border-surface-hover">
+<h1 class="text-primary text-[32px] font-mono font-bold leading-none tracking-[-0.05em] neon-text-primary mb-2">
+        +02:15:00
+      </h1>
+<p class="font-mono text-[10px] font-bold tracking-[0.1em] text-text-muted uppercase">
+        WEEKLY TARGET SURPLUS
+      </p>
+</div>
+<!-- Stat Blocks (Horizontal Scroll) -->
+<div class="flex overflow-x-auto no-scrollbar py-6 px-5 gap-4 border-b border-surface-hover snap-x">
+<!-- Block 1 -->
+<div class="flex-none w-[120px] h-[120px] border border-surface-hover bg-surface p-3 flex flex-col justify-between snap-start hover:bg-surface-hover transition-colors">
+<span class="font-mono text-[10px] font-bold tracking-[0.1em] text-text-muted uppercase break-words">TOTAL<br/>INVESTED</span>
+<div class="flex items-baseline gap-1">
+<span class="font-mono text-2xl font-bold text-text-main">14.5</span>
+<span class="font-mono text-xs text-text-muted">h</span>
+</div>
+</div>
+<!-- Block 2 -->
+<div class="flex-none w-[120px] h-[120px] border border-surface-hover bg-surface p-3 flex flex-col justify-between snap-start hover:bg-surface-hover transition-colors">
+<span class="font-mono text-[10px] font-bold tracking-[0.1em] text-text-muted uppercase break-words">WEEKLY<br/>TARGET</span>
+<div class="flex items-baseline gap-1">
+<span class="font-mono text-2xl font-bold text-text-main">12.0</span>
+<span class="font-mono text-xs text-text-muted">h</span>
+</div>
+</div>
+<!-- Block 3 -->
+<div class="flex-none w-[120px] h-[120px] border border-surface-hover bg-surface p-3 flex flex-col justify-between snap-start hover:bg-surface-hover transition-colors">
+<span class="font-mono text-[10px] font-bold tracking-[0.1em] text-text-muted uppercase break-words">AVG<br/>EFFICIENCY</span>
+<div class="flex items-baseline gap-1">
+<span class="font-mono text-2xl font-bold text-primary neon-text-primary">94</span>
+<span class="font-mono text-xs text-primary">%</span>
+</div>
+</div>
+<!-- Block 4 -->
+<div class="flex-none w-[120px] h-[120px] border border-surface-hover bg-surface p-3 flex flex-col justify-between snap-start hover:bg-surface-hover transition-colors">
+<span class="font-mono text-[10px] font-bold tracking-[0.1em] text-text-muted uppercase break-words">CURRENT<br/>STREAK</span>
+<div class="flex items-baseline gap-1">
+<span class="font-mono text-2xl font-bold text-text-main">5</span>
+<span class="font-mono text-xs text-text-muted">d</span>
+</div>
+</div>
+</div>
+<!-- 7-Day Velocity Chart -->
+<div class="px-5 py-8 border-b border-surface-hover">
+<div class="flex justify-between items-end mb-6">
+<h3 class="font-display font-bold text-lg tracking-[-0.02em] uppercase">7-Day Velocity</h3>
+<span class="font-mono text-xs text-text-muted">HOURS / DAY</span>
+</div>
+<div class="relative h-[200px] w-full flex items-end justify-between pt-4 pb-8">
+<!-- Y-Axis Lines (Background) -->
+<div class="absolute inset-0 flex flex-col justify-between pb-8 z-0 pointer-events-none">
+<div class="w-full border-t border-surface-hover/50 h-0"></div>
+<div class="w-full border-t border-surface-hover/50 h-0"></div>
+<div class="w-full border-t border-surface-hover/50 h-0"></div>
+<div class="w-full border-t border-surface-hover h-0"></div>
+</div>
+<!-- Bars -->
+<!-- MON -->
+<div class="relative z-10 flex flex-col items-center group cursor-pointer h-full justify-end w-[14%]">
+<!-- Target Track Background -->
+<div class="absolute bottom-0 w-[24px] h-[80%] bg-surface-hover z-0"></div>
+<!-- Actual Bar -->
+<div class="relative w-[24px] bg-secondary h-[40%] z-10 transition-all group-hover:bg-primary group-active:scale-95"></div>
+<span class="absolute -bottom-6 font-mono text-xs text-text-muted group-hover:text-text-main">M</span>
+<!-- Tooltip (Hidden by default, shown on hover/active in a real app, here forced for one to show design) -->
+</div>
+<!-- TUE -->
+<div class="relative z-10 flex flex-col items-center group cursor-pointer h-full justify-end w-[14%]">
+<div class="absolute bottom-0 w-[24px] h-[80%] bg-surface-hover z-0"></div>
+<div class="relative w-[24px] bg-secondary h-[90%] z-10 transition-all group-hover:bg-primary group-active:scale-95"></div>
+<span class="absolute -bottom-6 font-mono text-xs text-text-muted group-hover:text-text-main">T</span>
+</div>
+<!-- WED -->
+<div class="relative z-10 flex flex-col items-center group cursor-pointer h-full justify-end w-[14%]">
+<div class="absolute bottom-0 w-[24px] h-[80%] bg-surface-hover z-0"></div>
+<div class="relative w-[24px] bg-secondary h-[75%] z-10 transition-all group-hover:bg-primary group-active:scale-95"></div>
+<span class="absolute -bottom-6 font-mono text-xs text-text-main text-primary">W</span>
+<!-- Active Tooltip Example -->
+<div class="absolute -top-10 bg-surface border border-surface-hover px-2 py-1 z-20 hidden group-hover:block">
+<span class="font-mono text-xs text-primary neon-text-primary">3.2h</span>
+</div>
+</div>
+<!-- THU -->
+<div class="relative z-10 flex flex-col items-center group cursor-pointer h-full justify-end w-[14%]">
+<div class="absolute bottom-0 w-[24px] h-[80%] bg-surface-hover z-0"></div>
+<div class="relative w-[24px] bg-secondary h-[20%] z-10 transition-all group-hover:bg-primary group-active:scale-95"></div>
+<span class="absolute -bottom-6 font-mono text-xs text-text-muted group-hover:text-text-main">T</span>
+</div>
+<!-- FRI -->
+<div class="relative z-10 flex flex-col items-center group cursor-pointer h-full justify-end w-[14%]">
+<div class="absolute bottom-0 w-[24px] h-[80%] bg-surface-hover z-0"></div>
+<div class="relative w-[24px] bg-secondary h-[60%] z-10 transition-all group-hover:bg-primary group-active:scale-95"></div>
+<span class="absolute -bottom-6 font-mono text-xs text-text-muted group-hover:text-text-main">F</span>
+</div>
+<!-- SAT -->
+<div class="relative z-10 flex flex-col items-center group cursor-pointer h-full justify-end w-[14%]">
+<div class="absolute bottom-0 w-[24px] h-[40%] bg-surface-hover z-0"></div>
+<div class="relative w-[24px] bg-secondary h-[50%] z-10 transition-all group-hover:bg-primary group-active:scale-95"></div>
+<span class="absolute -bottom-6 font-mono text-xs text-text-muted group-hover:text-text-main">S</span>
+</div>
+<!-- SUN -->
+<div class="relative z-10 flex flex-col items-center group cursor-pointer h-full justify-end w-[14%]">
+<div class="absolute bottom-0 w-[24px] h-[40%] bg-surface-hover z-0"></div>
+<div class="relative w-[24px] bg-surface h-[0%] z-10 border-t border-dashed border-text-muted"></div>
+<span class="absolute -bottom-6 font-mono text-xs text-text-muted group-hover:text-text-main">S</span>
+</div>
+</div>
+<!-- Legend -->
+<div class="flex gap-4 mt-2 justify-center">
+<div class="flex items-center gap-2">
+<div class="w-3 h-3 bg-secondary"></div>
+<span class="font-mono text-[10px] text-text-muted uppercase">Actual</span>
+</div>
+<div class="flex items-center gap-2">
+<div class="w-3 h-3 bg-surface-hover border border-surface-hover"></div>
+<span class="font-mono text-[10px] text-text-muted uppercase">Target</span>
+</div>
+</div>
+</div>
+<!-- Session Log -->
+<div class="px-5 py-8">
+<h3 class="font-display font-bold text-lg tracking-[-0.02em] uppercase mb-4">Telemetry Log</h3>
+<div class="w-full border border-surface-hover bg-surface">
+<!-- Table Header -->
+<div class="flex border-b border-surface-hover bg-background-dark">
+<div class="flex-1 p-3 font-mono text-[10px] font-bold tracking-[0.1em] text-text-muted uppercase">DATE</div>
+<div class="flex-1 p-3 font-mono text-[10px] font-bold tracking-[0.1em] text-text-muted uppercase text-right">DURATION</div>
+<div class="flex-1 p-3 font-mono text-[10px] font-bold tracking-[0.1em] text-text-muted uppercase text-right">EFF. SCORE</div>
+</div>
+<!-- Table Rows -->
+<div class="flex border-b border-surface-hover hover:bg-surface-hover transition-colors">
+<div class="flex-1 p-3 font-mono text-sm text-text-main">2023-10-24</div>
+<div class="flex-1 p-3 font-mono text-sm text-text-main text-right">02:15:44</div>
+<div class="flex-1 p-3 font-mono text-sm text-primary text-right">94%</div>
+</div>
+<div class="flex border-b border-surface-hover hover:bg-surface-hover transition-colors">
+<div class="flex-1 p-3 font-mono text-sm text-text-main">2023-10-23</div>
+<div class="flex-1 p-3 font-mono text-sm text-text-main text-right">03:45:12</div>
+<div class="flex-1 p-3 font-mono text-sm text-primary text-right">98%</div>
+</div>
+<div class="flex border-b border-surface-hover hover:bg-surface-hover transition-colors">
+<div class="flex-1 p-3 font-mono text-sm text-text-main">2023-10-21</div>
+<div class="flex-1 p-3 font-mono text-sm text-text-main text-right">01:10:05</div>
+<div class="flex-1 p-3 font-mono text-sm text-text-muted text-right">72%</div>
+</div>
+<div class="flex hover:bg-surface-hover transition-colors">
+<div class="flex-1 p-3 font-mono text-sm text-text-main">2023-10-20</div>
+<div class="flex-1 p-3 font-mono text-sm text-text-main text-right">04:30:00</div>
+<div class="flex-1 p-3 font-mono text-sm text-primary text-right">91%</div>
+</div>
+</div>
+<button class="w-full mt-6 py-4 border border-surface-hover text-text-main font-mono text-xs uppercase tracking-[0.1em] hover:bg-surface-hover active:bg-surface transition-colors flex items-center justify-center gap-2">
+<span class="material-symbols-outlined text-sm">download</span>
+        EXPORT CSV RAW DATA
+      </button>
+</div>
+</main>
+</body></html>

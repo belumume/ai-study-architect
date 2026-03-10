@@ -79,6 +79,8 @@ handwritten_notes/
 !frontend/public/**/*.jpg
 !docs/**/*.png
 !docs/**/*.jpg
+!design/**/*.png
+!design/**/*.jpg
 
 # User study sessions and progress
 study_sessions/

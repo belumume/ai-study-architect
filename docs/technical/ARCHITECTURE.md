@@ -5,14 +5,14 @@ Document Level: 3
 Created: July 2025
 Last Updated: October 2025
 Supersedes: None
-Status: Active - Strategic Pivot to Mastery-Based Learning
+Status: Active
 ---
 
 ## Overview
 
 AI Study Architect is a **mastery-based learning system** that proves students actually learned through knowledge graphs, spaced repetition, and measurable retention. Currently focused on CS education (CS50) as beachhead market. The system solves the **AI Learning Paradox**: **86% of students use AI in their studies, yet research shows they perform worse when AI support is removed - creating cognitive debt instead of cognitive strength**.
 
-**Strategic Direction**: See [NEW_DIRECTION_2025.md](NEW_DIRECTION_2025.md) for complete pivot rationale and roadmap.
+**Strategic Direction**: See [NEW_DIRECTION_2025.md](../direction/NEW_DIRECTION_2025.md) for complete pivot rationale and roadmap.
 
 ### Current Implementation (October 2025)
 
@@ -22,16 +22,12 @@ AI Study Architect is a **mastery-based learning system** that proves students a
 - Chat interface with streaming responses
 - User authentication and session management
 
-**In Active Development** (see [DAILY_DEV_PLAN.md](../DAILY_DEV_PLAN.md)):
+**Phase 2 (not in current MVP scope):**
 1. **Knowledge Graph Extractor** - Extract atomic concepts and dependencies from course materials
 2. **Practice Problem Generator** - Create auto-graded programming exercises
 3. **Mastery Tracker** - Enforce 90%+ gates before concept unlock
 4. **Spaced Repetition Scheduler** - SM-2 algorithm for optimal review timing
 5. **Retention Analyzer** - Track long-term learning (weeks/months later)
-
-### Legacy Architecture Note
-
-The original vision included a "7-agent system" (Lead Tutor, Content Understanding, Knowledge Synthesis, Practice Generation, Progress Tracking, Assessment, Collaboration). After strategic analysis, we pivoted to focus on measurable mastery-based learning outcomes instead of agent count. See [DOCUMENTATION_AUDIT.md](../DOCUMENTATION_AUDIT.md) for details on the transition.
 
 ## Architecture Principles
 
@@ -50,7 +46,7 @@ The original vision included a "7-agent system" (Lead Tutor, Content Understandi
 
 ### 3. Understanding-First Development
 - **Learning Focus**: All decisions optimize for comprehension, not convenience
-- **Incremental Implementation**: Daily 1-2 hour sessions with clear wins (see DAILY_DEV_PLAN.md)
+- **Incremental Implementation**: Daily 1-2 hour sessions with clear wins (see ../planning/DAILY_DEV_PLAN.md)
 - **Data Minimization**: Only essential data stored for learning continuity
 - **Secure Implementation**: Standard security practices throughout
 
