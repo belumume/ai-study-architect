@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Study Architect Subject Analytics Detail</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;700&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#D4FF00",
+                        "secondary": "#00F2FE",
+                        "accent": "#FF00FF",
+                        "background-light": "#f8f8f5",
+                        "background-dark": "#050505",
+                        "card-dark": "#0a0a0a",
+                        "border-dark": "#1f1f1f",
+                        "text-muted": "#888888",
+                        "gold": "#FFD700"
+                    },
+                    fontFamily: {
+                        "display": ["Space Grotesk", "sans-serif"],
+                        "body": ["Inter", "sans-serif"],
+                        "mono": ["JetBrains Mono", "monospace"]
+                    },
+                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 font-body min-h-screen">
+<div class="relative flex h-auto min-h-screen w-full flex-col overflow-x-hidden">
+<header class="flex items-center justify-between whitespace-nowrap border-b border-solid border-b-border-dark px-10 py-3 bg-card-dark">
+<div class="flex items-center gap-8">
+<div class="flex items-center gap-4 text-primary">
+<span class="material-symbols-outlined text-2xl">account_tree</span>
+<h2 class="text-white text-lg font-bold font-display leading-tight tracking-tight">Study Architect</h2>
+</div>
+<div class="flex items-center gap-9">
+<a class="text-text-muted hover:text-white transition-colors text-sm font-medium leading-normal" href="#">Dashboard</a>
+<a class="text-white text-sm font-medium leading-normal border-b-2 border-primary pb-1" href="#">Subjects</a>
+<a class="text-text-muted hover:text-white transition-colors text-sm font-medium leading-normal" href="#">Analytics</a>
+<a class="text-text-muted hover:text-white transition-colors text-sm font-medium leading-normal" href="#">Settings</a>
+</div>
+</div>
+<div class="flex flex-1 justify-end gap-8">
+<label class="flex flex-col min-w-40 !h-10 max-w-64">
+<div class="flex w-full flex-1 items-stretch rounded-lg h-full border border-border-dark bg-background-dark overflow-hidden">
+<div class="text-text-muted flex items-center justify-center pl-4 bg-transparent">
+<span class="material-symbols-outlined text-xl">search</span>
+</div>
+<input class="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden text-white focus:outline-0 focus:ring-0 border-none bg-transparent placeholder:text-text-muted px-3 text-sm font-normal" placeholder="Search telemetry..." value=""/>
+</div>
+</label>
+<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-10 border border-primary/30" data-alt="User profile avatar" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuDLMnZZdJgPiirZ-SYpiz9hZnPe_p0jcCCAkI37H2Cu1-jguhvP0i5wlUbJtesCO5v8T3lr0oTMjjUYKIp9HJ16Oyz_jk3F51TDTn-QBallVc1aleKcxtnrlzlaQ_w8ZU8zm2A4nmOJBq498g080i-yJxwhk86ZixM4H7bOt7RkNZwJQ20WaAh4moyqxuPDP7PTGyJWw0iM8yUOoHrUGHbRKrodcdFlVpGR5rnOJn7oUnu0-oX9WWCY_RupdE9pxwXon43zNyypV6-w");'></div>
+</div>
+</header>
+<div class="px-10 py-6 max-w-[1440px] mx-auto w-full flex flex-col gap-6">
+<div class="flex items-center gap-3">
+<a class="text-text-muted hover:text-white transition-colors flex items-center" href="#">
+<span class="material-symbols-outlined text-xl">arrow_back</span>
+</a>
+<div class="flex flex-wrap gap-2 items-center text-sm font-mono">
+<a class="text-text-muted hover:text-primary transition-colors" href="#">Dashboard</a>
+<span class="text-border-dark">/</span>
+<span class="text-primary font-medium">Data Structures</span>
+</div>
+</div>
+<!-- Hero Section / Key Stats -->
+<div class="grid grid-cols-1 md:grid-cols-5 gap-6">
+<!-- Circular Progress Card -->
+<div class="col-span-1 md:col-span-2 bg-card-dark border border-border-dark rounded-xl p-6 flex items-center gap-8 relative overflow-hidden">
+<div class="absolute inset-0 bg-primary/5 rounded-xl z-0"></div>
+<div class="relative z-10 w-32 h-32 rounded-full border-8 border-border-dark flex items-center justify-center">
+<svg class="absolute inset-0 w-full h-full transform -rotate-90" viewbox="0 0 100 100">
+<circle class="text-primary" cx="50" cy="50" fill="transparent" r="46" stroke="currentColor" stroke-dasharray="289" stroke-dashoffset="52" stroke-width="8"></circle>
+</svg>
+<div class="flex flex-col items-center">
+<span class="text-3xl font-bold font-mono text-white">82%</span>
+</div>
+</div>
+<div class="relative z-10 flex flex-col justify-center gap-1">
+<h1 class="text-3xl font-display font-bold text-white tracking-tight">Data Structures</h1>
+<p class="text-primary text-sm font-mono uppercase tracking-widest mt-1 flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
+                            System Mastery
+                        </p>
+</div>
+</div>
+<!-- Stats Grid -->
+<div class="col-span-1 md:col-span-3 grid grid-cols-2 md:grid-cols-4 gap-4">
+<div class="bg-card-dark border border-border-dark rounded-xl p-5 flex flex-col justify-between group hover:border-primary/50 transition-colors">
+<div class="text-text-muted text-xs font-mono uppercase tracking-wider mb-2 flex items-center gap-2">
+<span class="material-symbols-outlined text-sm">check_circle</span>
+                            Mastered
+                        </div>
+<div class="text-white font-mono text-2xl font-bold">24<span class="text-text-muted text-lg">/31</span></div>
+</div>
+<div class="bg-card-dark border border-border-dark rounded-xl p-5 flex flex-col justify-between group hover:border-secondary/50 transition-colors">
+<div class="text-text-muted text-xs font-mono uppercase tracking-wider mb-2 flex items-center gap-2">
+<span class="material-symbols-outlined text-sm">style</span>
+                            Cards
+                        </div>
+<div class="text-white font-mono text-2xl font-bold">186</div>
+</div>
+<div class="bg-card-dark border border-border-dark rounded-xl p-5 flex flex-col justify-between group hover:border-primary/50 transition-colors">
+<div class="text-text-muted text-xs font-mono uppercase tracking-wider mb-2 flex items-center gap-2">
+<span class="material-symbols-outlined text-sm">track_changes</span>
+                            Accuracy
+                        </div>
+<div class="text-primary font-mono text-2xl font-bold">87%</div>
+</div>
+<div class="bg-card-dark border border-border-dark rounded-xl p-5 flex flex-col justify-between group hover:border-border-dark transition-colors">
+<div class="text-text-muted text-xs font-mono uppercase tracking-wider mb-2 flex items-center gap-2">
+<span class="material-symbols-outlined text-sm">timer</span>
+                            Time
+                        </div>
+<div class="text-white font-mono text-2xl font-bold">14.5<span class="text-text-muted text-lg">h</span></div>
+</div>
+</div>
+</div>
+<!-- Main Content Area -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-6 mt-4">
+<!-- Left Column: Concept Map (55%) -->
+<div class="lg:col-span-7 bg-card-dark border border-border-dark rounded-xl p-6">
+<div class="flex justify-between items-center mb-6">
+<h2 class="text-xl font-display font-bold text-white tracking-tight flex items-center gap-2">
+<span class="material-symbols-outlined text-primary">schema</span>
+                            Concept Map
+                        </h2>
+<button class="text-xs font-mono bg-border-dark hover:bg-border-dark/80 text-white px-3 py-1.5 rounded transition-colors flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px]">filter_list</span> Filter
+                        </button>
+</div>
+<div class="relative pl-6 border-l border-border-dark/50 flex flex-col gap-8 py-2">
+<!-- Mastered Item -->
+<div class="relative">
+<div class="absolute -left-[33px] top-1 w-4 h-4 rounded-full bg-background-dark border-2 border-primary flex items-center justify-center">
+<span class="material-symbols-outlined text-[10px] text-primary font-bold">check</span>
+</div>
+<div class="flex justify-between items-start mb-2">
+<div>
+<h3 class="text-white font-medium text-lg">Arrays &amp; Strings</h3>
+<p class="text-text-muted text-xs font-mono mt-1">Status: Mastered • 45 Cards</p>
+</div>
+<span class="text-primary font-mono text-sm font-bold">95%</span>
+</div>
+<div class="w-full bg-border-dark rounded-full h-1.5 mt-2">
+<div class="bg-primary h-1.5 rounded-full" style="width: 95%"></div>
+</div>
+</div>
+<!-- Learning Item -->
+<div class="relative">
+<div class="absolute -left-[33px] top-1 w-4 h-4 rounded-full bg-background-dark border-2 border-secondary flex items-center justify-center">
+<span class="material-symbols-outlined text-[10px] text-secondary font-bold">sync</span>
+</div>
+<div class="flex justify-between items-start mb-2">
+<div>
+<h3 class="text-white font-medium text-lg">Linked Lists</h3>
+<p class="text-text-muted text-xs font-mono mt-1">Status: Learning • 32 Cards</p>
+</div>
+<span class="text-secondary font-mono text-sm font-bold">68%</span>
+</div>
+<div class="w-full bg-border-dark rounded-full h-1.5 mt-2">
+<div class="bg-secondary h-1.5 rounded-full" style="width: 68%"></div>
+</div>
+</div>
+<!-- Mastered Item -->
+<div class="relative">
+<div class="absolute -left-[33px] top-1 w-4 h-4 rounded-full bg-background-dark border-2 border-primary flex items-center justify-center">
+<span class="material-symbols-outlined text-[10px] text-primary font-bold">check</span>
+</div>
+<div class="flex justify-between items-start mb-2">
+<div>
+<h3 class="text-white font-medium text-lg">Stacks &amp; Queues</h3>
+<p class="text-text-muted text-xs font-mono mt-1">Status: Mastered • 28 Cards</p>
+</div>
+<span class="text-primary font-mono text-sm font-bold">92%</span>
+</div>
+<div class="w-full bg-border-dark rounded-full h-1.5 mt-2">
+<div class="bg-primary h-1.5 rounded-full" style="width: 92%"></div>
+</div>
+</div>
+<!-- Weak Item -->
+<div class="relative">
+<div class="absolute -left-[33px] top-1 w-4 h-4 rounded-full bg-background-dark border-2 border-accent flex items-center justify-center">
+<span class="material-symbols-outlined text-[10px] text-accent font-bold">priority_high</span>
+</div>
+<div class="flex justify-between items-start mb-2">
+<div>
+<h3 class="text-white font-medium text-lg">Trees &amp; Graphs</h3>
+<p class="text-text-muted text-xs font-mono mt-1">Status: Weak • 56 Cards</p>
+</div>
+<span class="text-accent font-mono text-sm font-bold">41%</span>
+</div>
+<div class="w-full bg-border-dark rounded-full h-1.5 mt-2">
+<div class="bg-accent h-1.5 rounded-full" style="width: 41%"></div>
+</div>
+</div>
+</div>
+</div>
+<!-- Right Column (45%) -->
+<div class="lg:col-span-5 flex flex-col gap-6">
+<!-- 7-Day Velocity Chart -->
+<div class="bg-card-dark border border-border-dark rounded-xl p-6">
+<h2 class="text-lg font-display font-bold text-white tracking-tight mb-6 flex items-center gap-2">
+<span class="material-symbols-outlined text-secondary">bar_chart</span>
+                            7-Day Velocity
+                        </h2>
+<div class="flex items-end justify-between h-32 gap-2 mt-4 border-b border-border-dark/50 pb-2">
+<!-- Bars -->
+<div class="w-full flex flex-col items-center gap-2">
+<div class="w-full bg-secondary/20 hover:bg-secondary/40 transition-colors rounded-t-sm relative group h-[40%]">
+<div class="absolute -top-6 left-1/2 transform -translate-x-1/2 bg-border-dark text-xs font-mono px-2 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity">12</div>
+</div>
+<span class="text-[10px] font-mono text-text-muted">Mon</span>
+</div>
+<div class="w-full flex flex-col items-center gap-2">
+<div class="w-full bg-secondary/20 hover:bg-secondary/40 transition-colors rounded-t-sm relative group h-[60%]">
+<div class="absolute -top-6 left-1/2 transform -translate-x-1/2 bg-border-dark text-xs font-mono px-2 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity">18</div>
+</div>
+<span class="text-[10px] font-mono text-text-muted">Tue</span>
+</div>
+<div class="w-full flex flex-col items-center gap-2">
+<div class="w-full bg-secondary/20 hover:bg-secondary/40 transition-colors rounded-t-sm relative group h-[30%]">
+<div class="absolute -top-6 left-1/2 transform -translate-x-1/2 bg-border-dark text-xs font-mono px-2 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity">9</div>
+</div>
+<span class="text-[10px] font-mono text-text-muted">Wed</span>
+</div>
+<div class="w-full flex flex-col items-center gap-2">
+<div class="w-full bg-secondary rounded-t-sm relative group h-[100%] shadow-[0_0_10px_rgba(0,242,254,0.3)]">
+<div class="absolute -top-6 left-1/2 transform -translate-x-1/2 bg-border-dark text-xs font-mono px-2 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity">32</div>
+</div>
+<span class="text-[10px] font-mono text-white">Thu</span>
+</div>
+<div class="w-full flex flex-col items-center gap-2">
+<div class="w-full bg-secondary/20 hover:bg-secondary/40 transition-colors rounded-t-sm relative group h-[45%]">
+<div class="absolute -top-6 left-1/2 transform -translate-x-1/2 bg-border-dark text-xs font-mono px-2 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity">14</div>
+</div>
+<span class="text-[10px] font-mono text-text-muted">Fri</span>
+</div>
+<div class="w-full flex flex-col items-center gap-2">
+<div class="w-full bg-secondary/20 hover:bg-secondary/40 transition-colors rounded-t-sm relative group h-[80%]">
+<div class="absolute -top-6 left-1/2 transform -translate-x-1/2 bg-border-dark text-xs font-mono px-2 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity">26</div>
+</div>
+<span class="text-[10px] font-mono text-text-muted">Sat</span>
+</div>
+<div class="w-full flex flex-col items-center gap-2">
+<div class="w-full bg-secondary/20 hover:bg-secondary/40 transition-colors rounded-t-sm relative group h-[55%]">
+<div class="absolute -top-6 left-1/2 transform -translate-x-1/2 bg-border-dark text-xs font-mono px-2 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity">17</div>
+</div>
+<span class="text-[10px] font-mono text-text-muted">Sun</span>
+</div>
+</div>
+</div>
+<!-- Weakest Concepts -->
+<div class="bg-card-dark border border-accent/30 rounded-xl p-6 relative overflow-hidden">
+<div class="absolute top-0 right-0 w-32 h-32 bg-accent/5 rounded-full blur-2xl transform translate-x-1/2 -translate-y-1/2"></div>
+<h2 class="text-lg font-display font-bold text-white tracking-tight mb-4 flex items-center gap-2 relative z-10">
+<span class="material-symbols-outlined text-accent">warning</span>
+                            Action Required
+                        </h2>
+<div class="flex flex-col gap-3 relative z-10">
+<div class="bg-background-dark border border-border-dark p-3 rounded-lg flex items-center justify-between">
+<div>
+<h4 class="text-white text-sm font-medium">Binary Search Trees</h4>
+<p class="text-text-muted text-xs font-mono mt-0.5">32% Accuracy • Last seen 2d ago</p>
+</div>
+<button class="bg-accent/10 hover:bg-accent/20 text-accent border border-accent/50 text-xs font-mono px-3 py-1.5 rounded transition-colors uppercase tracking-wider">
+                                    Review
+                                </button>
+</div>
+<div class="bg-background-dark border border-border-dark p-3 rounded-lg flex items-center justify-between">
+<div>
+<h4 class="text-white text-sm font-medium">Graph Traversal (BFS/DFS)</h4>
+<p class="text-text-muted text-xs font-mono mt-0.5">45% Accuracy • Last seen 1d ago</p>
+</div>
+<button class="bg-accent/10 hover:bg-accent/20 text-accent border border-accent/50 text-xs font-mono px-3 py-1.5 rounded transition-colors uppercase tracking-wider">
+                                    Review
+                                </button>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Bottom: Telemetry Log -->
+<div class="mt-4 bg-card-dark border border-border-dark rounded-xl overflow-hidden mb-10">
+<div class="p-5 border-b border-border-dark flex justify-between items-center bg-background-dark/50">
+<h2 class="text-lg font-display font-bold text-white tracking-tight flex items-center gap-2">
+<span class="material-symbols-outlined text-text-muted text-xl">terminal</span>
+                        Telemetry Log
+                    </h2>
+<span class="text-xs font-mono text-text-muted">LAST 5 SESSIONS</span>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="bg-card-dark text-text-muted text-xs font-mono uppercase tracking-wider border-b border-border-dark">
+<th class="p-4 font-medium">Timestamp</th>
+<th class="p-4 font-medium">Focus Area</th>
+<th class="p-4 font-medium">Duration</th>
+<th class="p-4 font-medium">Cards</th>
+<th class="p-4 font-medium text-right">Delta (Accuracy)</th>
+</tr>
+</thead>
+<tbody class="text-sm">
+<tr class="border-b border-border-dark hover:bg-border-dark/20 transition-colors">
+<td class="p-4 font-mono text-text-muted">2023-10-24 14:30</td>
+<td class="p-4 text-white">Linked Lists: Reversal</td>
+<td class="p-4 font-mono text-white">45m</td>
+<td class="p-4 font-mono text-white">32</td>
+<td class="p-4 font-mono text-right text-primary">+4.2%</td>
+</tr>
+<tr class="border-b border-border-dark hover:bg-border-dark/20 transition-colors">
+<td class="p-4 font-mono text-text-muted">2023-10-23 09:15</td>
+<td class="p-4 text-white">Arrays: Two Pointers</td>
+<td class="p-4 font-mono text-white">22m</td>
+<td class="p-4 font-mono text-white">18</td>
+<td class="p-4 font-mono text-right text-primary">+1.5%</td>
+</tr>
+<tr class="border-b border-border-dark hover:bg-border-dark/20 transition-colors">
+<td class="p-4 font-mono text-text-muted">2023-10-21 19:00</td>
+<td class="p-4 text-white">Trees: BST Insertion</td>
+<td class="p-4 font-mono text-white">65m</td>
+<td class="p-4 font-mono text-white">48</td>
+<td class="p-4 font-mono text-right text-accent">-2.1%</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+</div>
+</body></html>
