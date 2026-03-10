@@ -2,11 +2,11 @@
 Pytest configuration and fixtures
 """
 
-import asyncio
-from typing import AsyncGenerator, Generator
+from typing import Generator
 import pytest
-from httpx import AsyncClient
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
+from httpx import AsyncClient, ASGITransport
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker, Session
 from sqlalchemy.pool import NullPool
 
 from app.core.database import Base
@@ -14,83 +14,73 @@ from app.core.config import settings
 from app.main import app
 from app.api.dependencies import get_db
 
-# Test database URL
-# Use in-memory SQLite for testing if no DATABASE_URL is configured
-if settings.DATABASE_URL:
-    db_url = str(settings.DATABASE_URL)
-    if settings.POSTGRES_DB and settings.POSTGRES_DB in db_url:
-        TEST_DATABASE_URL = db_url.replace(settings.POSTGRES_DB, f"{settings.POSTGRES_DB}_test")
-    else:
-        TEST_DATABASE_URL = "sqlite+aiosqlite:///:memory:"
-else:
-    TEST_DATABASE_URL = "sqlite+aiosqlite:///:memory:"
+# Test database URL — use TEST_DATABASE_URL env var, or fall back to app's DATABASE_URL with _test suffix
+import os
 
-# Create test engine
-test_engine = create_async_engine(
+_test_db_url = os.getenv("TEST_DATABASE_URL")
+if not _test_db_url:
+    _base_url = settings.DATABASE_URL_SQLALCHEMY
+    if "postgresql" in _base_url and settings.POSTGRES_DB:
+        _test_db_url = _base_url.replace(settings.POSTGRES_DB, f"{settings.POSTGRES_DB}_test")
+    else:
+        _test_db_url = _base_url
+
+TEST_DATABASE_URL = _test_db_url
+
+# Create sync test engine (matches app's sync architecture)
+test_engine = create_engine(
     TEST_DATABASE_URL,
     poolclass=NullPool,
 )
 
-# Create test session factory
-TestSessionLocal = async_sessionmaker(
-    test_engine,
-    class_=AsyncSession,
-    expire_on_commit=False,
+TestSessionLocal = sessionmaker(
     autocommit=False,
     autoflush=False,
+    bind=test_engine,
 )
 
 
-@pytest.fixture(scope="session")
-def event_loop() -> Generator:
-    """Create an instance of the default event loop for the test session."""
-    loop = asyncio.get_event_loop_policy().new_event_loop()
-    yield loop
-    loop.close()
-
-
-@pytest.fixture(scope="session")
-async def setup_database():
+@pytest.fixture(scope="session", autouse=True)
+def setup_database():
     """Create test database tables."""
-    async with test_engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
+    Base.metadata.create_all(bind=test_engine)
     yield
-    async with test_engine.begin() as conn:
-        await conn.run_sync(Base.metadata.drop_all)
+    Base.metadata.drop_all(bind=test_engine)
 
 
 @pytest.fixture
-async def db_session(setup_database) -> AsyncGenerator[AsyncSession, None]:
+def db_session(setup_database) -> Generator[Session, None, None]:
     """Get test database session."""
-    async with TestSessionLocal() as session:
+    session = TestSessionLocal()
+    try:
         yield session
-        await session.rollback()
+        session.rollback()
+    finally:
+        session.close()
 
 
 @pytest.fixture
-async def client(db_session: AsyncSession) -> AsyncGenerator[AsyncClient, None]:
+async def client(db_session: Session) -> AsyncClient:
     """Get test client with overridden database dependency."""
 
-    async def override_get_db():
+    def override_get_db():
         yield db_session
 
     app.dependency_overrides[get_db] = override_get_db
 
-    async with AsyncClient(app=app, base_url="http://test") as client:
-        yield client
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as c:
+        yield c
 
     app.dependency_overrides.clear()
 
 
 @pytest.fixture
-async def authenticated_client(
-    client: AsyncClient, db_session: AsyncSession
-) -> AsyncGenerator[tuple[AsyncClient, dict], None]:
+async def authenticated_client(client: AsyncClient, db_session: Session):
     """Get authenticated test client with user data."""
     from app.models.user import User
     from app.core.security import get_password_hash
 
-    # Create test user
     user = User(
         email="auth_test@example.com",
         username="auth_test_user",
@@ -100,10 +90,9 @@ async def authenticated_client(
         is_verified=True,
     )
     db_session.add(user)
-    await db_session.commit()
-    await db_session.refresh(user)
+    db_session.commit()
+    db_session.refresh(user)
 
-    # Login to get token
     response = await client.post(
         "/api/v1/auth/login",
         json={
@@ -113,7 +102,6 @@ async def authenticated_client(
     )
     tokens = response.json()
 
-    # Add auth header to client
     client.headers["Authorization"] = f"Bearer {tokens['access_token']}"
 
     user_data = {

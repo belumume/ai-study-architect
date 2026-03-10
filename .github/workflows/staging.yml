@@ -10,75 +10,86 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
-    
+
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: test_user
+          POSTGRES_PASSWORD: test_password
+          POSTGRES_DB: ai_study_architect
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     steps:
-    - uses: actions/checkout@v3
-    
+    - uses: actions/checkout@v4
+
     - name: Set up Python
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
         python-version: '3.12'
-    
+
     - name: Install backend dependencies
       run: |
         cd backend
         pip install -r requirements.txt
-        pip install aiosqlite
-    
+
     - name: Run backend tests
       env:
         SECRET_KEY: test-secret-key-ci-only
         JWT_SECRET_KEY: test-jwt-secret-key-ci-only
-        DATABASE_URL: sqlite:///./test.db
+        DATABASE_URL: postgresql://test_user:test_password@localhost:5432/ai_study_architect
+        TEST_DATABASE_URL: postgresql+psycopg2://test_user:test_password@localhost:5432/ai_study_architect
       run: |
         cd backend
         pytest tests/ -v
-    
+
     - name: Setup Node.js
-      uses: actions/setup-node@v3
+      uses: actions/setup-node@v4
       with:
         node-version: '20'
-    
+
     - name: Install frontend dependencies
       run: |
         cd frontend
         npm ci
-    
+
     - name: Run frontend tests
       run: |
         cd frontend
         npm test
-    
+
     - name: Build frontend
       run: |
         cd frontend
         npm run build
-    
+
   deploy-staging:
     needs: test
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/develop'
-    
+
     steps:
-    - uses: actions/checkout@v3
-    
+    - uses: actions/checkout@v4
+
     - name: Deploy to Staging
       env:
         RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
         STAGING_SERVICE_ID: ${{ secrets.STAGING_SERVICE_ID }}
       run: |
-        # Trigger staging deployment
         curl -X POST "https://api.render.com/v1/services/${STAGING_SERVICE_ID}/deploys" \
           -H "Authorization: Bearer ${RENDER_API_KEY}" \
           -H "Content-Type: application/json" \
           -d '{"clearCache": "clear"}'
-    
+
     - name: Wait for deployment
       run: sleep 60
-    
+
     - name: Health check
       run: |
         curl -f https://ai-study-architect-staging.onrender.com/health || exit 1
-    
-    - name: Notify success
-      run: echo "✅ Staging deployment successful!"
