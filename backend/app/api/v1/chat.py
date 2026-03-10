@@ -28,6 +28,7 @@ router = APIRouter()
 
 class ChatMessage(BaseModel):
     """Single chat message"""
+
     role: str = Field(..., pattern="^(user|assistant|system)$")
     content: str
     timestamp: Optional[datetime] = None
@@ -36,10 +37,10 @@ class ChatMessage(BaseModel):
 
 class ChatRequest(BaseModel):
     """Chat request with message history"""
+
     messages: List[ChatMessage]
     content_ids: Optional[List[UUID]] = Field(
-        default=None, 
-        description="IDs of content to include in context"
+        default=None, description="IDs of content to include in context"
     )
     stream: bool = Field(default=True, description="Stream the response")
     temperature: float = Field(default=0.7, ge=0.0, le=2.0)
@@ -48,6 +49,7 @@ class ChatRequest(BaseModel):
 
 class ChatResponse(BaseModel):
     """Chat response"""
+
     message: ChatMessage
     session_id: str
     usage: Optional[dict] = None
@@ -60,7 +62,7 @@ def save_chat_messages(
     new_message_role: str,
     new_message_content: str,
     new_message_metadata: Optional[dict] = None,
-    content_ids: Optional[List[UUID]] = None
+    content_ids: Optional[List[UUID]] = None,
 ) -> None:
     """
     Save a new chat message to the database with deduplication.
@@ -80,15 +82,21 @@ def save_chat_messages(
     try:
         # Check if this exact message already exists in the database
         # We check by session_id, role, and content to detect duplicates
-        existing_message = db.query(ChatMessageModel).filter(
-            ChatMessageModel.user_id == user_id,
-            ChatMessageModel.session_id == session_id,
-            ChatMessageModel.role == new_message_role,
-            ChatMessageModel.content == new_message_content
-        ).first()
+        existing_message = (
+            db.query(ChatMessageModel)
+            .filter(
+                ChatMessageModel.user_id == user_id,
+                ChatMessageModel.session_id == session_id,
+                ChatMessageModel.role == new_message_role,
+                ChatMessageModel.content == new_message_content,
+            )
+            .first()
+        )
 
         if existing_message:
-            logger.debug(f"Message already exists in database for session {session_id}, skipping save")
+            logger.debug(
+                f"Message already exists in database for session {session_id}, skipping save"
+            )
             return
 
         # Save the new message
@@ -97,8 +105,8 @@ def save_chat_messages(
             session_id=session_id,
             role=new_message_role,
             content=new_message_content,
-            metadata=new_message_metadata,
-            content_ids=content_ids
+            message_metadata=new_message_metadata,
+            content_ids=content_ids,
         )
         db.add(db_message)
         db.commit()
@@ -110,11 +118,7 @@ def save_chat_messages(
         raise
 
 
-async def stream_chat_response(
-    request: ChatRequest,
-    user: User,
-    db: Session
-):
+async def stream_chat_response(request: ChatRequest, user: User, db: Session):
     """
     Stream chat response from AI tutor using available AI services.
     Yields Server-Sent Events (SSE) format.
@@ -124,10 +128,10 @@ async def stream_chat_response(
         logger.info(f"User: {user.username} (ID: {user.id})")
         logger.info(f"Request content_ids: {request.content_ids}")
         logger.info(f"Number of messages: {len(request.messages)}")
-        
+
         # Prepare context with user's content if specified
         context_messages = []
-        
+
         # Add system prompt
         system_prompt = """You are the AI Study Architect - a learning companion that builds cognitive strength, not cognitive debt.
 
@@ -195,37 +199,37 @@ NEVER:
 - Let them leave without real understanding
 - Make them feel stupid for not knowing
 - Rush through confusion to get to answers"""
-        
-        context_messages.append({
-            "role": "system",
-            "content": system_prompt
-        })
-        
+
+        context_messages.append({"role": "system", "content": system_prompt})
+
         # If content IDs are provided, fetch and include content
         if request.content_ids:
             logger.info(f"Fetching content for IDs: {request.content_ids}")
-            contents = db.query(Content).filter(
-                Content.id.in_(request.content_ids),
-                Content.user_id == user.id
-            ).all()
-            
+            contents = (
+                db.query(Content)
+                .filter(Content.id.in_(request.content_ids), Content.user_id == user.id)
+                .all()
+            )
+
             logger.info(f"Found {len(contents)} content items")
             for c in contents:
-                logger.info(f"  - {c.title}: status={c.processing_status}, has_text={bool(c.extracted_text)}, text_len={len(c.extracted_text) if c.extracted_text else 0}")
-            
+                logger.info(
+                    f"  - {c.title}: status={c.processing_status}, has_text={bool(c.extracted_text)}, text_len={len(c.extracted_text) if c.extracted_text else 0}"
+                )
+
             if contents:
                 content_context = "The student has uploaded the following materials:\n\n"
-                
+
                 for content in contents:
                     content_context += f"- {content.title} ({content.content_type})"
                     if content.description:
                         content_context += f": {content.description}"
                     content_context += "\n"
-                    
+
                     # Include extracted text - with proper handling for all sizes
                     if content.extracted_text:
                         content_context += f"\nContent from '{content.title}':\n"
-                        
+
                         # Use higher limits based on typical AI context windows
                         # Claude: 200K tokens (~150K chars), GPT-4: 128K tokens (~96K chars)
                         # We'll use 100K chars as a safe limit that works with both
@@ -236,10 +240,10 @@ NEVER:
                             # For very large documents (>100K), use overlapping chunks
                             # This ensures NO content is completely lost
                             text_len = len(content.extracted_text)
-                            
+
                             # Use overlapping windows to preserve ALL content
                             max_context = 90000  # Leave room for system prompts
-                            
+
                             if text_len <= 150000:
                                 # For 100K-150K docs: compress but include everything
                                 # Take every Nth character to maintain document flow
@@ -251,77 +255,75 @@ NEVER:
                                 # For truly massive docs: intelligent sectioning
                                 # Include beginning, multiple middle sections, and end
                                 chunk_size = max_context // 5  # Divide available space
-                                
+
                                 # Beginning
                                 content_context += content.extracted_text[:chunk_size]
-                                
+
                                 # Three middle sections to capture document body
                                 for i in range(1, 4):
                                     start = (text_len // 4) * i - (chunk_size // 2)
                                     end = start + chunk_size
-                                    content_context += f"\n\n[... section {i+1} of 5 ...]\n\n"
+                                    content_context += f"\n\n[... section {i + 1} of 5 ...]\n\n"
                                     content_context += content.extracted_text[start:end]
-                                
+
                                 # End
                                 content_context += f"\n\n[... final section ...]\n\n"
                                 content_context += content.extracted_text[-chunk_size:]
-                                
+
                                 content_context += f"\n\n[Note: Large document ({text_len} chars) shown in 5 representative sections of {chunk_size} chars each.]"
-                        
+
                         content_context += "\n\n"
-                    
+
                     # Include AI summary if available
                     if content.summary:
                         content_context += f"Summary: {content.summary}\n"
-                    
+
                     # Include key concepts if available
                     if content.key_concepts:
                         content_context += f"Key concepts: {', '.join(content.key_concepts)}\n"
-                    
+
                     content_context += "\n"
-                
-                context_messages.append({
-                    "role": "system", 
-                    "content": content_context + "\nUse this content to answer the student's questions. Be specific and reference the materials when appropriate."
-                })
-                
+
+                context_messages.append(
+                    {
+                        "role": "system",
+                        "content": content_context
+                        + "\nUse this content to answer the student's questions. Be specific and reference the materials when appropriate.",
+                    }
+                )
+
                 logger.info(f"Added content context. Total length: {len(content_context)} chars")
                 logger.info(f"First 500 chars of context: {content_context[:500]}...")
-        
+
         # Add conversation history
         for msg in request.messages:
-            context_messages.append({
-                "role": msg.role,
-                "content": msg.content
-            })
-        
+            context_messages.append({"role": msg.role, "content": msg.content})
+
         # Start streaming response
         session_id = str(uuid4())
         logger.info(f"Starting AI chat session {session_id} for user {user.id}")
         logger.info(f"Total messages being sent to AI service: {len(context_messages)}")
         for i, msg in enumerate(context_messages):
-            logger.info(f"  Message {i}: role={msg['role']}, content_length={len(msg['content'])}, preview={msg['content'][:100]}...")
-        
+            logger.info(
+                f"  Message {i}: role={msg['role']}, content_length={len(msg['content'])}, preview={msg['content'][:100]}..."
+            )
+
         # Yield initial connection event
         yield f"data: {json.dumps({'type': 'connection', 'session_id': session_id})}\n\n"
-        
+
         # Get response from best available AI service
         full_response = ""
         token_count = 0
-        
+
         # Get streaming response from best available service
         service_name, service = await ai_service_manager.get_available_service()
-        
+
         if not service:
             # No services available - likely missing API keys
             logger.error("No AI services available - check API keys configuration")
             error_response = "⚠️ AI services are not configured. Please ensure ANTHROPIC_API_KEY or OPENAI_API_KEY environment variables are set in production."
             for i, char in enumerate(error_response):
-                chunk_data = {
-                    "type": "content",
-                    "content": char,
-                    "index": i
-                }
+                chunk_data = {"type": "content", "content": char, "index": i}
                 yield f"data: {json.dumps(chunk_data)}\n\n"
             full_response = error_response
         elif request.stream:
@@ -330,7 +332,7 @@ NEVER:
                 messages=context_messages,
                 temperature=request.temperature,
                 max_tokens=request.max_tokens,
-                stream=True
+                stream=True,
             )
 
             index = 0
@@ -362,12 +364,14 @@ NEVER:
                 messages=context_messages,
                 temperature=request.temperature,
                 max_tokens=request.max_tokens,
-                stream=False
+                stream=False,
             )
-            
+
             if "error" in response_data:
                 logger.error(f"AI service error: {response_data.get('error')}")
-                full_response = response_data.get("response", "Failed to get AI response. Please check API keys configuration.")
+                full_response = response_data.get(
+                    "response", "Failed to get AI response. Please check API keys configuration."
+                )
                 # If the response is about missing API keys, make it clearer
                 if "API key" in str(response_data.get("error", "")):
                     full_response = "⚠️ AI service API keys are not configured. Please set ANTHROPIC_API_KEY or OPENAI_API_KEY in the production environment."
@@ -377,38 +381,35 @@ NEVER:
                 if not full_response:
                     logger.warning("AI service returned empty response")
                     full_response = "⚠️ The AI service returned an empty response. This usually means the API keys are not properly configured."
-            
+
             # Send the COMPLETE response in one chunk (no fake streaming!)
-            chunk_data = {
-                "type": "content",
-                "content": full_response,
-                "index": 0
-            }
+            chunk_data = {"type": "content", "content": full_response, "index": 0}
             yield f"data: {json.dumps(chunk_data)}\n\n"
             token_count = len(full_response.split())
-        
+
         # Yield completion event
         complete_data = {
             "type": "complete",
             "message": {
                 "role": "assistant",
                 "content": full_response,
-                "timestamp": datetime.utcnow().isoformat()
+                "timestamp": datetime.utcnow().isoformat(),
             },
             "usage": {
                 "prompt_tokens": sum(len(m.content.split()) for m in request.messages),
                 "completion_tokens": len(full_response.split()),
-                "total_tokens": sum(len(m.content.split()) for m in request.messages) + len(full_response.split())
-            }
+                "total_tokens": sum(len(m.content.split()) for m in request.messages)
+                + len(full_response.split()),
+            },
         }
         yield f"data: {json.dumps(complete_data)}\n\n"
-        
+
         # Cache the conversation
         cache_key = f"chat:session:{session_id}"
         conversation = {
             "user_id": str(user.id),
             "messages": [m.model_dump() for m in request.messages] + [complete_data["message"]],
-            "created_at": datetime.utcnow().isoformat()
+            "created_at": datetime.utcnow().isoformat(),
         }
         redis_cache.set(cache_key, conversation, 3600)  # 1 hour cache
 
@@ -425,7 +426,7 @@ NEVER:
                 new_message_role=latest_user_msg.role,
                 new_message_content=latest_user_msg.content,
                 new_message_metadata=latest_user_msg.metadata,
-                content_ids=request.content_ids
+                content_ids=request.content_ids,
             )
 
         # Save assistant response
@@ -436,17 +437,14 @@ NEVER:
             new_message_role="assistant",
             new_message_content=full_response,
             new_message_metadata=complete_data.get("usage"),
-            content_ids=request.content_ids
+            content_ids=request.content_ids,
         )
 
         logger.info(f"Completed AI chat session {session_id}")
-        
+
     except Exception as e:
         logger.error(f"Error in chat stream: {str(e)}", exc_info=True)
-        error_data = {
-            "type": "error",
-            "error": "An error occurred while processing your request"
-        }
+        error_data = {"type": "error", "error": "An error occurred while processing your request"}
         yield f"data: {json.dumps(error_data)}\n\n"
 
 
@@ -454,19 +452,21 @@ NEVER:
 async def create_chat(
     request: ChatRequest,
     current_user: User = Depends(get_current_active_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """
     Create a chat interaction with the AI tutor.
-    
+
     Supports both streaming and non-streaming responses.
     For streaming, returns Server-Sent Events (SSE).
-    
+
     Requires authentication via JWT token in Authorization header.
     """
     # Log authentication success
-    logger.info(f"Chat request from authenticated user: {current_user.username} (ID: {current_user.id})")
-    
+    logger.info(
+        f"Chat request from authenticated user: {current_user.username} (ID: {current_user.id})"
+    )
+
     if request.stream:
         return StreamingResponse(
             stream_chat_response(request, current_user, db),
@@ -474,17 +474,18 @@ async def create_chat(
             headers={
                 "Cache-Control": "no-cache",
                 "Connection": "keep-alive",
-                "X-Accel-Buffering": "no"  # Disable nginx buffering
-            }
+                "X-Accel-Buffering": "no",  # Disable nginx buffering
+            },
         )
     else:
         # Non-streaming response
         session_id = str(uuid4())
-        
+
         # Prepare messages for AI service
-        context_messages = [{
-            "role": "system",
-            "content": """You are the AI Study Architect - a learning companion that builds cognitive strength, not cognitive debt.
+        context_messages = [
+            {
+                "role": "system",
+                "content": """You are the AI Study Architect - a learning companion that builds cognitive strength, not cognitive debt.
 
 Your core mission: Help students develop deep understanding and intellectual confidence through guided discovery.
 
@@ -549,32 +550,34 @@ NEVER:
 - Accept "I don't know" without gentle probing
 - Let them leave without real understanding
 - Make them feel stupid for not knowing
-- Rush through confusion to get to answers"""
-        }]
-        
+- Rush through confusion to get to answers""",
+            }
+        ]
+
         # If content IDs are provided, fetch and include content
         if request.content_ids:
             logger.info(f"Chat request includes content_ids: {request.content_ids}")
-            contents = db.query(Content).filter(
-                Content.id.in_(request.content_ids),
-                Content.user_id == current_user.id
-            ).all()
-            
+            contents = (
+                db.query(Content)
+                .filter(Content.id.in_(request.content_ids), Content.user_id == current_user.id)
+                .all()
+            )
+
             logger.info(f"Found {len(contents)} content items for user {current_user.id}")
-            
+
             if contents:
                 content_context = "The student has uploaded the following materials:\n\n"
-                
+
                 for content in contents:
                     content_context += f"- {content.title} ({content.content_type})"
                     if content.description:
                         content_context += f": {content.description}"
                     content_context += "\n"
-                    
+
                     # Include extracted text - with proper handling for all sizes
                     if content.extracted_text:
                         content_context += f"\nContent from '{content.title}':\n"
-                        
+
                         # Use higher limits based on typical AI context windows
                         # Claude: 200K tokens (~150K chars), GPT-4: 128K tokens (~96K chars)
                         # We'll use 100K chars as a safe limit that works with both
@@ -585,10 +588,10 @@ NEVER:
                             # For very large documents (>100K), use overlapping chunks
                             # This ensures NO content is completely lost
                             text_len = len(content.extracted_text)
-                            
+
                             # Use overlapping windows to preserve ALL content
                             max_context = 90000  # Leave room for system prompts
-                            
+
                             if text_len <= 150000:
                                 # For 100K-150K docs: compress but include everything
                                 # Take every Nth character to maintain document flow
@@ -600,79 +603,77 @@ NEVER:
                                 # For truly massive docs: intelligent sectioning
                                 # Include beginning, multiple middle sections, and end
                                 chunk_size = max_context // 5  # Divide available space
-                                
+
                                 # Beginning
                                 content_context += content.extracted_text[:chunk_size]
-                                
+
                                 # Three middle sections to capture document body
                                 for i in range(1, 4):
                                     start = (text_len // 4) * i - (chunk_size // 2)
                                     end = start + chunk_size
-                                    content_context += f"\n\n[... section {i+1} of 5 ...]\n\n"
+                                    content_context += f"\n\n[... section {i + 1} of 5 ...]\n\n"
                                     content_context += content.extracted_text[start:end]
-                                
+
                                 # End
                                 content_context += f"\n\n[... final section ...]\n\n"
                                 content_context += content.extracted_text[-chunk_size:]
-                                
+
                                 content_context += f"\n\n[Note: Large document ({text_len} chars) shown in 5 representative sections of {chunk_size} chars each.]"
-                        
+
                         content_context += "\n\n"
-                    
+
                     # Include AI summary if available
                     if content.summary:
                         content_context += f"Summary: {content.summary}\n"
-                    
+
                     # Include key concepts if available
                     if content.key_concepts:
                         content_context += f"Key concepts: {', '.join(content.key_concepts)}\n"
-                    
+
                     content_context += "\n"
-                
-                context_messages.append({
-                    "role": "system", 
-                    "content": content_context + "\nUse this content to answer the student's questions. Be specific and reference the materials when appropriate."
-                })
-                logger.info(f"Added content context to messages. Total context length: {len(content_context)} chars")
-        
+
+                context_messages.append(
+                    {
+                        "role": "system",
+                        "content": content_context
+                        + "\nUse this content to answer the student's questions. Be specific and reference the materials when appropriate.",
+                    }
+                )
+                logger.info(
+                    f"Added content context to messages. Total context length: {len(content_context)} chars"
+                )
+
         # Add user messages
         for msg in request.messages:
-            context_messages.append({
-                "role": msg.role,
-                "content": msg.content
-            })
-        
+            context_messages.append({"role": msg.role, "content": msg.content})
+
         # Get response from best available AI service
         logger.info(f"Sending {len(context_messages)} messages to AI service")
         for i, msg in enumerate(context_messages):
             logger.debug(f"Message {i}: role={msg['role']}, content_length={len(msg['content'])}")
-        
+
         # Use AI service manager to get response from best available service
         response_data = await ai_service_manager.chat_completion(
             messages=context_messages,
             temperature=request.temperature,
             max_tokens=request.max_tokens,
-            stream=False
+            stream=False,
         )
-        
+
         if "error" in response_data:
             response_text = response_data.get("response", "Failed to get AI response")
             logger.error(f"AI service error: {response_data.get('error')}")
         else:
             response_text = response_data.get("response", "I couldn't generate a response.")
-        
-        message = ChatMessage(
-            role="assistant",
-            content=response_text,
-            timestamp=datetime.utcnow()
-        )
-        
+
+        message = ChatMessage(role="assistant", content=response_text, timestamp=datetime.utcnow())
+
         # Cache the conversation
         cache_key = f"chat:session:{session_id}"
         conversation = {
             "user_id": str(current_user.id),
             "messages": [m.model_dump() for m in request.messages] + [message.model_dump()],
-            "created_at": datetime.utcnow().isoformat()
+            "created_at": datetime.utcnow().isoformat(),
         }
         redis_cache.set(cache_key, conversation, 3600)  # 1 hour cache
 
@@ -689,7 +690,7 @@ NEVER:
                 new_message_role=latest_user_msg.role,
                 new_message_content=latest_user_msg.content,
                 new_message_metadata=latest_user_msg.metadata,
-                content_ids=request.content_ids
+                content_ids=request.content_ids,
             )
 
         # Save assistant response
@@ -702,9 +703,10 @@ NEVER:
             new_message_metadata={
                 "prompt_tokens": sum(len(m.content.split()) for m in request.messages),
                 "completion_tokens": len(response_text.split()),
-                "total_tokens": sum(len(m.content.split()) for m in request.messages) + len(response_text.split())
+                "total_tokens": sum(len(m.content.split()) for m in request.messages)
+                + len(response_text.split()),
             },
-            content_ids=request.content_ids
+            content_ids=request.content_ids,
         )
 
         return ChatResponse(
@@ -713,8 +715,9 @@ NEVER:
             usage={
                 "prompt_tokens": sum(len(m.content.split()) for m in request.messages),
                 "completion_tokens": len(response_text.split()),
-                "total_tokens": sum(len(m.content.split()) for m in request.messages) + len(response_text.split())
-            }
+                "total_tokens": sum(len(m.content.split()) for m in request.messages)
+                + len(response_text.split()),
+            },
         )
 
 
@@ -723,7 +726,7 @@ async def get_chat_history(
     limit: int = 10,
     offset: int = 0,
     current_user: User = Depends(get_current_active_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """
     Get user's chat history.
@@ -735,14 +738,19 @@ async def get_chat_history(
     from sqlalchemy import func, distinct
 
     # Get all messages for the user, ordered by creation time
-    messages_query = db.query(ChatMessageModel).filter(
-        ChatMessageModel.user_id == current_user.id
-    ).order_by(ChatMessageModel.created_at.desc())
+    messages_query = (
+        db.query(ChatMessageModel)
+        .filter(ChatMessageModel.user_id == current_user.id)
+        .order_by(ChatMessageModel.created_at.desc())
+    )
 
     # Get total count of distinct sessions
-    total_sessions = db.query(func.count(distinct(ChatMessageModel.session_id))).filter(
-        ChatMessageModel.user_id == current_user.id
-    ).scalar() or 0
+    total_sessions = (
+        db.query(func.count(distinct(ChatMessageModel.session_id)))
+        .filter(ChatMessageModel.user_id == current_user.id)
+        .scalar()
+        or 0
+    )
 
     # Get all messages (we'll group them by session in Python)
     all_messages = messages_query.all()
@@ -755,17 +763,19 @@ async def get_chat_history(
                 "session_id": msg.session_id,
                 "messages": [],
                 "created_at": msg.created_at,
-                "updated_at": msg.created_at
+                "updated_at": msg.created_at,
             }
 
-        sessions[msg.session_id]["messages"].append({
-            "id": str(msg.id),
-            "role": msg.role,
-            "content": msg.content,
-            "timestamp": msg.created_at.isoformat(),
-            "metadata": msg.metadata,
-            "content_ids": msg.content_ids
-        })
+        sessions[msg.session_id]["messages"].append(
+            {
+                "id": str(msg.id),
+                "role": msg.role,
+                "content": msg.content,
+                "timestamp": msg.created_at.isoformat(),
+                "metadata": msg.message_metadata,
+                "content_ids": msg.content_ids,
+            }
+        )
 
         # Update session timestamps
         if msg.created_at < sessions[msg.session_id]["created_at"]:
@@ -778,7 +788,7 @@ async def get_chat_history(
     session_list.sort(key=lambda x: x["updated_at"], reverse=True)
 
     # Apply pagination
-    paginated_sessions = session_list[offset:offset + limit]
+    paginated_sessions = session_list[offset : offset + limit]
 
     # Format response
     history = []
@@ -786,27 +796,24 @@ async def get_chat_history(
         # Sort messages within session by timestamp
         session["messages"].sort(key=lambda x: x["timestamp"])
 
-        history.append({
-            "session_id": session["session_id"],
-            "messages": session["messages"],
-            "created_at": session["created_at"].isoformat(),
-            "updated_at": session["updated_at"].isoformat(),
-            "message_count": len(session["messages"])
-        })
+        history.append(
+            {
+                "session_id": session["session_id"],
+                "messages": session["messages"],
+                "created_at": session["created_at"].isoformat(),
+                "updated_at": session["updated_at"].isoformat(),
+                "message_count": len(session["messages"]),
+            }
+        )
 
-    return {
-        "history": history,
-        "total": total_sessions,
-        "limit": limit,
-        "offset": offset
-    }
+    return {"history": history, "total": total_sessions, "limit": limit, "offset": offset}
 
 
 @router.get("/session/{session_id}")
 async def get_chat_session(
     session_id: str,
     current_user: User = Depends(get_current_active_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """
     Get a specific chat session by ID.
@@ -818,15 +825,19 @@ async def get_chat_session(
 
     if not session_data:
         # Fall back to database
-        messages = db.query(ChatMessageModel).filter(
-            ChatMessageModel.session_id == session_id,
-            ChatMessageModel.user_id == current_user.id
-        ).order_by(ChatMessageModel.created_at.asc()).all()
+        messages = (
+            db.query(ChatMessageModel)
+            .filter(
+                ChatMessageModel.session_id == session_id,
+                ChatMessageModel.user_id == current_user.id,
+            )
+            .order_by(ChatMessageModel.created_at.asc())
+            .all()
+        )
 
         if not messages:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Chat session not found"
+                status_code=status.HTTP_404_NOT_FOUND, detail="Chat session not found"
             )
 
         # Reconstruct session data from database
@@ -835,7 +846,7 @@ async def get_chat_session(
             "session_id": session_id,
             "messages": [msg.to_dict() for msg in messages],
             "created_at": messages[0].created_at.isoformat(),
-            "updated_at": messages[-1].created_at.isoformat()
+            "updated_at": messages[-1].created_at.isoformat(),
         }
 
         # Cache it for future requests
@@ -843,16 +854,14 @@ async def get_chat_session(
 
     # Verify user owns this session
     if session_data.get("user_id") != str(current_user.id):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Access denied"
-        )
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
 
     return session_data
 
 
 class QARequest(BaseModel):
     """Q&A request about specific content"""
+
     question: str = Field(..., min_length=1, max_length=1000)
     content_ids: List[UUID] = Field(..., min_items=1, max_items=10)
     include_summary: bool = Field(default=True, description="Include content summaries in context")
@@ -862,6 +871,7 @@ class QARequest(BaseModel):
 
 class QAResponse(BaseModel):
     """Q&A response"""
+
     answer: str
     confidence: float = Field(ge=0.0, le=1.0)
     referenced_content: List[Dict[str, Any]]
@@ -872,45 +882,45 @@ class QAResponse(BaseModel):
 async def answer_content_question(
     request: QARequest,
     current_user: User = Depends(get_current_active_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """
     Answer questions about specific uploaded content.
-    
+
     This endpoint provides Q&A functionality for uploaded materials,
     allowing students to ask questions about their study content.
     """
     # Fetch the requested content
-    contents = db.query(Content).filter(
-        Content.id.in_(request.content_ids),
-        Content.user_id == current_user.id,
-        Content.processing_status == "completed"  # Only use processed content
-    ).all()
-    
+    contents = (
+        db.query(Content)
+        .filter(
+            Content.id.in_(request.content_ids),
+            Content.user_id == current_user.id,
+            Content.processing_status == "completed",  # Only use processed content
+        )
+        .all()
+    )
+
     if not contents:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="No processed content found with the provided IDs"
+            detail="No processed content found with the provided IDs",
         )
-    
+
     # Build context from content
     context_parts = []
     referenced_content = []
     total_chars = 0
-    
+
     for content in contents:
         # Track referenced content
-        ref_info = {
-            "id": str(content.id),
-            "title": content.title,
-            "type": content.content_type
-        }
-        
+        ref_info = {"id": str(content.id), "title": content.title, "type": content.content_type}
+
         # Add summary if requested and available
         if request.include_summary and content.summary:
             context_parts.append(f"Summary of '{content.title}': {content.summary}")
             total_chars += len(content.summary)
-        
+
         # Add extracted text
         if content.extracted_text:
             available_chars = request.max_context_chars - total_chars
@@ -919,18 +929,18 @@ async def answer_content_question(
                     text_to_add = content.extracted_text[:available_chars]
                 else:
                     # Use first portion of text
-                    text_to_add = content.extracted_text[:min(10000, available_chars)]
-                
+                    text_to_add = content.extracted_text[: min(10000, available_chars)]
+
                 context_parts.append(f"\nContent from '{content.title}':\n{text_to_add}")
                 total_chars += len(text_to_add)
                 ref_info["chars_used"] = len(text_to_add)
-        
+
         # Add key concepts
         if content.key_concepts:
             ref_info["key_concepts"] = content.key_concepts
-        
+
         referenced_content.append(ref_info)
-    
+
     # Prepare messages for AI service (Claude or OpenAI)
     messages = [
         {
@@ -938,54 +948,48 @@ async def answer_content_question(
             "content": """You are an AI tutor helping a student understand their study materials. 
 Answer their questions based on the provided content. Be specific, accurate, and helpful.
 If the content doesn't contain enough information to fully answer the question, 
-acknowledge this and provide what information you can."""
+acknowledge this and provide what information you can.""",
         },
-        {
-            "role": "system",
-            "content": "Study materials context:\n\n" + "\n\n".join(context_parts)
-        },
-        {
-            "role": "user",
-            "content": request.question
-        }
+        {"role": "system", "content": "Study materials context:\n\n" + "\n\n".join(context_parts)},
+        {"role": "user", "content": request.question},
     ]
-    
+
     # Get answer from best available AI service
     response = await ai_service_manager.chat_completion(
         messages=messages,
         temperature=0.3,  # Lower temperature for more factual answers
-        stream=False
+        stream=False,
     )
-    
+
     if "error" in response:
         # Try to provide a helpful error message
         error_detail = response.get("error", "Unknown error")
         if "not configured" in error_detail.lower():
             raise HTTPException(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                detail="AI service is not properly configured. Please contact support."
+                detail="AI service is not properly configured. Please contact support.",
             )
         else:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=f"Failed to generate answer: {error_detail}"
+                detail=f"Failed to generate answer: {error_detail}",
             )
-    
+
     answer = response.get("response", "I couldn't generate an answer.")
-    
+
     # Calculate confidence based on content coverage
     confidence = min(0.95, len(contents) * 0.3 + (total_chars / request.max_context_chars) * 0.4)
-    
+
     # Generate follow-up suggestions
     suggestions = [
         "Can you explain this concept in simpler terms?",
         "Can you provide an example?",
-        "How does this relate to other topics in the material?"
+        "How does this relate to other topics in the material?",
     ]
-    
+
     return QAResponse(
         answer=answer,
         confidence=confidence,
         referenced_content=referenced_content,
-        suggestions=suggestions
+        suggestions=suggestions,
     )

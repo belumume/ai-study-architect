@@ -26,7 +26,7 @@ class ChatMessage(Base):
     content = Column(Text, nullable=False)
 
     # Optional metadata
-    metadata = Column(JSON, nullable=True)  # Store any additional metadata
+    message_metadata = Column("metadata", JSON, nullable=True)
 
     # Content references (if message was about specific content)
     content_ids = Column(JSON, nullable=True)  # List of content IDs referenced
@@ -39,10 +39,7 @@ class ChatMessage(Base):
 
     # Constraints
     __table_args__ = (
-        CheckConstraint(
-            "role IN ('user', 'assistant', 'system')",
-            name="check_chat_message_role"
-        ),
+        CheckConstraint("role IN ('user', 'assistant', 'system')", name="check_chat_message_role"),
     )
 
     def __repr__(self) -> str:
@@ -55,6 +52,6 @@ class ChatMessage(Base):
             "role": self.role,
             "content": self.content,
             "timestamp": self.created_at.isoformat() if self.created_at else None,
-            "metadata": self.metadata,
-            "content_ids": self.content_ids
+            "metadata": self.message_metadata,
+            "content_ids": self.content_ids,
         }

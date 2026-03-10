@@ -17,12 +17,12 @@ from app.api.dependencies import get_db
 # Test database URL
 # Use in-memory SQLite for testing if no DATABASE_URL is configured
 if settings.DATABASE_URL:
-    TEST_DATABASE_URL = settings.DATABASE_URL.unicode_string().replace(
-        settings.POSTGRES_DB,
-        f"{settings.POSTGRES_DB}_test"
-    )
+    db_url = str(settings.DATABASE_URL)
+    if settings.POSTGRES_DB and settings.POSTGRES_DB in db_url:
+        TEST_DATABASE_URL = db_url.replace(settings.POSTGRES_DB, f"{settings.POSTGRES_DB}_test")
+    else:
+        TEST_DATABASE_URL = "sqlite+aiosqlite:///:memory:"
 else:
-    # Fallback to SQLite for testing
     TEST_DATABASE_URL = "sqlite+aiosqlite:///:memory:"
 
 # Create test engine
@@ -70,27 +70,26 @@ async def db_session(setup_database) -> AsyncGenerator[AsyncSession, None]:
 @pytest.fixture
 async def client(db_session: AsyncSession) -> AsyncGenerator[AsyncClient, None]:
     """Get test client with overridden database dependency."""
-    
+
     async def override_get_db():
         yield db_session
-    
+
     app.dependency_overrides[get_db] = override_get_db
-    
+
     async with AsyncClient(app=app, base_url="http://test") as client:
         yield client
-    
+
     app.dependency_overrides.clear()
 
 
 @pytest.fixture
 async def authenticated_client(
-    client: AsyncClient, 
-    db_session: AsyncSession
+    client: AsyncClient, db_session: AsyncSession
 ) -> AsyncGenerator[tuple[AsyncClient, dict], None]:
     """Get authenticated test client with user data."""
     from app.models.user import User
     from app.core.security import get_password_hash
-    
+
     # Create test user
     user = User(
         email="auth_test@example.com",
@@ -103,25 +102,25 @@ async def authenticated_client(
     db_session.add(user)
     await db_session.commit()
     await db_session.refresh(user)
-    
+
     # Login to get token
     response = await client.post(
         "/api/v1/auth/login",
         json={
             "username_or_email": "auth_test@example.com",
             "password": "testpassword123",
-        }
+        },
     )
     tokens = response.json()
-    
+
     # Add auth header to client
     client.headers["Authorization"] = f"Bearer {tokens['access_token']}"
-    
+
     user_data = {
         "user": user,
         "tokens": tokens,
         "email": "auth_test@example.com",
-        "password": "testpassword123"
+        "password": "testpassword123",
     }
-    
+
     yield client, user_data

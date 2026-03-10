@@ -23,8 +23,13 @@ jobs:
       run: |
         cd backend
         pip install -r requirements.txt
+        pip install aiosqlite
     
     - name: Run backend tests
+      env:
+        SECRET_KEY: test-secret-key-ci-only
+        JWT_SECRET_KEY: test-jwt-secret-key-ci-only
+        DATABASE_URL: sqlite:///./test.db
       run: |
         cd backend
         pytest tests/ -v
