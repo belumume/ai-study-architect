@@ -140,10 +140,7 @@ class TestJWTTokenVerification:
         """Test verifying expired token"""
         user_id = "test-user-789"
         # Create token that expires immediately
-        token = create_access_token(
-            subject=user_id,
-            expires_delta=timedelta(seconds=-1)
-        )
+        token = create_access_token(subject=user_id, expires_delta=timedelta(seconds=-1))
 
         # Wait a tiny bit to ensure expiration
         time.sleep(0.1)
@@ -312,13 +309,14 @@ class TestSecurityEdgeCases:
             assert verify_password(password + "wrong", hashed) is False
 
     def test_very_long_password(self):
-        """Test handling of very long passwords"""
-        # 1000 character password
+        """Test handling of very long passwords (bcrypt truncates at 72 bytes)"""
         long_password = "a" * 1000
         hashed = get_password_hash(long_password)
 
         assert verify_password(long_password, hashed) is True
-        assert verify_password("a" * 999, hashed) is False
+        # After bcrypt truncation, "a"*999 and "a"*1000 hash identically
+        # so test with a genuinely different short password instead
+        assert verify_password("b" * 72, hashed) is False
 
     def test_special_characters_in_password(self):
         """Test passwords with special characters"""
