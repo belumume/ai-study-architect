@@ -2,6 +2,7 @@
 AI service integration tests with mocking
 """
 
+import os
 import pytest
 from unittest.mock import Mock, AsyncMock, patch, MagicMock
 from app.services.ai_service_manager import AIServiceManager
@@ -15,7 +16,7 @@ class TestAIServiceManager:
         manager = AIServiceManager()
 
         assert manager is not None
-        assert hasattr(manager, 'services')
+        assert hasattr(manager, "services")
         assert len(manager.services) > 0
 
         # Check services are tuples of (name, service)
@@ -43,10 +44,10 @@ class TestGetAvailableService:
         """Test getting first enabled service"""
         manager = AIServiceManager()
 
-        # Mock first service as enabled and healthy
-        with patch.object(manager.services[0][1], 'enabled', True), \
-             patch.object(manager.services[0][1], 'health_check', AsyncMock(return_value=True)):
-
+        with (
+            patch.dict(os.environ, {"ANTHROPIC_API_KEY": "fake-key"}),
+            patch.object(manager.services[0][1], "health_check", AsyncMock(return_value=True)),
+        ):
             name, service = await manager.get_available_service()
 
             assert name == manager.services[0][0]
@@ -57,11 +58,13 @@ class TestGetAvailableService:
         """Test fallback when first service is unavailable"""
         manager = AIServiceManager()
 
-        # Mock first service as disabled, second as enabled
-        with patch.object(manager.services[0][1], 'enabled', False), \
-             patch.object(manager.services[1][1], 'enabled', True), \
-             patch.object(manager.services[1][1], 'health_check', AsyncMock(return_value=True)):
-
+        env = {"OPENAI_API_KEY": "fake-key"}
+        # Remove ANTHROPIC_API_KEY to disable first service
+        with (
+            patch.dict(os.environ, env, clear=False),
+            patch.dict(os.environ, {"ANTHROPIC_API_KEY": ""}, clear=False),
+            patch.object(manager.services[1][1], "health_check", AsyncMock(return_value=True)),
+        ):
             name, service = await manager.get_available_service()
 
             assert name == manager.services[1][0]
@@ -72,10 +75,7 @@ class TestGetAvailableService:
         """Test when no services are available"""
         manager = AIServiceManager()
 
-        # Mock all services as disabled
-        with patch.object(manager.services[0][1], 'enabled', False), \
-             patch.object(manager.services[1][1], 'enabled', False):
-
+        with patch.dict(os.environ, {"ANTHROPIC_API_KEY": "", "OPENAI_API_KEY": ""}, clear=False):
             name, service = await manager.get_available_service()
 
             assert name is None
@@ -86,15 +86,17 @@ class TestGetAvailableService:
         """Test fallback when health check fails"""
         manager = AIServiceManager()
 
-        # Mock first service as enabled but unhealthy, second as healthy
-        with patch.object(manager.services[0][1], 'enabled', True), \
-             patch.object(manager.services[0][1], 'health_check', AsyncMock(return_value=False)), \
-             patch.object(manager.services[1][1], 'enabled', True), \
-             patch.object(manager.services[1][1], 'health_check', AsyncMock(return_value=True)):
-
+        with (
+            patch.dict(
+                os.environ,
+                {"ANTHROPIC_API_KEY": "fake-key", "OPENAI_API_KEY": "fake-key"},
+                clear=False,
+            ),
+            patch.object(manager.services[0][1], "health_check", AsyncMock(return_value=False)),
+            patch.object(manager.services[1][1], "health_check", AsyncMock(return_value=True)),
+        ):
             name, service = await manager.get_available_service()
 
-            # Should fall back to second service
             assert name == manager.services[1][0]
 
     @pytest.mark.asyncio
@@ -102,15 +104,21 @@ class TestGetAvailableService:
         """Test fallback when health check raises exception"""
         manager = AIServiceManager()
 
-        # Mock first service to raise exception, second to work
-        with patch.object(manager.services[0][1], 'enabled', True), \
-             patch.object(manager.services[0][1], 'health_check', AsyncMock(side_effect=Exception("API Error"))), \
-             patch.object(manager.services[1][1], 'enabled', True), \
-             patch.object(manager.services[1][1], 'health_check', AsyncMock(return_value=True)):
-
+        with (
+            patch.dict(
+                os.environ,
+                {"ANTHROPIC_API_KEY": "fake-key", "OPENAI_API_KEY": "fake-key"},
+                clear=False,
+            ),
+            patch.object(
+                manager.services[0][1],
+                "health_check",
+                AsyncMock(side_effect=Exception("API Error")),
+            ),
+            patch.object(manager.services[1][1], "health_check", AsyncMock(return_value=True)),
+        ):
             name, service = await manager.get_available_service()
 
-            # Should fall back to second service
             assert name == manager.services[1][0]
 
 
@@ -122,14 +130,12 @@ class TestChatCompletion:
         """Test successful chat completion"""
         manager = AIServiceManager()
 
-        messages = [
-            {"role": "user", "content": "Hello, AI!"}
-        ]
+        messages = [{"role": "user", "content": "Hello, AI!"}]
 
         expected_response = {
             "content": "Hello! How can I help you?",
             "model": "test-model",
-            "usage": {"tokens": 10}
+            "usage": {"tokens": 10},
         }
 
         # Mock the service
@@ -138,7 +144,7 @@ class TestChatCompletion:
         mock_service.enabled = True
         mock_service.health_check = AsyncMock(return_value=True)
 
-        with patch.object(manager, 'services', [("MockService", mock_service)]):
+        with patch.object(manager, "services", [("MockService", mock_service)]):
             # Try without streaming first
             result = await manager.chat_completion(messages, stream=False)
 
@@ -157,12 +163,12 @@ class TestChatCompletion:
         mock_service.enabled = True
         mock_service.health_check = AsyncMock(return_value=True)
 
-        with patch.object(manager, 'services', [("MockService", mock_service)]):
+        with patch.object(manager, "services", [("MockService", mock_service)]):
             await manager.chat_completion(messages, temperature=0.9, stream=False)
 
             # Check temperature was passed
             call_kwargs = mock_service.chat_completion.call_args[1]
-            assert call_kwargs['temperature'] == 0.9
+            assert call_kwargs["temperature"] == 0.9
 
     @pytest.mark.asyncio
     async def test_chat_completion_with_max_tokens(self):
@@ -176,11 +182,11 @@ class TestChatCompletion:
         mock_service.enabled = True
         mock_service.health_check = AsyncMock(return_value=True)
 
-        with patch.object(manager, 'services', [("MockService", mock_service)]):
+        with patch.object(manager, "services", [("MockService", mock_service)]):
             await manager.chat_completion(messages, max_tokens=100, stream=False)
 
             call_kwargs = mock_service.chat_completion.call_args[1]
-            assert call_kwargs['max_tokens'] == 100
+            assert call_kwargs["max_tokens"] == 100
 
     @pytest.mark.asyncio
     async def test_chat_completion_prefer_specific_service(self):
@@ -198,9 +204,13 @@ class TestChatCompletion:
         mock_service2.chat_completion = AsyncMock(return_value={"content": "Service2"})
         mock_service2.enabled = True
 
-        with patch.object(manager, 'services', [("Service1", mock_service1), ("Service2", mock_service2)]):
+        with patch.object(
+            manager, "services", [("Service1", mock_service1), ("Service2", mock_service2)]
+        ):
             # Prefer Service2
-            result = await manager.chat_completion(messages, prefer_service="Service2", stream=False)
+            result = await manager.chat_completion(
+                messages, prefer_service="Service2", stream=False
+            )
 
             # Service2 should be called, not Service1
             mock_service2.chat_completion.assert_called_once()
@@ -223,9 +233,13 @@ class TestChatCompletion:
         mock_service2.enabled = True
         mock_service2.health_check = AsyncMock(return_value=True)
 
-        with patch.object(manager, 'services', [("Service1", mock_service1), ("Service2", mock_service2)]):
+        with patch.object(
+            manager, "services", [("Service1", mock_service1), ("Service2", mock_service2)]
+        ):
             # Prefer Service1 but it should fail and fall back
-            result = await manager.chat_completion(messages, prefer_service="Service1", stream=False)
+            result = await manager.chat_completion(
+                messages, prefer_service="Service1", stream=False
+            )
 
             # Should fall back to Service2
             # The exact fallback behavior depends on implementation
@@ -250,7 +264,7 @@ class TestChatCompletion:
         mock_service.enabled = True
         mock_service.health_check = AsyncMock(return_value=True)
 
-        with patch.object(manager, 'services', [("MockService", mock_service)]):
+        with patch.object(manager, "services", [("MockService", mock_service)]):
             result = await manager.chat_completion(messages, stream=True)
 
             # Result should be an async generator for streaming
@@ -269,7 +283,7 @@ class TestChatCompletion:
         mock_service.enabled = True
         mock_service.health_check = AsyncMock(return_value=True)
 
-        with patch.object(manager, 'services', [("MockService", mock_service)]):
+        with patch.object(manager, "services", [("MockService", mock_service)]):
             result = await manager.chat_completion(messages, stream=False)
 
             # Should handle error gracefully
@@ -287,7 +301,7 @@ class TestServiceMessageFormatting:
 
         messages = [
             {"role": "system", "content": "You are a helpful assistant"},
-            {"role": "user", "content": "Hello"}
+            {"role": "user", "content": "Hello"},
         ]
 
         mock_claude = AsyncMock()
@@ -295,12 +309,12 @@ class TestServiceMessageFormatting:
         mock_claude.enabled = True
         mock_claude.health_check = AsyncMock(return_value=True)
 
-        with patch.object(manager, 'services', [("Claude", mock_claude)]):
+        with patch.object(manager, "services", [("Claude", mock_claude)]):
             await manager.chat_completion(messages, stream=False)
 
             # Check messages were passed correctly
             call_args = mock_claude.chat_completion.call_args
-            passed_messages = call_args[1]['messages']
+            passed_messages = call_args[1]["messages"]
             assert len(passed_messages) >= 1
 
     @pytest.mark.asyncio
@@ -315,7 +329,7 @@ class TestServiceMessageFormatting:
         mock_service.enabled = True
         mock_service.health_check = AsyncMock(return_value=True)
 
-        with patch.object(manager, 'services', [("MockService", mock_service)]):
+        with patch.object(manager, "services", [("MockService", mock_service)]):
             result = await manager.chat_completion(messages, stream=False)
 
             # Should handle gracefully
@@ -337,7 +351,7 @@ class TestServiceMessageFormatting:
         mock_service.enabled = True
         mock_service.health_check = AsyncMock(return_value=True)
 
-        with patch.object(manager, 'services', [("MockService", mock_service)]):
+        with patch.object(manager, "services", [("MockService", mock_service)]):
             # Should either handle or raise clear error
             try:
                 result = await manager.chat_completion(malformed_messages, stream=False)
@@ -367,7 +381,9 @@ class TestServiceEdgeCases:
         mock_service2.enabled = True
         mock_service2.health_check = AsyncMock(return_value=True)
 
-        with patch.object(manager, 'services', [("Service1", mock_service1), ("Service2", mock_service2)]):
+        with patch.object(
+            manager, "services", [("Service1", mock_service1), ("Service2", mock_service2)]
+        ):
             result = await manager.chat_completion(messages, stream=False)
 
             # Should return error or handle gracefully
@@ -383,6 +399,7 @@ class TestServiceEdgeCases:
         # Mock service that times out
         async def timeout_call(*args, **kwargs):
             import asyncio
+
             await asyncio.sleep(100)  # Long delay
 
         mock_service = AsyncMock()
@@ -390,7 +407,7 @@ class TestServiceEdgeCases:
         mock_service.enabled = True
         mock_service.health_check = AsyncMock(return_value=True)
 
-        with patch.object(manager, 'services', [("MockService", mock_service)]):
+        with patch.object(manager, "services", [("MockService", mock_service)]):
             # This test would need timeout handling in the actual implementation
             # For now, just verify it's set up correctly
             assert manager.services[0][0] == "MockService"
@@ -407,13 +424,11 @@ class TestServiceEdgeCases:
         mock_service.enabled = True
         mock_service.health_check = AsyncMock(return_value=True)
 
-        with patch.object(manager, 'services', [("MockService", mock_service)]):
+        with patch.object(manager, "services", [("MockService", mock_service)]):
             # Make multiple concurrent requests
             import asyncio
-            tasks = [
-                manager.chat_completion(messages, stream=False)
-                for _ in range(5)
-            ]
+
+            tasks = [manager.chat_completion(messages, stream=False) for _ in range(5)]
 
             results = await asyncio.gather(*tasks)
 
