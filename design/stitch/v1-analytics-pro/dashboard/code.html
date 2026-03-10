@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Analytics Pro - Dashboard</title>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&amp;family=JetBrains+Mono:wght@400;500;700&amp;family=Space+Grotesk:wght@400;500;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#D4FF00",
+                        "secondary": "#00F2FE",
+                        "background-light": "#050505",
+                        "background-dark": "#050505",
+                        "surface": "#121212",
+                        "surface-hover": "#1E1E1E",
+                        "text-main": "#E0E0E0",
+                        "muted": "#6B6B6B",
+                        "danger": "#FF0055"
+                    },
+                    fontFamily: {
+                        "display": ["Space Grotesk", "sans-serif"],
+                        "body": ["IBM Plex Sans", "sans-serif"],
+                        "mono": ["JetBrains Mono", "monospace"]
+                    },
+                    borderRadius: {"DEFAULT": "0px", "lg": "0px", "xl": "0px", "full": "0px"},
+                    boxShadow: {
+                        'neon': '0 0 8px rgba(212, 255, 0, 0.4)',
+                        'neon-secondary': '0 0 8px rgba(0, 242, 254, 0.4)'
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        body {
+            background-color: #050505;
+            color: #E0E0E0;
+        }
+        .border-thin {
+            border: 1px solid #1E1E1E;
+        }
+        .text-neon {
+            text-shadow: 0 0 8px rgba(212, 255, 0, 0.4);
+        }
+        /* Custom scrollbar for webkit */
+        ::-webkit-scrollbar {
+            width: 4px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #050505;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #1E1E1E;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-dark font-body antialiased min-h-screen flex flex-col relative pb-20">
+<!-- Sticky Header -->
+<header class="sticky top-0 z-50 bg-background-dark/95 backdrop-blur-sm border-b border-surface-hover p-4 flex justify-between items-center">
+<h1 class="font-display font-bold text-text-main text-xl tracking-tight">ANALYTICS PRO</h1>
+<button class="text-text-main hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-[28px]">settings</span>
+</button>
+</header>
+<!-- Main Content -->
+<main class="flex-1 flex flex-col p-4 gap-8">
+<!-- Daily Telemetry Hero -->
+<section class="flex flex-col items-center justify-center py-8 border-thin bg-surface relative overflow-hidden">
+<!-- Decorative corner markers -->
+<div class="absolute top-0 left-0 w-2 h-2 border-t border-l border-muted"></div>
+<div class="absolute top-0 right-0 w-2 h-2 border-t border-r border-muted"></div>
+<div class="absolute bottom-0 left-0 w-2 h-2 border-b border-l border-muted"></div>
+<div class="absolute bottom-0 right-0 w-2 h-2 border-b border-r border-muted"></div>
+<p class="font-mono font-bold text-[10px] tracking-[0.1em] text-muted uppercase mb-2">DAILY TOTAL</p>
+<h2 class="font-mono font-medium text-5xl md:text-6xl text-primary text-neon tracking-[-0.05em]">04:22:15</h2>
+</section>
+<!-- Contribution Matrix (Heatmap) -->
+<section class="flex flex-col gap-3">
+<div class="flex justify-between items-end">
+<h3 class="font-mono font-bold text-[10px] tracking-[0.1em] text-muted uppercase">ACTIVITY MATRIX</h3>
+<span class="font-mono text-[10px] text-muted">LAST 28 DAYS</span>
+</div>
+<div class="border-thin bg-surface p-4 flex flex-col gap-2">
+<!-- 7x4 Grid -->
+<div class="grid grid-cols-7 gap-1">
+<!-- Week 1 -->
+<div class="w-full aspect-square bg-secondary/80 shadow-neon-secondary"></div>
+<div class="w-full aspect-square bg-secondary/60"></div>
+<div class="w-full aspect-square bg-surface-hover"></div>
+<div class="w-full aspect-square bg-secondary/40"></div>
+<div class="w-full aspect-square bg-secondary"></div>
+<div class="w-full aspect-square bg-surface-hover"></div>
+<div class="w-full aspect-square bg-secondary/20"></div>
+<!-- Week 2 -->
+<div class="w-full aspect-square bg-secondary/60"></div>
+<div class="w-full aspect-square bg-secondary/40"></div>
+<div class="w-full aspect-square bg-secondary"></div>
+<div class="w-full aspect-square bg-secondary/80"></div>
+<div class="w-full aspect-square bg-surface-hover"></div>
+<div class="w-full aspect-square bg-secondary/20"></div>
+<div class="w-full aspect-square bg-secondary/40"></div>
+<!-- Week 3 -->
+<div class="w-full aspect-square bg-secondary"></div>
+<div class="w-full aspect-square bg-secondary/80"></div>
+<div class="w-full aspect-square bg-secondary/60"></div>
+<div class="w-full aspect-square bg-surface-hover"></div>
+<div class="w-full aspect-square bg-secondary/40"></div>
+<div class="w-full aspect-square bg-secondary/20"></div>
+<div class="w-full aspect-square bg-secondary"></div>
+<!-- Week 4 (Current) -->
+<div class="w-full aspect-square bg-surface-hover"></div>
+<div class="w-full aspect-square bg-secondary/20"></div>
+<div class="w-full aspect-square bg-secondary/40"></div>
+<div class="w-full aspect-square bg-secondary/60"></div>
+<div class="w-full aspect-square bg-secondary/80"></div>
+<div class="w-full aspect-square bg-primary text-neon animate-pulse"></div>
+<div class="w-full aspect-square bg-surface"></div>
+</div>
+</div>
+</section>
+<!-- Subject Ticker -->
+<section class="flex flex-col gap-3">
+<div class="flex justify-between items-end mb-1">
+<h3 class="font-mono font-bold text-[10px] tracking-[0.1em] text-muted uppercase">ACTIVE SUBJECTS</h3>
+</div>
+<div class="flex flex-col gap-4">
+<!-- Subject Item 1 -->
+<button class="flex flex-col gap-2 w-full text-left group">
+<div class="flex justify-between items-baseline w-full">
+<span class="font-display font-bold text-text-main group-hover:text-primary transition-colors">NEUROANATOMY</span>
+<span class="font-mono text-sm text-secondary">3.5/5.0h</span>
+</div>
+<div class="w-full h-[2px] bg-surface-hover relative overflow-hidden">
+<div class="absolute top-0 left-0 h-full bg-secondary w-[70%]"></div>
+</div>
+</button>
+<!-- Subject Item 2 -->
+<button class="flex flex-col gap-2 w-full text-left group">
+<div class="flex justify-between items-baseline w-full">
+<span class="font-display font-bold text-text-main group-hover:text-primary transition-colors">PHARMACOLOGY</span>
+<span class="font-mono text-sm text-primary text-neon">2.0/2.0h</span>
+</div>
+<div class="w-full h-[2px] bg-surface-hover relative overflow-hidden">
+<div class="absolute top-0 left-0 h-full bg-primary w-full text-neon"></div>
+</div>
+</button>
+<!-- Subject Item 3 -->
+<button class="flex flex-col gap-2 w-full text-left group">
+<div class="flex justify-between items-baseline w-full">
+<span class="font-display font-bold text-danger group-hover:text-danger/80 transition-colors">BIOCHEMISTRY</span>
+<span class="font-mono text-sm text-muted">0.5/4.0h</span>
+</div>
+<div class="w-full h-[2px] bg-surface-hover relative overflow-hidden">
+<div class="absolute top-0 left-0 h-full bg-danger w-[12.5%]"></div>
+</div>
+</button>
+<!-- Subject Item 4 -->
+<button class="flex flex-col gap-2 w-full text-left group">
+<div class="flex justify-between items-baseline w-full">
+<span class="font-display font-bold text-text-main group-hover:text-primary transition-colors">PATHOLOGY</span>
+<span class="font-mono text-sm text-secondary">1.2/3.0h</span>
+</div>
+<div class="w-full h-[2px] bg-surface-hover relative overflow-hidden">
+<div class="absolute top-0 left-0 h-full bg-secondary w-[40%]"></div>
+</div>
+</button>
+</div>
+</section>
+</main>
+<!-- Fixed Bottom Action -->
+<div class="fixed bottom-0 left-0 w-full z-50 p-4 bg-background-dark/95 backdrop-blur-md border-t border-surface-hover">
+<button class="w-full h-16 bg-primary text-background-dark font-display font-bold text-lg tracking-wide flex items-center justify-center gap-2 hover:bg-primary/90 active:scale-[0.98] transition-all">
+<span class="material-symbols-outlined font-bold">play_arrow</span>
+            INITIATE FOCUS
+        </button>
+</div>
+</body></html>
