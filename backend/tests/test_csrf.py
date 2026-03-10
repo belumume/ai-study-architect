@@ -22,8 +22,8 @@ class TestCSRFTokenGeneration:
         assert token is not None
         assert isinstance(token, str)
         assert len(token) > 0
-        # Token should have parts separated by colons
-        assert ":" in token
+        # Token should have data|signature format
+        assert "|" in token
 
     def test_generate_token_with_user_id(self):
         """Test generating CSRF token with user ID"""
@@ -47,13 +47,18 @@ class TestCSRFTokenGeneration:
         csrf = CSRFProtect()
         token = csrf.generate_csrf_token()
 
-        # Token should have at least 3 parts: random:timestamp:signature
-        parts = token.split(":")
-        assert len(parts) >= 3
+        # Token should have format: random:timestamp|signature
+        assert "|" in token
+        data, sig = token.split("|")
+        parts = data.split(":")
+        assert len(parts) >= 2
 
         # Timestamp should be numeric
         timestamp = parts[1]
         assert timestamp.isdigit()
+
+        # Signature should be a hex string (SHA-256 = 64 chars)
+        assert len(sig) == 64
 
 
 class TestCSRFTokenValidation:
@@ -119,9 +124,11 @@ class TestCSRFTokenValidation:
         token = csrf.generate_csrf_token()
 
         # Tamper with the token
-        parts = token.split(":")
+        # Tamper with the data portion (before |)
+        data, sig = token.split("|")
+        parts = data.split(":")
         parts[0] = "tampered"
-        tampered_token = ":".join(parts)
+        tampered_token = ":".join(parts) + "|" + sig
 
         with pytest.raises(CSRFError) as exc_info:
             csrf.validate_csrf_token(tampered_token, tampered_token)
@@ -301,7 +308,7 @@ class TestCSRFSecurityEdgeCases:
         csrf = CSRFProtect()
 
         special_user_ids = [
-            # "user:with:colons" excluded — colons conflict with token delimiter
+            "user:with:colons",
             "user@example.com",
             "user-with-dashes",
             "user_with_underscores",

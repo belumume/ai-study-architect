@@ -77,8 +77,8 @@ class CSRFProtect:
         # Sign the token
         signature = self._sign_token(token_data)
         
-        # Combine token and signature
-        csrf_token = f"{token_data}:{signature}"
+        # Combine token and signature (| separates data from signature)
+        csrf_token = f"{token_data}|{signature}"
         
         return csrf_token
     
@@ -118,26 +118,24 @@ class CSRFProtect:
         if cookie_token != header_token:
             raise CSRFError("CSRF token mismatch")
         
-        # Parse token
+        # Parse token: format is "random:timestamp[:user_id]|signature"
         try:
-            parts = cookie_token.split(":")
-            if len(parts) < 3:
+            if "|" not in cookie_token:
                 raise CSRFError("Invalid CSRF token format")
             
-            random_token = parts[0]
-            timestamp = parts[1]
-            signature = parts[-1]
+            token_data, signature = cookie_token.rsplit("|", 1)
+            data_parts = token_data.split(":", 2)  # maxsplit=2 to preserve colons in user_id
             
-            # Reconstruct token data
-            if len(parts) == 4:
-                token_user_id = parts[2]
-                # If user_id is provided, verify it matches the token's user_id
+            if len(data_parts) < 2:
+                raise CSRFError("Invalid CSRF token format")
+            
+            random_token = data_parts[0]
+            timestamp = data_parts[1]
+            
+            if len(data_parts) == 3:
+                token_user_id = data_parts[2]
                 if user_id and token_user_id != user_id:
                     raise CSRFError("CSRF token user mismatch")
-                # Use the token's user_id for signature verification
-                token_data = f"{random_token}:{timestamp}:{token_user_id}"
-            else:
-                token_data = f"{random_token}:{timestamp}"
             
             # Verify signature
             expected_signature = self._sign_token(token_data)
