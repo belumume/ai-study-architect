@@ -11,8 +11,16 @@ from sqlalchemy.pool import NullPool
 
 from app.core.database import Base
 from app.core.config import settings
-from app.main import app
+from app.main import app as fastapi_app
 from app.api.dependencies import get_db
+
+# Import all models so SQLAlchemy can resolve relationship string references
+from app.models.user import User as _User  # noqa: F401
+from app.models.content import Content as _Content  # noqa: F401
+from app.models.study_session import StudySession as _StudySession  # noqa: F401
+from app.models.practice import PracticeSession as _Practice  # noqa: F401
+from app.models.chat_message import ChatMessage as _ChatMessage  # noqa: F401
+from app.models.concept import Concept as _Concept  # noqa: F401
 
 # Test database URL — use TEST_DATABASE_URL env var, or fall back to app's DATABASE_URL with _test suffix
 import os
@@ -66,13 +74,24 @@ async def client(db_session: Session) -> AsyncClient:
     def override_get_db():
         yield db_session
 
-    app.dependency_overrides[get_db] = override_get_db
+    fastapi_app.dependency_overrides[get_db] = override_get_db
 
-    transport = ASGITransport(app=app)
-    async with AsyncClient(transport=transport, base_url="http://test") as c:
+    # Disable rate limiting for tests
+    from slowapi import Limiter
+    from slowapi.util import get_remote_address
+    disabled_limiter = Limiter(key_func=get_remote_address, enabled=False)
+    fastapi_app.state.limiter = disabled_limiter
+    # Also patch module-level limiters in route files
+    import app.api.v1.auth as auth_module
+    auth_module.limiter = disabled_limiter
+    import app.main as main_module
+    main_module.limiter = disabled_limiter
+
+    transport = ASGITransport(app=fastapi_app)
+    async with AsyncClient(transport=transport, base_url="http://localhost") as c:
         yield c
 
-    app.dependency_overrides.clear()
+    fastapi_app.dependency_overrides.clear()
 
 
 @pytest.fixture
@@ -112,3 +131,10 @@ async def authenticated_client(client: AsyncClient, db_session: Session):
     }
 
     yield client, user_data
+
+    # Cleanup: delete test user to prevent UniqueViolation in other tests
+    try:
+        db_session.delete(user)
+        db_session.commit()
+    except Exception:
+        db_session.rollback()
