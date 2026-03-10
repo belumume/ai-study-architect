@@ -263,8 +263,9 @@ def get_key_rotation_info() -> Dict[str, Any]:
 
 
 def _truncate_for_bcrypt(password: str) -> str:
-    """Truncate password to 72 bytes (bcrypt limit) preserving UTF-8 boundaries."""
-    encoded = password.encode("utf-8")[:72]
+    """Prepare password for bcrypt: strip NULL bytes and truncate to 72 bytes."""
+    clean = password.replace("\x00", "")
+    encoded = clean.encode("utf-8")[:72]
     return encoded.decode("utf-8", errors="ignore")
 
 
