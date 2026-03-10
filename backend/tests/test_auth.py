@@ -5,7 +5,7 @@ Authentication endpoint tests
 import pytest
 from datetime import datetime, timedelta
 from httpx import AsyncClient
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import Session
 
 from app.models.user import User
 from app.core.security import (
@@ -26,7 +26,7 @@ class TestUserRegistration:
             "email": "newuser@example.com",
             "username": "newuser123",
             "full_name": "New User",
-            "password": "securepassword123"
+            "password": "securepassword123",
         }
 
         response = await client.post("/api/v1/auth/register", json=user_data)
@@ -42,7 +42,7 @@ class TestUserRegistration:
         assert "hashed_password" not in data  # Password should not be returned
 
     @pytest.mark.asyncio
-    async def test_register_duplicate_email(self, client: AsyncClient, db_session: AsyncSession):
+    async def test_register_duplicate_email(self, client: AsyncClient, db_session: Session):
         """Test registration with duplicate email"""
         # Create existing user
         existing_user = User(
@@ -52,14 +52,14 @@ class TestUserRegistration:
             is_active=True,
         )
         db_session.add(existing_user)
-        await db_session.commit()
+        db_session.commit()
 
         # Try to register with same email
         user_data = {
             "email": "existing@example.com",
             "username": "newusername",
             "full_name": "Another User",
-            "password": "password123"
+            "password": "password123",
         }
 
         response = await client.post("/api/v1/auth/register", json=user_data)
@@ -69,7 +69,7 @@ class TestUserRegistration:
         assert "email" in data["detail"].lower()
 
     @pytest.mark.asyncio
-    async def test_register_duplicate_username(self, client: AsyncClient, db_session: AsyncSession):
+    async def test_register_duplicate_username(self, client: AsyncClient, db_session: Session):
         """Test registration with duplicate username"""
         # Create existing user
         existing_user = User(
@@ -79,14 +79,14 @@ class TestUserRegistration:
             is_active=True,
         )
         db_session.add(existing_user)
-        await db_session.commit()
+        db_session.commit()
 
         # Try to register with same username
         user_data = {
             "email": "newemail@example.com",
             "username": "takenusername",
             "full_name": "Another User",
-            "password": "password123"
+            "password": "password123",
         }
 
         response = await client.post("/api/v1/auth/register", json=user_data)
@@ -102,7 +102,7 @@ class TestUserRegistration:
             "email": "not-an-email",
             "username": "validuser",
             "full_name": "Valid User",
-            "password": "password123"
+            "password": "password123",
         }
 
         response = await client.post("/api/v1/auth/register", json=user_data)
@@ -116,7 +116,7 @@ class TestUserRegistration:
             "email": "user@example.com",
             "username": "validuser",
             "full_name": "Valid User",
-            "password": "short"  # Less than 8 characters
+            "password": "short",  # Less than 8 characters
         }
 
         response = await client.post("/api/v1/auth/register", json=user_data)
@@ -130,7 +130,7 @@ class TestUserRegistration:
             "email": "user@example.com",
             "username": "ab",  # Less than 3 characters
             "full_name": "Valid User",
-            "password": "password123"
+            "password": "password123",
         }
 
         response = await client.post("/api/v1/auth/register", json=user_data)
@@ -142,7 +142,7 @@ class TestUserLogin:
     """Test user login endpoint"""
 
     @pytest.mark.asyncio
-    async def test_login_with_email_success(self, client: AsyncClient, db_session: AsyncSession):
+    async def test_login_with_email_success(self, client: AsyncClient, db_session: Session):
         """Test successful login with email"""
         # Create test user
         user = User(
@@ -152,7 +152,7 @@ class TestUserLogin:
             is_active=True,
         )
         db_session.add(user)
-        await db_session.commit()
+        db_session.commit()
 
         # Login with email
         response = await client.post(
@@ -160,8 +160,8 @@ class TestUserLogin:
             data={
                 "username": "logintest@example.com",
                 "password": "testpass123",
-                "remember_me": "false"
-            }
+                "remember_me": "false",
+            },
         )
 
         assert response.status_code == 200
@@ -175,7 +175,7 @@ class TestUserLogin:
         assert "refresh_token" in response.cookies
 
     @pytest.mark.asyncio
-    async def test_login_with_username_success(self, client: AsyncClient, db_session: AsyncSession):
+    async def test_login_with_username_success(self, client: AsyncClient, db_session: Session):
         """Test successful login with username"""
         # Create test user
         user = User(
@@ -185,16 +185,12 @@ class TestUserLogin:
             is_active=True,
         )
         db_session.add(user)
-        await db_session.commit()
+        db_session.commit()
 
         # Login with username
         response = await client.post(
             "/api/v1/auth/login",
-            data={
-                "username": "loginuser2",
-                "password": "testpass123",
-                "remember_me": "false"
-            }
+            data={"username": "loginuser2", "password": "testpass123", "remember_me": "false"},
         )
 
         assert response.status_code == 200
@@ -203,7 +199,7 @@ class TestUserLogin:
         assert "refresh_token" in data
 
     @pytest.mark.asyncio
-    async def test_login_invalid_password(self, client: AsyncClient, db_session: AsyncSession):
+    async def test_login_invalid_password(self, client: AsyncClient, db_session: Session):
         """Test login with wrong password"""
         # Create test user
         user = User(
@@ -213,7 +209,7 @@ class TestUserLogin:
             is_active=True,
         )
         db_session.add(user)
-        await db_session.commit()
+        db_session.commit()
 
         # Try login with wrong password
         response = await client.post(
@@ -221,13 +217,13 @@ class TestUserLogin:
             data={
                 "username": "wrongpass@example.com",
                 "password": "wrongpassword",
-                "remember_me": "false"
-            }
+                "remember_me": "false",
+            },
         )
 
         assert response.status_code == 401
         data = response.json()
-        assert "credentials" in data["detail"].lower() or "invalid" in data["detail"].lower()
+        assert "incorrect" in data["detail"].lower() or "invalid" in data["detail"].lower()
 
     @pytest.mark.asyncio
     async def test_login_nonexistent_user(self, client: AsyncClient):
@@ -237,14 +233,14 @@ class TestUserLogin:
             data={
                 "username": "doesnotexist@example.com",
                 "password": "somepassword",
-                "remember_me": "false"
-            }
+                "remember_me": "false",
+            },
         )
 
         assert response.status_code == 401
 
     @pytest.mark.asyncio
-    async def test_login_inactive_user(self, client: AsyncClient, db_session: AsyncSession):
+    async def test_login_inactive_user(self, client: AsyncClient, db_session: Session):
         """Test login with inactive user account"""
         # Create inactive user
         user = User(
@@ -254,7 +250,7 @@ class TestUserLogin:
             is_active=False,
         )
         db_session.add(user)
-        await db_session.commit()
+        db_session.commit()
 
         # Try to login
         response = await client.post(
@@ -262,8 +258,8 @@ class TestUserLogin:
             data={
                 "username": "inactive@example.com",
                 "password": "password123",
-                "remember_me": "false"
-            }
+                "remember_me": "false",
+            },
         )
 
         assert response.status_code == 403
@@ -271,7 +267,7 @@ class TestUserLogin:
         assert "inactive" in data["detail"].lower()
 
     @pytest.mark.asyncio
-    async def test_login_remember_me_true(self, client: AsyncClient, db_session: AsyncSession):
+    async def test_login_remember_me_true(self, client: AsyncClient, db_session: Session):
         """Test login with remember_me enabled"""
         # Create test user
         user = User(
@@ -281,7 +277,7 @@ class TestUserLogin:
             is_active=True,
         )
         db_session.add(user)
-        await db_session.commit()
+        db_session.commit()
 
         # Login with remember_me
         response = await client.post(
@@ -289,8 +285,8 @@ class TestUserLogin:
             data={
                 "username": "remember@example.com",
                 "password": "password123",
-                "remember_me": "true"
-            }
+                "remember_me": "true",
+            },
         )
 
         assert response.status_code == 200
@@ -304,7 +300,7 @@ class TestTokenRefresh:
     """Test token refresh endpoint"""
 
     @pytest.mark.asyncio
-    async def test_refresh_token_success(self, client: AsyncClient, db_session: AsyncSession):
+    async def test_refresh_token_success(self, client: AsyncClient, db_session: Session):
         """Test successful token refresh"""
         # Create test user
         user = User(
@@ -314,17 +310,14 @@ class TestTokenRefresh:
             is_active=True,
         )
         db_session.add(user)
-        await db_session.commit()
-        await db_session.refresh(user)
+        db_session.commit()
+        db_session.refresh(user)
 
         # Create refresh token
         refresh_token = create_refresh_token(subject=str(user.id))
 
         # Refresh the token
-        response = await client.post(
-            "/api/v1/auth/refresh",
-            json={"refresh_token": refresh_token}
-        )
+        response = await client.post("/api/v1/auth/refresh", json={"refresh_token": refresh_token})
 
         assert response.status_code == 200
         data = response.json()
@@ -336,14 +329,13 @@ class TestTokenRefresh:
     async def test_refresh_token_invalid(self, client: AsyncClient):
         """Test refresh with invalid token"""
         response = await client.post(
-            "/api/v1/auth/refresh",
-            json={"refresh_token": "invalid.token.here"}
+            "/api/v1/auth/refresh", json={"refresh_token": "invalid.token.here"}
         )
 
         assert response.status_code == 401
 
     @pytest.mark.asyncio
-    async def test_refresh_token_expired(self, client: AsyncClient, db_session: AsyncSession):
+    async def test_refresh_token_expired(self, client: AsyncClient, db_session: Session):
         """Test refresh with expired token"""
         # Create test user
         user = User(
@@ -353,25 +345,21 @@ class TestTokenRefresh:
             is_active=True,
         )
         db_session.add(user)
-        await db_session.commit()
-        await db_session.refresh(user)
+        db_session.commit()
+        db_session.refresh(user)
 
         # Create expired refresh token (negative expiry)
         expired_token = create_refresh_token(
-            subject=str(user.id),
-            expires_delta=timedelta(seconds=-1)
+            subject=str(user.id), expires_delta=timedelta(seconds=-1)
         )
 
         # Try to refresh
-        response = await client.post(
-            "/api/v1/auth/refresh",
-            json={"refresh_token": expired_token}
-        )
+        response = await client.post("/api/v1/auth/refresh", json={"refresh_token": expired_token})
 
         assert response.status_code == 401
 
     @pytest.mark.asyncio
-    async def test_refresh_with_access_token(self, client: AsyncClient, db_session: AsyncSession):
+    async def test_refresh_with_access_token(self, client: AsyncClient, db_session: Session):
         """Test refresh using access token instead of refresh token (should fail)"""
         # Create test user
         user = User(
@@ -381,17 +369,14 @@ class TestTokenRefresh:
             is_active=True,
         )
         db_session.add(user)
-        await db_session.commit()
-        await db_session.refresh(user)
+        db_session.commit()
+        db_session.refresh(user)
 
         # Create access token (wrong type)
         access_token = create_access_token(subject=str(user.id))
 
         # Try to refresh with access token
-        response = await client.post(
-            "/api/v1/auth/refresh",
-            json={"refresh_token": access_token}
-        )
+        response = await client.post("/api/v1/auth/refresh", json={"refresh_token": access_token})
 
         # Should fail because token type is wrong
         assert response.status_code == 401
