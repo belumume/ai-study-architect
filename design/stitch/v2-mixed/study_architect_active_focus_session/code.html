@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+
+<html class="dark"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-width=1.0" name="viewport"/>
+<title>Study Architect Active Focus Session</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Space+Grotesk:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+  tailwind.config = {
+    darkMode: "class",
+    theme: {
+      extend: {
+        colors: {
+          "primary": "#4dffd2",
+          "secondary": "#B4A7FF",
+          "background-light": "#f5f8f8",
+          "background-dark": "#0D0D0D",
+          "surface": "#141414",
+        },
+        fontFamily: {
+          "display": ["Inter", "sans-serif"],
+          "timer": ["Space Grotesk", "sans-serif"]
+        },
+        borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+      },
+    },
+  }
+</script>
+<style>
+  .material-symbols-outlined {
+    font-variation-settings:
+    'FILL' 0,
+    'wght' 400,
+    'GRAD' 0,
+    'opsz' 24
+  }
+  .progress-ring__circle {
+    transition: stroke-dashoffset 0.35s;
+    transform: rotate(-90deg);
+    transform-origin: 50% 50%;
+  }
+</style>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100 min-h-screen flex flex-col antialiased">
+<header class="flex items-center justify-between whitespace-nowrap px-6 py-4">
+<div class="flex items-center gap-4">
+<button class="flex items-center justify-center rounded-full w-10 h-10 hover:bg-black/5 dark:hover:bg-white/5 transition-colors text-slate-900 dark:text-slate-100">
+<span class="material-symbols-outlined">arrow_back</span>
+</button>
+<div class="flex flex-col">
+<h2 class="text-sm font-medium leading-tight text-slate-500 dark:text-slate-400">Data Structures</h2>
+<p class="text-base font-semibold">Spaced Review</p>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<button class="flex items-center justify-center rounded-full w-10 h-10 hover:bg-black/5 dark:hover:bg-white/5 transition-colors text-slate-900 dark:text-slate-100">
+<span class="material-symbols-outlined">pause</span>
+</button>
+<button class="flex items-center justify-center rounded-full w-10 h-10 hover:bg-black/5 dark:hover:bg-white/5 transition-colors text-slate-900 dark:text-slate-100">
+<span class="material-symbols-outlined">close</span>
+</button>
+</div>
+</header>
+<main class="flex-1 flex overflow-hidden">
+<div class="flex-1 flex flex-col items-center justify-center px-8 py-6 gap-8 overflow-y-auto">
+<div class="flex flex-col items-center gap-6">
+<div class="relative w-48 h-48 flex items-center justify-center">
+<svg class="absolute top-0 left-0 w-full h-full" viewbox="0 0 120 120">
+<circle class="text-black/5 dark:text-white/5 stroke-current" cx="60" cy="60" fill="transparent" r="54" stroke-width="4"></circle>
+<circle class="text-primary stroke-current progress-ring__circle" cx="60" cy="60" fill="transparent" r="54" stroke-dasharray="339.292" stroke-dashoffset="100" stroke-linecap="round" stroke-width="4"></circle>
+</svg>
+<h1 class="font-timer text-5xl font-medium tracking-tight text-slate-900 dark:text-white">18:42</h1>
+</div>
+<div class="text-center">
+<p class="text-sm text-slate-500 dark:text-slate-400 font-medium tracking-wide uppercase mb-1">Current Concept</p>
+<h2 class="text-2xl font-semibold text-slate-900 dark:text-white">Binary Search Trees — Insertion</h2>
+</div>
+</div>
+<div class="w-full max-w-3xl flex flex-col gap-4">
+<div class="bg-white dark:bg-surface rounded-2xl shadow-sm border border-black/5 dark:border-white/5 p-8 min-h-[300px] flex flex-col justify-between relative overflow-hidden">
+<div class="flex-1 flex flex-col justify-center items-center text-center">
+<p class="text-xl md:text-2xl font-medium leading-relaxed max-w-2xl text-slate-800 dark:text-slate-200">
+            What is the time complexity of inserting a new node into a balanced Binary Search Tree?
+          </p>
+</div>
+<div class="flex justify-center mt-8">
+<button class="bg-primary hover:bg-primary/90 text-background-dark font-semibold py-3 px-8 rounded-full transition-colors flex items-center gap-2 shadow-[0_0_15px_rgba(77,255,210,0.3)]">
+<span class="material-symbols-outlined text-[20px]">visibility</span>
+            Show Answer
+          </button>
+</div>
+</div>
+<div class="flex justify-center gap-2 py-4">
+<div class="w-2 h-2 rounded-full bg-primary"></div>
+<div class="w-2 h-2 rounded-full bg-primary"></div>
+<div class="w-2 h-2 rounded-full bg-primary"></div>
+<div class="w-2 h-2 rounded-full bg-primary/30"></div>
+<div class="w-2 h-2 rounded-full bg-black/10 dark:bg-white/10"></div>
+<div class="w-2 h-2 rounded-full bg-black/10 dark:bg-white/10"></div>
+<div class="w-2 h-2 rounded-full bg-black/10 dark:bg-white/10"></div>
+</div>
+</div>
+</div>
+<aside class="w-80 border-l border-black/5 dark:border-white/5 bg-black/2 dark:bg-white/2 p-6 flex flex-col gap-6 hidden lg:flex">
+<div class="flex items-center justify-between mb-2">
+<h3 class="font-semibold text-lg text-slate-900 dark:text-white">Session Stats</h3>
+<button class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+<span class="material-symbols-outlined">chevron_right</span>
+</button>
+</div>
+<div class="flex flex-col gap-4">
+<div class="bg-white dark:bg-surface rounded-xl p-4 border border-black/5 dark:border-white/5 flex items-center justify-between">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-secondary/20 flex items-center justify-center text-secondary">
+<span class="material-symbols-outlined">style</span>
+</div>
+<p class="text-sm font-medium text-slate-500 dark:text-slate-400">Cards</p>
+</div>
+<p class="text-xl font-semibold text-slate-900 dark:text-white">8<span class="text-sm text-slate-400 font-normal">/15</span></p>
+</div>
+<div class="bg-white dark:bg-surface rounded-xl p-4 border border-black/5 dark:border-white/5 flex items-center justify-between">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined">check_circle</span>
+</div>
+<p class="text-sm font-medium text-slate-500 dark:text-slate-400">Accuracy</p>
+</div>
+<p class="text-xl font-semibold text-slate-900 dark:text-white">87%</p>
+</div>
+<div class="bg-white dark:bg-surface rounded-xl p-4 border border-black/5 dark:border-white/5 flex items-center justify-between">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-secondary/20 flex items-center justify-center text-secondary">
+<span class="material-symbols-outlined">bolt</span>
+</div>
+<p class="text-sm font-medium text-slate-500 dark:text-slate-400">XP Earned</p>
+</div>
+<p class="text-xl font-semibold text-primary">+45</p>
+</div>
+<div class="bg-white dark:bg-surface rounded-xl p-4 border border-black/5 dark:border-white/5 flex flex-col gap-2 mt-4">
+<div class="flex items-center gap-2 mb-1">
+<span class="material-symbols-outlined text-orange-400 text-sm">local_fire_department</span>
+<p class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Streak Maintained</p>
+</div>
+<p class="text-sm text-slate-600 dark:text-slate-300">Great focus! You're on a 5-day learning streak.</p>
+</div>
+</div>
+</aside>
+</main>
+</body></html>
