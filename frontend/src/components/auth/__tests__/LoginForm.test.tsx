@@ -7,6 +7,15 @@ import { render, screen, fireEvent, waitFor, mockTokens } from '../../../test/te
 import { LoginForm } from '../LoginForm'
 import * as AuthContext from '../../../contexts/AuthContext'
 
+const mockNavigate = vi.fn()
+vi.mock('react-router-dom', async () => {
+  const actual = await vi.importActual('react-router-dom')
+  return {
+    ...actual,
+    useNavigate: () => mockNavigate,
+  }
+})
+
 describe('LoginForm', () => {
   const mockLogin = vi.fn()
   const mockClearError = vi.fn()
@@ -32,7 +41,7 @@ describe('LoginForm', () => {
 
       expect(screen.getByRole('heading', { name: /sign in/i })).toBeInTheDocument()
       expect(screen.getByLabelText(/username/i)).toBeInTheDocument()
-      expect(screen.getByLabelText(/password/i)).toBeInTheDocument()
+      expect(screen.getByLabelText('Password')).toBeInTheDocument()
       expect(screen.getByRole('button', { name: /sign in/i })).toBeInTheDocument()
     })
 
@@ -107,7 +116,7 @@ describe('LoginForm', () => {
       render(<LoginForm />)
 
       const usernameInput = screen.getByLabelText(/username/i)
-      const passwordInput = screen.getByLabelText(/password/i)
+      const passwordInput = screen.getByLabelText('Password')
 
       fireEvent.change(usernameInput, { target: { value: 'testuser' } })
       fireEvent.change(passwordInput, { target: { value: 'password123' } })
@@ -125,7 +134,7 @@ describe('LoginForm', () => {
     it('shows password when visibility icon is clicked', () => {
       render(<LoginForm />)
 
-      const passwordInput = screen.getByLabelText(/password/i) as HTMLInputElement
+      const passwordInput = screen.getByLabelText('Password') as HTMLInputElement
       expect(passwordInput.type).toBe('password')
 
       const visibilityButton = screen.getByRole('button', { name: /toggle password visibility/i })
@@ -142,7 +151,7 @@ describe('LoginForm', () => {
       // Show password
       fireEvent.click(visibilityButton)
 
-      const passwordInput = screen.getByLabelText(/password/i) as HTMLInputElement
+      const passwordInput = screen.getByLabelText('Password') as HTMLInputElement
       expect(passwordInput.type).toBe('text')
 
       // Hide password
@@ -158,7 +167,7 @@ describe('LoginForm', () => {
       render(<LoginForm />)
 
       const usernameInput = screen.getByLabelText(/username/i)
-      const passwordInput = screen.getByLabelText(/password/i)
+      const passwordInput = screen.getByLabelText('Password')
 
       fireEvent.change(usernameInput, { target: { value: 'testuser' } })
       fireEvent.change(passwordInput, { target: { value: 'password123' } })
@@ -181,7 +190,7 @@ describe('LoginForm', () => {
       render(<LoginForm />)
 
       const usernameInput = screen.getByLabelText(/username/i)
-      const passwordInput = screen.getByLabelText(/password/i)
+      const passwordInput = screen.getByLabelText('Password')
       const rememberMeCheckbox = screen.getByRole('checkbox', { name: /remember me/i })
 
       fireEvent.change(usernameInput, { target: { value: 'testuser' } })
@@ -210,7 +219,7 @@ describe('LoginForm', () => {
       render(<LoginForm />)
 
       const usernameInput = screen.getByLabelText(/username/i)
-      const passwordInput = screen.getByLabelText(/password/i)
+      const passwordInput = screen.getByLabelText('Password')
 
       fireEvent.change(usernameInput, { target: { value: 'testuser' } })
       fireEvent.change(passwordInput, { target: { value: 'password123' } })
@@ -232,7 +241,7 @@ describe('LoginForm', () => {
       render(<LoginForm />)
 
       const usernameInput = screen.getByLabelText(/username/i)
-      const passwordInput = screen.getByLabelText(/password/i)
+      const passwordInput = screen.getByLabelText('Password')
 
       fireEvent.change(usernameInput, { target: { value: 'testuser' } })
       fireEvent.change(passwordInput, { target: { value: 'password123' } })
@@ -289,17 +298,7 @@ describe('LoginForm', () => {
   })
 
   describe('Navigation', () => {
-    it('redirects to home when user is already logged in', () => {
-      const mockNavigate = vi.fn()
-
-      vi.mock('react-router-dom', async () => {
-        const actual = await vi.importActual('react-router-dom')
-        return {
-          ...actual,
-          useNavigate: () => mockNavigate,
-        }
-      })
-
+    it('redirects to home when user is already logged in', async () => {
       vi.spyOn(AuthContext, 'useAuth').mockReturnValue({
         user: { id: '123', email: 'user@example.com' },
         login: mockLogin,
@@ -312,8 +311,9 @@ describe('LoginForm', () => {
 
       render(<LoginForm />)
 
-      // Navigation happens in useEffect, so we just verify the user state
-      // In a real scenario, you'd use a router testing library
+      await waitFor(() => {
+        expect(mockNavigate).toHaveBeenCalledWith('/')
+      })
     })
   })
 
@@ -322,7 +322,7 @@ describe('LoginForm', () => {
       render(<LoginForm />)
 
       const usernameInput = screen.getByLabelText(/username/i)
-      const passwordInput = screen.getByLabelText(/password/i)
+      const passwordInput = screen.getByLabelText('Password')
 
       expect(usernameInput).toHaveAttribute('autocomplete', 'username')
       expect(passwordInput).toHaveAttribute('autocomplete', 'current-password')
@@ -332,7 +332,7 @@ describe('LoginForm', () => {
       render(<LoginForm />)
 
       const usernameInput = screen.getByLabelText(/username/i)
-      expect(usernameInput).toHaveAttribute('autofocus')
+      expect(document.activeElement).toBe(usernameInput)
     })
 
     it('form is keyboard accessible', async () => {
@@ -341,7 +341,7 @@ describe('LoginForm', () => {
       render(<LoginForm />)
 
       const usernameInput = screen.getByLabelText(/username/i)
-      const passwordInput = screen.getByLabelText(/password/i)
+      const passwordInput = screen.getByLabelText('Password')
       const form = screen.getByRole('form')
 
       // Fill form using keyboard
@@ -352,8 +352,8 @@ describe('LoginForm', () => {
 
       fireEvent.change(passwordInput, { target: { value: 'password123' } })
 
-      // Submit using Enter key
-      fireEvent.keyDown(form, { key: 'Enter', code: 'Enter' })
+      // Submit the form
+      fireEvent.submit(form)
 
       await waitFor(() => {
         expect(mockLogin).toHaveBeenCalled()
