@@ -10,12 +10,7 @@ export default defineConfig({
     setupFiles: './src/test/setup.ts',
     css: true,
     exclude: ['tests/**', 'node_modules/**'],
-    pool: 'forks',
-    poolOptions: {
-      forks: {
-        singleFork: true,
-      },
-    },
+    pool: 'vmThreads',
   },
   resolve: {
     alias: {
