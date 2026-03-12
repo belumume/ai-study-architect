@@ -74,7 +74,11 @@ import { api } from '../api'
 describe('API Service', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    document.cookie = ''
+    // Properly clear cookies (setting '' just adds an empty cookie)
+    document.cookie.split(';').forEach((c) => {
+      const name = c.split('=')[0].trim()
+      if (name) document.cookie = `${name}=; max-age=0`
+    })
   })
 
   describe('Initialization', () => {
@@ -207,7 +211,7 @@ describe('API Service', () => {
 
     it('handles missing CSRF token gracefully', () => {
       mockTokenStorage.getAccessToken.mockReturnValue(null)
-      document.cookie = ''
+      document.cookie = 'csrf_token=; max-age=0'
 
       const config = {
         headers: {} as Record<string, any>,
