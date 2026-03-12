@@ -1,0 +1,40 @@
+#!/bin/bash
+# Pre-commit hook: run pytest on backend test changes
+# Install: git config core.hooksPath .githooks
+
+# Check if any backend files are staged
+BACKEND_CHANGED=$(git diff --cached --name-only -- 'backend/' | head -1)
+
+if [ -z "$BACKEND_CHANGED" ]; then
+    exit 0
+fi
+
+echo "[pre-commit] Backend files changed — running pytest..."
+
+# Find the right Python executable
+if [ -f "backend/venv/Scripts/python.exe" ]; then
+    PYTHON="backend/venv/Scripts/python.exe"
+elif [ -f "backend/venv/bin/python" ]; then
+    PYTHON="backend/venv/bin/python"
+else
+    PYTHON="python"
+fi
+
+# Run tests (skip if no venv/deps — CI will catch it)
+if $PYTHON -c "import pytest" 2>/dev/null; then
+    cd backend
+    $PYTHON -m pytest tests/ -x -q --tb=short 2>&1
+    RESULT=$?
+    cd ..
+    if [ $RESULT -ne 0 ]; then
+        echo ""
+        echo "[pre-commit] Tests FAILED. Commit blocked."
+        echo "[pre-commit] Fix tests before committing, or use --no-verify to skip (not recommended)."
+        exit 1
+    fi
+    echo "[pre-commit] Tests passed."
+else
+    echo "[pre-commit] pytest not installed — skipping (CI will verify)."
+fi
+
+exit 0

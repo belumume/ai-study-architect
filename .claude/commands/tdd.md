@@ -1,0 +1,1 @@
+Invoke the `superpowers:test-driven-development` skill for this task. Follow the red-green-refactor cycle strictly: write a failing test first, implement the minimum code to pass, then refactor. No production code without a failing test.

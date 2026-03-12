@@ -750,3 +750,12 @@ sync_*.py
 
 # Playwright MCP artifacts
 .playwright-mcp/
+
+# Claude session exports (contain full conversation logs)
+*-from-the-*.txt
+
+# Claude agent memory (auto-generated, local only)
+.claude/agent-memory/
+
+# RSA keys directory (JWT signing keys)
+backend/keys/
