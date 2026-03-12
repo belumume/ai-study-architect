@@ -11,6 +11,11 @@ export default defineConfig({
     css: true,
     exclude: ['tests/**', 'node_modules/**'],
     pool: 'forks',
+    poolOptions: {
+      forks: {
+        singleFork: true,
+      },
+    },
   },
   resolve: {
     alias: {
