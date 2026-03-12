@@ -41,7 +41,7 @@ describe('LoginForm', () => {
 
       expect(screen.getByRole('heading', { name: /sign in/i })).toBeInTheDocument()
       expect(screen.getByLabelText(/username/i)).toBeInTheDocument()
-      expect(screen.getByLabelText(/password/i)).toBeInTheDocument()
+      expect(screen.getByLabelText('Password')).toBeInTheDocument()
       expect(screen.getByRole('button', { name: /sign in/i })).toBeInTheDocument()
     })
 
@@ -116,7 +116,7 @@ describe('LoginForm', () => {
       render(<LoginForm />)
 
       const usernameInput = screen.getByLabelText(/username/i)
-      const passwordInput = screen.getByLabelText(/password/i)
+      const passwordInput = screen.getByLabelText('Password')
 
       fireEvent.change(usernameInput, { target: { value: 'testuser' } })
       fireEvent.change(passwordInput, { target: { value: 'password123' } })
@@ -134,7 +134,7 @@ describe('LoginForm', () => {
     it('shows password when visibility icon is clicked', () => {
       render(<LoginForm />)
 
-      const passwordInput = screen.getByLabelText(/password/i) as HTMLInputElement
+      const passwordInput = screen.getByLabelText('Password') as HTMLInputElement
       expect(passwordInput.type).toBe('password')
 
       const visibilityButton = screen.getByRole('button', { name: /toggle password visibility/i })
@@ -151,7 +151,7 @@ describe('LoginForm', () => {
       // Show password
       fireEvent.click(visibilityButton)
 
-      const passwordInput = screen.getByLabelText(/password/i) as HTMLInputElement
+      const passwordInput = screen.getByLabelText('Password') as HTMLInputElement
       expect(passwordInput.type).toBe('text')
 
       // Hide password
@@ -167,7 +167,7 @@ describe('LoginForm', () => {
       render(<LoginForm />)
 
       const usernameInput = screen.getByLabelText(/username/i)
-      const passwordInput = screen.getByLabelText(/password/i)
+      const passwordInput = screen.getByLabelText('Password')
 
       fireEvent.change(usernameInput, { target: { value: 'testuser' } })
       fireEvent.change(passwordInput, { target: { value: 'password123' } })
@@ -190,7 +190,7 @@ describe('LoginForm', () => {
       render(<LoginForm />)
 
       const usernameInput = screen.getByLabelText(/username/i)
-      const passwordInput = screen.getByLabelText(/password/i)
+      const passwordInput = screen.getByLabelText('Password')
       const rememberMeCheckbox = screen.getByRole('checkbox', { name: /remember me/i })
 
       fireEvent.change(usernameInput, { target: { value: 'testuser' } })
@@ -219,7 +219,7 @@ describe('LoginForm', () => {
       render(<LoginForm />)
 
       const usernameInput = screen.getByLabelText(/username/i)
-      const passwordInput = screen.getByLabelText(/password/i)
+      const passwordInput = screen.getByLabelText('Password')
 
       fireEvent.change(usernameInput, { target: { value: 'testuser' } })
       fireEvent.change(passwordInput, { target: { value: 'password123' } })
@@ -241,7 +241,7 @@ describe('LoginForm', () => {
       render(<LoginForm />)
 
       const usernameInput = screen.getByLabelText(/username/i)
-      const passwordInput = screen.getByLabelText(/password/i)
+      const passwordInput = screen.getByLabelText('Password')
 
       fireEvent.change(usernameInput, { target: { value: 'testuser' } })
       fireEvent.change(passwordInput, { target: { value: 'password123' } })
@@ -322,7 +322,7 @@ describe('LoginForm', () => {
       render(<LoginForm />)
 
       const usernameInput = screen.getByLabelText(/username/i)
-      const passwordInput = screen.getByLabelText(/password/i)
+      const passwordInput = screen.getByLabelText('Password')
 
       expect(usernameInput).toHaveAttribute('autocomplete', 'username')
       expect(passwordInput).toHaveAttribute('autocomplete', 'current-password')
@@ -332,7 +332,7 @@ describe('LoginForm', () => {
       render(<LoginForm />)
 
       const usernameInput = screen.getByLabelText(/username/i)
-      expect(usernameInput).toHaveAttribute('autofocus')
+      expect(document.activeElement).toBe(usernameInput)
     })
 
     it('form is keyboard accessible', async () => {
@@ -341,7 +341,7 @@ describe('LoginForm', () => {
       render(<LoginForm />)
 
       const usernameInput = screen.getByLabelText(/username/i)
-      const passwordInput = screen.getByLabelText(/password/i)
+      const passwordInput = screen.getByLabelText('Password')
       const form = screen.getByRole('form')
 
       // Fill form using keyboard
