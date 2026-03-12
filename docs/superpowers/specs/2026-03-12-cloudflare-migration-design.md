@@ -92,7 +92,7 @@ The Worker:
 
 **Container sleep**: Auto-sleep after idle timeout (configurable, default ~5 min). Cold start on wake is ~2-5s. Acceptable for low-traffic single-user app. Frontend can show a loading indicator during wake.
 
-**Compound cold start warning**: If both the Container AND Neon compute are cold simultaneously (both idle >5 min), the first request may take ~5-8s (container wake + Neon compute wake). This is acceptable for single-user. Mitigations if needed: cron ping to keep container warm, or Neon's "always on" compute option on paid plans.
+**Compound cold start warning**: If both the Container AND Neon compute are cold simultaneously (both idle >5 min), the first request may take ~5-8s (container wake + Neon compute wake). This is acceptable for single-user. Mitigations when users arrive: cron ping to keep container warm (covered by CF credits), or Neon's "always on" compute on Scale plan ($19/mo out-of-pocket, not CF credits).
 
 ### 2. Database -- Neon PostgreSQL
 
@@ -417,15 +417,15 @@ Render is deleted -- there is no rollback to previous infrastructure. Rollback o
 | Upstash Redis | $0 | Free tier (10k commands/day, 256 MB) |
 | Vercel | $0 | Free tier (hobby) |
 | Network egress | $0 | 1 TB included, minimal traffic |
-| **Total** | **~$7-10/mo** | **Covered by $5k CF credits through Mar 2027** |
+| **Total** | **~$7-10/mo** | **CF services covered by $5k credits through Mar 2027. Neon free tier is separate (not CF credits).** |
 
 ## Risks & Mitigations
 
 | Risk | Impact | Mitigation |
 |------|--------|------------|
 | CF Containers is newer than Cloud Run/ECS | Less community knowledge, potential edge cases | Docker-based = portable. If issues arise, migrate Container to Fly.io/Cloud Run with zero code changes. |
-| Compound cold start (Container + Neon both cold) | First request after ~5 min idle could take 5-8s | Frontend loading indicator. Cron ping to keep warm. Neon "always on" on paid plan if needed. |
-| Neon free tier limits (100 CU-hours) | May hit limits under sustained usage | Monitor usage. Scale plan ($19/mo) still covered by credits. |
+| Compound cold start (Container + Neon both cold) | First request after ~5 min idle could take 5-8s | Frontend loading indicator. Cron ping to keep container warm (CF credits). Neon "always on" on Scale plan ($19/mo out-of-pocket) when users arrive. |
+| Neon free tier limits (100 CU-hours) | May hit limits under sustained usage | Monitor usage. Scale plan ($19/mo) is out-of-pocket (not CF credits), but trivial at the point where traffic justifies it. |
 | LangChain removal breaks agent code | Agent behavior regression | Complete import audit done (3 files identified). All existing tests must pass. Revert path is simple (git revert + re-add package). |
 | R2/boto3 compatibility edge cases | File upload failures | R2 is S3-compatible; boto3 is the standard client. Test upload/download in staging before production. |
 
