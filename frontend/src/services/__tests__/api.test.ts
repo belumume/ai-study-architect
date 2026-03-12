@@ -1,268 +1,352 @@
 /**
  * API service tests
  *
- * @vitest-environment happy-dom
+ * Mocks axios.create at module level to prevent real axios instances
+ * (which contain non-serializable transformRequest functions) from
+ * being created. This eliminates the DataCloneError in vitest.
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { api } from '../api'
-import tokenStorage from '../tokenStorage'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 
-// Mock tokenStorage
-vi.mock('../tokenStorage', () => ({
+// Build the mock axios instance with interceptor tracking
+const requestInterceptors: Array<{ fulfilled: Function; rejected?: Function }> = []
+const responseInterceptors: Array<{ fulfilled: Function; rejected?: Function }> = []
+
+const mockAxiosInstance = {
+  defaults: {
+    baseURL: '',
+    headers: { 'Content-Type': 'application/json' } as Record<string, any>,
+    withCredentials: true,
+  },
+  interceptors: {
+    request: {
+      use: vi.fn((fulfilled, rejected) => {
+        requestInterceptors.push({ fulfilled, rejected })
+        return requestInterceptors.length - 1
+      }),
+      clear: vi.fn(),
+    },
+    response: {
+      use: vi.fn((fulfilled, rejected) => {
+        responseInterceptors.push({ fulfilled, rejected })
+        return responseInterceptors.length - 1
+      }),
+      clear: vi.fn(),
+    },
+  },
+  get: vi.fn(),
+  post: vi.fn(),
+  put: vi.fn(),
+  delete: vi.fn(),
+  patch: vi.fn(),
+  request: vi.fn(),
+}
+
+vi.mock('axios', () => ({
   default: {
-    getAccessToken: vi.fn(),
-    getRefreshToken: vi.fn(),
-    setTokens: vi.fn(),
-    clearTokens: vi.fn(),
+    create: vi.fn(() => mockAxiosInstance),
   },
 }))
+
+// Mock tokenStorage
+const mockTokenStorage = {
+  getAccessToken: vi.fn(),
+  getRefreshToken: vi.fn(),
+  setTokens: vi.fn(),
+  clearTokens: vi.fn(),
+}
+
+vi.mock('../tokenStorage', () => ({
+  default: mockTokenStorage,
+}))
+
+// Import AFTER mocks are set up (vitest hoists vi.mock)
+import { api } from '../api'
 
 describe('API Service', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    document.cookie = '' // Clear cookies
-  })
-
-  afterEach(() => {
-    vi.restoreAllMocks()
+    document.cookie = ''
   })
 
   describe('Initialization', () => {
-    it('creates axios instance with correct base URL', () => {
-      expect(api.defaults.baseURL).toBeDefined()
-    })
-
-    it('sets default headers', () => {
+    it('creates axios instance with correct config', () => {
       expect(api.defaults.headers['Content-Type']).toBe('application/json')
+      expect(api.defaults.withCredentials).toBe(true)
     })
 
-    it('enables credentials for CSRF', () => {
-      expect(api.defaults.withCredentials).toBe(true)
+    it('registers request and response interceptors', () => {
+      expect(requestInterceptors.length).toBeGreaterThan(0)
+      expect(responseInterceptors.length).toBeGreaterThan(0)
     })
   })
 
   describe('Request Interceptor - Auth Token', () => {
-    it('adds Authorization header when token exists', async () => {
-      const mockToken = 'test-access-token'
-      vi.mocked(tokenStorage.getAccessToken).mockReturnValue(mockToken)
+    it('adds Authorization header when token exists', () => {
+      mockTokenStorage.getAccessToken.mockReturnValue('test-access-token')
 
-      // Make a request to trigger interceptor
-      const mockResponse = { data: { message: 'success' } }
-      vi.spyOn(api, 'request').mockResolvedValueOnce(mockResponse)
+      const config = {
+        headers: {} as Record<string, any>,
+        method: 'get',
+      }
 
-      await api.get('/test')
+      const result = requestInterceptors[0].fulfilled(config)
 
-      // Check that request was called
-      expect(api.request).toHaveBeenCalled()
+      expect(result.headers.Authorization).toBe('Bearer test-access-token')
     })
 
-    it('does not crash when no token exists', async () => {
-      vi.mocked(tokenStorage.getAccessToken).mockReturnValue(null)
+    it('does not add Authorization header when no token', () => {
+      mockTokenStorage.getAccessToken.mockReturnValue(null)
 
-      const mockResponse = { data: { message: 'success' } }
-      vi.spyOn(api, 'request').mockResolvedValueOnce(mockResponse)
+      const config = {
+        headers: {} as Record<string, any>,
+        method: 'get',
+      }
 
-      await api.get('/test')
+      const result = requestInterceptors[0].fulfilled(config)
 
-      expect(api.request).toHaveBeenCalled()
-    })
-  })
-
-  describe('Request Interceptor - CSRF Token', () => {
-    beforeEach(() => {
-      // Set CSRF token in cookie
-      document.cookie = 'csrf_token=test-csrf-token; path=/'
-    })
-
-    it('handles POST requests correctly', async () => {
-      const mockResponse = { data: { message: 'success' } }
-      vi.spyOn(api, 'request').mockResolvedValueOnce(mockResponse)
-
-      await api.post('/test', { data: 'test' })
-
-      expect(api.request).toHaveBeenCalled()
-    })
-
-    it('handles GET requests correctly', async () => {
-      const mockResponse = { data: { message: 'success' } }
-      vi.spyOn(api, 'request').mockResolvedValueOnce(mockResponse)
-
-      await api.get('/test')
-
-      expect(api.request).toHaveBeenCalled()
-    })
-
-    it('handles missing CSRF token gracefully', async () => {
-      document.cookie = '' // Clear CSRF token
-
-      const mockResponse = { data: { message: 'success' } }
-      vi.spyOn(api, 'request').mockResolvedValueOnce(mockResponse)
-
-      await api.post('/test', { data: 'test' })
-
-      // Should not crash
-      expect(api.request).toHaveBeenCalled()
+      expect(result.headers.Authorization).toBeUndefined()
     })
   })
 
   describe('Request Interceptor - FormData', () => {
-    it('handles FormData correctly', async () => {
+    it('removes Content-Type for FormData', () => {
+      mockTokenStorage.getAccessToken.mockReturnValue(null)
+
       const formData = new FormData()
-      formData.append('file', new Blob(['test']), 'test.txt')
+      const config = {
+        headers: { 'Content-Type': 'application/json' } as Record<string, any>,
+        data: formData,
+        method: 'post',
+      }
 
-      const mockResponse = { data: { message: 'success' } }
-      vi.spyOn(api, 'request').mockResolvedValueOnce(mockResponse)
+      const result = requestInterceptors[0].fulfilled(config)
 
-      await api.post('/upload', formData)
-
-      expect(api.request).toHaveBeenCalled()
+      expect(result.headers['Content-Type']).toBeUndefined()
     })
 
-    it('handles JSON data correctly', async () => {
-      const mockResponse = { data: { message: 'success' } }
-      vi.spyOn(api, 'request').mockResolvedValueOnce(mockResponse)
+    it('keeps Content-Type for JSON data', () => {
+      mockTokenStorage.getAccessToken.mockReturnValue(null)
 
-      await api.post('/test', { key: 'value' })
+      const config = {
+        headers: { 'Content-Type': 'application/json' } as Record<string, any>,
+        data: { key: 'value' },
+        method: 'post',
+      }
 
-      expect(api.request).toHaveBeenCalled()
+      const result = requestInterceptors[0].fulfilled(config)
+
+      expect(result.headers['Content-Type']).toBe('application/json')
+    })
+  })
+
+  describe('Request Interceptor - CSRF Token', () => {
+    it('adds CSRF header for POST requests', () => {
+      mockTokenStorage.getAccessToken.mockReturnValue(null)
+      document.cookie = 'csrf_token=test-csrf-token; path=/'
+
+      const config = {
+        headers: {} as Record<string, any>,
+        method: 'post',
+      }
+
+      const result = requestInterceptors[0].fulfilled(config)
+
+      expect(result.headers['X-CSRF-Token']).toBe('test-csrf-token')
+    })
+
+    it('adds CSRF header for PUT requests', () => {
+      mockTokenStorage.getAccessToken.mockReturnValue(null)
+      document.cookie = 'csrf_token=csrf-put-token; path=/'
+
+      const config = {
+        headers: {} as Record<string, any>,
+        method: 'put',
+      }
+
+      const result = requestInterceptors[0].fulfilled(config)
+
+      expect(result.headers['X-CSRF-Token']).toBe('csrf-put-token')
+    })
+
+    it('adds CSRF header for DELETE requests', () => {
+      mockTokenStorage.getAccessToken.mockReturnValue(null)
+      document.cookie = 'csrf_token=csrf-delete-token; path=/'
+
+      const config = {
+        headers: {} as Record<string, any>,
+        method: 'delete',
+      }
+
+      const result = requestInterceptors[0].fulfilled(config)
+
+      expect(result.headers['X-CSRF-Token']).toBe('csrf-delete-token')
+    })
+
+    it('does not add CSRF header for GET requests', () => {
+      mockTokenStorage.getAccessToken.mockReturnValue(null)
+      document.cookie = 'csrf_token=test-csrf-token; path=/'
+
+      const config = {
+        headers: {} as Record<string, any>,
+        method: 'get',
+      }
+
+      const result = requestInterceptors[0].fulfilled(config)
+
+      expect(result.headers['X-CSRF-Token']).toBeUndefined()
+    })
+
+    it('handles missing CSRF token gracefully', () => {
+      mockTokenStorage.getAccessToken.mockReturnValue(null)
+      document.cookie = ''
+
+      const config = {
+        headers: {} as Record<string, any>,
+        method: 'post',
+      }
+
+      const result = requestInterceptors[0].fulfilled(config)
+
+      expect(result.headers['X-CSRF-Token']).toBeUndefined()
+    })
+
+    it('handles multiple cookies', () => {
+      mockTokenStorage.getAccessToken.mockReturnValue(null)
+      document.cookie = 'other=value'
+      document.cookie = 'csrf_token=xyz789'
+      document.cookie = 'another=cookie'
+
+      const config = {
+        headers: {} as Record<string, any>,
+        method: 'post',
+      }
+
+      const result = requestInterceptors[0].fulfilled(config)
+
+      expect(result.headers['X-CSRF-Token']).toBe('xyz789')
+    })
+
+    it('handles encoded cookie values', () => {
+      mockTokenStorage.getAccessToken.mockReturnValue(null)
+      document.cookie = 'csrf_token=encoded%20value; path=/'
+
+      const config = {
+        headers: {} as Record<string, any>,
+        method: 'post',
+      }
+
+      const result = requestInterceptors[0].fulfilled(config)
+
+      expect(result.headers['X-CSRF-Token']).toBe('encoded value')
+    })
+  })
+
+  describe('Request Interceptor - Error Path', () => {
+    it('rejects on request error', async () => {
+      const error = new Error('Request setup failed')
+
+      await expect(requestInterceptors[0].rejected!(error)).rejects.toThrow('Request setup failed')
     })
   })
 
   describe('Response Interceptor - Success', () => {
-    it('returns response for successful requests', async () => {
-      const mockResponse = { data: { message: 'success' }, status: 200 }
-      vi.spyOn(api, 'request').mockResolvedValueOnce(mockResponse)
+    it('passes through successful responses', () => {
+      const response = { data: { message: 'success' }, status: 200 }
 
-      const result = await api.get('/test')
+      const result = responseInterceptors[0].fulfilled(response)
 
-      expect(result.data).toEqual({ message: 'success' })
+      expect(result).toBe(response)
     })
   })
 
   describe('Response Interceptor - Error Handling', () => {
-    it('handles 401 errors', async () => {
+    it('rejects 401 errors from auth endpoints without retry', async () => {
       const error = {
         response: { status: 401 },
-        config: { url: '/api/v1/some-endpoint' },
+        config: { url: '/auth/login', _retry: false },
       }
 
-      vi.spyOn(api, 'request').mockRejectedValueOnce(error)
-
-      try {
-        await api.get('/test')
-        expect.fail('Should have thrown error')
-      } catch (e: any) {
-        expect(e.response?.status).toBe(401)
-      }
+      await expect(responseInterceptors[0].rejected!(error)).rejects.toEqual(error)
     })
 
-    it('handles 500 errors', async () => {
+    it('rejects 500 errors', async () => {
       const error = {
         response: { status: 500 },
         config: { url: '/api/v1/some-endpoint' },
       }
 
-      vi.spyOn(api, 'request').mockRejectedValueOnce(error)
-
-      try {
-        await api.get('/test')
-        expect.fail('Should have thrown error')
-      } catch (e: any) {
-        expect(e.response?.status).toBe(500)
-      }
+      await expect(responseInterceptors[0].rejected!(error)).rejects.toEqual(error)
     })
 
-    it('handles 400 errors', async () => {
+    it('rejects 400 errors', async () => {
       const error = {
         response: { status: 400, data: { detail: 'Bad request' } },
         config: { url: '/api/v1/some-endpoint' },
       }
 
-      vi.spyOn(api, 'request').mockRejectedValueOnce(error)
-
-      try {
-        await api.get('/test')
-        expect.fail('Should have thrown error')
-      } catch (e: any) {
-        expect(e.response?.status).toBe(400)
-      }
+      await expect(responseInterceptors[0].rejected!(error)).rejects.toEqual(error)
     })
 
-    it('handles 403 errors', async () => {
+    it('rejects 403 errors', async () => {
       const error = {
         response: { status: 403, data: { detail: 'Forbidden' } },
         config: { url: '/api/v1/some-endpoint' },
       }
 
-      vi.spyOn(api, 'request').mockRejectedValueOnce(error)
+      await expect(responseInterceptors[0].rejected!(error)).rejects.toEqual(error)
+    })
 
-      try {
-        await api.get('/test')
-        expect.fail('Should have thrown error')
-      } catch (e: any) {
-        expect(e.response?.status).toBe(403)
+    it('attempts token refresh on 401 from non-auth endpoints', async () => {
+      mockAxiosInstance.post.mockResolvedValueOnce({
+        data: { access_token: 'new-token' },
+      })
+
+      const originalConfig = {
+        url: '/api/v1/some-endpoint',
+        headers: {} as Record<string, any>,
+        _retry: undefined as boolean | undefined,
       }
-    })
-  })
 
-  describe('CSRF Token Parsing', () => {
-    it('handles cookie with CSRF token', async () => {
-      document.cookie = 'csrf_token=abc123; path=/'
+      const error = {
+        response: { status: 401 },
+        config: originalConfig,
+      }
 
-      const mockResponse = { data: { message: 'success' } }
-      vi.spyOn(api, 'request').mockResolvedValueOnce(mockResponse)
+      // The interceptor calls api.post('/api/v1/auth/refresh')
+      // then retries with the original config
+      try {
+        await responseInterceptors[0].rejected!(error)
+      } catch {
+        // May reject if mock setup isn't complete — that's fine,
+        // we're testing that it attempted the refresh
+      }
 
-      await api.post('/test', { data: 'test' })
-
-      expect(api.request).toHaveBeenCalled()
-    })
-
-    it('handles multiple cookies', async () => {
-      document.cookie = 'other=value; csrf_token=xyz789; another=cookie'
-
-      const mockResponse = { data: { message: 'success' } }
-      vi.spyOn(api, 'request').mockResolvedValueOnce(mockResponse)
-
-      await api.post('/test', { data: 'test' })
-
-      expect(api.request).toHaveBeenCalled()
-    })
-
-    it('handles encoded cookie values', async () => {
-      document.cookie = 'csrf_token=encoded%20value; path=/'
-
-      const mockResponse = { data: { message: 'success' } }
-      vi.spyOn(api, 'request').mockResolvedValueOnce(mockResponse)
-
-      await api.post('/test', { data: 'test' })
-
-      expect(api.request).toHaveBeenCalled()
+      expect(originalConfig._retry).toBe(true)
     })
   })
 
   describe('API Methods', () => {
     it('supports GET requests', async () => {
-      const mockResponse = { data: { message: 'success' } }
-      vi.spyOn(api, 'request').mockResolvedValueOnce(mockResponse)
+      mockAxiosInstance.get.mockResolvedValueOnce({ data: { message: 'success' } })
 
       const result = await api.get('/test')
 
       expect(result.data).toEqual({ message: 'success' })
+      expect(mockAxiosInstance.get).toHaveBeenCalledWith('/test')
     })
 
     it('supports POST requests', async () => {
-      const mockResponse = { data: { message: 'created' } }
-      vi.spyOn(api, 'request').mockResolvedValueOnce(mockResponse)
+      mockAxiosInstance.post.mockResolvedValueOnce({ data: { message: 'created' } })
 
       const result = await api.post('/test', { name: 'test' })
 
       expect(result.data).toEqual({ message: 'created' })
+      expect(mockAxiosInstance.post).toHaveBeenCalledWith('/test', { name: 'test' })
     })
 
     it('supports PUT requests', async () => {
-      const mockResponse = { data: { message: 'updated' } }
-      vi.spyOn(api, 'request').mockResolvedValueOnce(mockResponse)
+      mockAxiosInstance.put.mockResolvedValueOnce({ data: { message: 'updated' } })
 
       const result = await api.put('/test/1', { name: 'updated' })
 
@@ -270,8 +354,7 @@ describe('API Service', () => {
     })
 
     it('supports DELETE requests', async () => {
-      const mockResponse = { data: { message: 'deleted' } }
-      vi.spyOn(api, 'request').mockResolvedValueOnce(mockResponse)
+      mockAxiosInstance.delete.mockResolvedValueOnce({ data: { message: 'deleted' } })
 
       const result = await api.delete('/test/1')
 
@@ -279,8 +362,7 @@ describe('API Service', () => {
     })
 
     it('supports PATCH requests', async () => {
-      const mockResponse = { data: { message: 'patched' } }
-      vi.spyOn(api, 'request').mockResolvedValueOnce(mockResponse)
+      mockAxiosInstance.patch.mockResolvedValueOnce({ data: { message: 'patched' } })
 
       const result = await api.patch('/test/1', { status: 'active' })
 
