@@ -313,10 +313,19 @@ class TestSecurityEdgeCases:
         long_password = "a" * 1000
         hashed = get_password_hash(long_password)
 
+        # Verify the password works
         assert verify_password(long_password, hashed) is True
-        # After bcrypt truncation, "a"*999 and "a"*1000 hash identically
-        # so test with a genuinely different short password instead
-        assert verify_password("b" * 72, hashed) is False
+
+        # Verify truncation: any string sharing the same first 72 bytes hashes identically
+        assert verify_password("a" * 73, hashed) is True
+        assert verify_password("a" * 999, hashed) is True
+
+        # Verify that differing within the 72-byte window produces a different hash
+        almost_same = "a" * 71 + "b"
+        assert verify_password(almost_same, hashed) is False
+
+        # Verify that characters beyond byte 72 are ignored
+        assert verify_password("a" * 72 + "z" * 100, hashed) is True
 
     def test_special_characters_in_password(self):
         """Test passwords with special characters"""
