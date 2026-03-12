@@ -1,15 +1,13 @@
-name: Automated Database Backups
+name: Database Backups
 
 on:
   schedule:
-    # Daily at 2 AM UTC - Cloudflare R2 (Primary)
-    - cron: '0 2 * * *'
-    # Weekly on Sundays at 3 AM UTC - AWS S3 (Secondary)
-    - cron: '0 3 * * 0'
-  workflow_dispatch:  # Allow manual trigger
+    - cron: '0 2 * * *'     # Daily at 2 AM UTC
+    - cron: '0 3 * * 0'     # Weekly Sundays at 3 AM UTC
+  workflow_dispatch:
     inputs:
       provider:
-        description: 'Backup provider (r2, s3, or both)'
+        description: 'Backup destination (r2, s3, or both)'
         required: false
         default: 'both'
         type: choice
@@ -21,76 +19,74 @@ on:
 jobs:
   backup:
     runs-on: ubuntu-latest
-    
+
     steps:
-    - name: Determine backup provider
-      id: provider
-      run: |
-        # Manual trigger - use input
-        if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-          echo "provider=${{ github.event.inputs.provider }}" >> $GITHUB_OUTPUT
-        # Daily schedule - R2
-        elif [ "$(date +%u)" != "7" ]; then
-          echo "provider=r2" >> $GITHUB_OUTPUT
-        # Sunday - both providers
-        else
-          echo "provider=both" >> $GITHUB_OUTPUT
-        fi
-    
-    - name: Test backup configuration
-      run: |
-        echo "Testing backup configuration..."
-        response=$(curl -X POST \
-          -H "X-Backup-Token: ${{ secrets.BACKUP_TOKEN }}" \
-          -H "Content-Type: application/json" \
-          --fail-with-body \
-          --show-error \
-          --max-time 30 \
-          "https://ai-study-architect.onrender.com/api/v1/backup/test")
-        echo "Test response: $response"
-    
-    - name: Trigger R2 backup (Primary)
-      if: steps.provider.outputs.provider == 'r2' || steps.provider.outputs.provider == 'both'
-      run: |
-        echo "Triggering Cloudflare R2 backup (PRIMARY)..."
-        response=$(curl -X POST \
-          -H "X-Backup-Token: ${{ secrets.BACKUP_TOKEN }}" \
-          -H "Content-Type: application/json" \
-          -d '{"provider": "r2"}' \
-          --show-error \
-          --max-time 300 \
-          -w "\nHTTP Status: %{http_code}\n" \
-          "https://ai-study-architect.onrender.com/api/v1/backup/trigger")
-        echo "R2 backup response: $response"
-        
-        if echo "$response" | grep -q "HTTP Status: 500"; then
-          echo "Error details from response:"
-          echo "$response" | head -n -1
-          exit 1
-        fi
-    
-    - name: Trigger S3 backup (Secondary)
-      if: steps.provider.outputs.provider == 's3' || steps.provider.outputs.provider == 'both'
-      run: |
-        echo "Triggering AWS S3 backup (SECONDARY)..."
-        response=$(curl -X POST \
-          -H "X-Backup-Token: ${{ secrets.BACKUP_TOKEN }}" \
-          -H "Content-Type: application/json" \
-          -d '{"provider": "s3"}' \
-          --show-error \
-          --max-time 300 \
-          -w "\nHTTP Status: %{http_code}\n" \
-          "https://ai-study-architect.onrender.com/api/v1/backup/trigger")
-        echo "S3 backup response: $response"
-        
-        if echo "$response" | grep -q "HTTP Status: 500"; then
-          echo "Error details from response:"
-          echo "$response" | head -n -1
-          exit 1
-        fi
-    
-    - name: Notify on failure
-      if: failure()
-      run: |
-        echo "Backup failed! Check GitHub Actions logs."
-        # Add Slack/Discord webhook here if you want
+      - name: Install PostgreSQL client
+        run: |
+          sudo sh -c 'echo "deb https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
+          curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo gpg --dearmor -o /etc/apt/trusted.gpg.d/postgresql.gpg
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client-17
+
+      - name: Determine provider
+        id: provider
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "provider=${{ github.event.inputs.provider }}" >> $GITHUB_OUTPUT
+          elif [ "$(date +%u)" = "7" ]; then
+            echo "provider=both" >> $GITHUB_OUTPUT
+          else
+            echo "provider=r2" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Dump database
+        run: |
+          DATE=$(date +%Y-%m-%d)
+          pg_dump "${{ secrets.NEON_DATABASE_URL }}" | gzip > backup-${DATE}.sql.gz
+          echo "BACKUP_FILE=backup-${DATE}.sql.gz" >> $GITHUB_ENV
+          echo "BACKUP_DATE=${DATE}" >> $GITHUB_ENV
+
+      - name: Upload to R2
+        if: steps.provider.outputs.provider == 'r2' || steps.provider.outputs.provider == 'both'
+        env:
+          R2_ENDPOINT_URL: ${{ secrets.R2_ENDPOINT_URL }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+        run: |
+          pip install boto3
+          python3 -c "
+          import boto3, os
+          s3 = boto3.client('s3',
+              endpoint_url=os.environ['R2_ENDPOINT_URL'],
+              aws_access_key_id=os.environ['R2_ACCESS_KEY_ID'],
+              aws_secret_access_key=os.environ['R2_SECRET_ACCESS_KEY'])
+          s3.upload_file(
+              os.environ['BACKUP_FILE'],
+              'study-architect-storage',
+              f'backups/{os.environ[\"BACKUP_DATE\"]}/{os.environ[\"BACKUP_FILE\"]}')
+          print('R2 upload complete')
+          "
+
+      - name: Upload to S3
+        if: steps.provider.outputs.provider == 's3' || steps.provider.outputs.provider == 'both'
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        run: |
+          pip install boto3
+          python3 -c "
+          import boto3, os
+          s3 = boto3.client('s3',
+              aws_access_key_id=os.environ['AWS_ACCESS_KEY_ID'],
+              aws_secret_access_key=os.environ['AWS_SECRET_ACCESS_KEY'])
+          s3.upload_file(
+              os.environ['BACKUP_FILE'],
+              'ai-study-architect-backup-2025',
+              f'backups/production/aws_s3/{os.environ[\"BACKUP_FILE\"]}')
+          print('S3 upload complete')
+          "
+
+      - name: Notify on failure
+        if: failure()
+        run: |
+          echo "Backup failed! Check GitHub Actions logs."
