@@ -5,12 +5,10 @@ from typing import Any, Dict, List, Optional
 from datetime import datetime, timedelta
 import logging
 
+import json as json_module
 from pydantic import BaseModel, Field
-from langchain_core.messages import HumanMessage, AIMessage
-from langchain_core.prompts import ChatPromptTemplate
-from langchain_core.output_parsers import JsonOutputParser
 
-from app.agents.base import BaseAgent, AgentResponse
+from app.agents.base import BaseAgent, AgentResponse, HumanMessage, AIMessage
 from app.models.user import User
 from app.models.study_session import StudySession
 from app.models.content import Content
@@ -22,6 +20,7 @@ logger = logging.getLogger(__name__)
 
 class LeadTutorState(BaseModel):
     """State specific to the Lead Tutor Agent"""
+
     current_topic: Optional[str] = None
     learning_style: Optional[str] = None
     difficulty_level: str = "intermediate"
@@ -33,7 +32,7 @@ class LeadTutorState(BaseModel):
 class LeadTutorAgent(BaseAgent):
     """
     The Lead Tutor Agent orchestrates the entire learning experience.
-    
+
     Responsibilities:
     - Understand student's learning goals and current knowledge
     - Create personalized study plans
@@ -42,15 +41,12 @@ class LeadTutorAgent(BaseAgent):
     - Provide encouragement and motivation
     - Track progress and suggest next steps
     """
-    
+
     def __init__(self, agent_id: str = "lead_tutor", **kwargs) -> None:
         # Default to Claude for educational tasks - it excels at Socratic questioning
         super().__init__(agent_id=agent_id, model_preference="claude", **kwargs)
         self.tutor_state = LeadTutorState()
-        
-        # Initialize output parser for structured responses
-        self.json_parser = JsonOutputParser()
-    
+
     def get_system_prompt(self) -> str:
         """Get the system prompt for the Lead Tutor"""
         return """You are an expert AI tutor in the Study Architect system. Your role is to:
@@ -71,11 +67,11 @@ You should be:
 - Proactive in identifying knowledge gaps
 
 Always structure your responses clearly and provide actionable next steps."""
-    
+
     def process(self, input_data: Dict[str, Any]) -> AgentResponse:
         """
         Process student input and orchestrate the learning experience.
-        
+
         Expected input_data keys:
         - user_input: The student's message or question
         - user_id: The student's ID
@@ -87,10 +83,10 @@ Always structure your responses clearly and provide actionable next steps."""
             user_id = input_data.get("user_id")
             session_id = input_data.get("session_id")
             action = input_data.get("action", "general")
-            
+
             # Update state
             self.update_state(user_id=user_id, session_id=session_id)
-            
+
             # Route to appropriate handler based on action
             if action == "create_plan":
                 return self._create_study_plan(user_input, input_data)
@@ -102,19 +98,32 @@ Always structure your responses clearly and provide actionable next steps."""
                 return self._provide_feedback(input_data)
             else:
                 return self._general_interaction(user_input, input_data)
-                
+
         except Exception as e:
             return self.handle_error(e, f"processing {action} action")
-    
+
+    def _parse_json_response(self, response: str) -> dict:
+        """Parse JSON from LLM response, stripping markdown fences if present."""
+        text = response.strip()
+        if text.startswith("```"):
+            first_newline = text.index("\n")
+            text = text[first_newline + 1 :]
+            if text.rstrip().endswith("```"):
+                text = text.rstrip()[:-3]
+        return json_module.loads(text)
+
     def _create_study_plan(self, user_input: str, context: Dict[str, Any]) -> AgentResponse:
         """Create a personalized study plan based on student goals"""
-        
-        # Create prompt for study plan generation
-        plan_prompt = ChatPromptTemplate.from_messages([
-            ("system", self.get_system_prompt()),
-            ("human", """Based on the following learning goal, create a detailed study plan:
 
-Goal: {goal}
+        knowledge_level = context.get("knowledge_level", "beginner")
+        time_available = context.get("time_available", "flexible")
+        learning_style = context.get("learning_style", self.tutor_state.learning_style or "visual")
+
+        plan_prompt = f"""{self.get_system_prompt()}
+
+Based on the following learning goal, create a detailed study plan:
+
+Goal: {user_input}
 Current Knowledge Level: {knowledge_level}
 Available Time: {time_available}
 Learning Style: {learning_style}
@@ -150,65 +159,53 @@ Format your response as a JSON object with the following structure:
         }}
     ],
     "recommendations": ["recommendation1", "recommendation2"]
-}}""")
-        ])
-        
-        # Extract context
-        knowledge_level = context.get("knowledge_level", "beginner")
-        time_available = context.get("time_available", "flexible")
-        learning_style = context.get("learning_style", self.tutor_state.learning_style or "visual")
-        
-        # Generate the plan
-        messages = plan_prompt.format_messages(
-            goal=user_input,
-            knowledge_level=knowledge_level,
-            time_available=time_available,
-            learning_style=learning_style
-        )
-        
-        response = self.invoke_llm(messages[0].content + "\n" + messages[1].content)
-        
+}}"""
+
+        response = self.invoke_llm(plan_prompt)
+
         try:
             # Log the raw response for debugging
             logger.info(f"Raw LLM response for study plan: {response[:200]}...")
-            
+
             # Parse the JSON response
-            plan_data = self.json_parser.parse(response)
-            
+            plan_data = self._parse_json_response(response)
+
             # Create StudyPlan object
             study_plan = StudyPlan(
                 title=plan_data["title"],
                 description=plan_data["description"],
-                objectives=[
-                    LearningObjective(**obj) for obj in plan_data["objectives"]
-                ],
+                objectives=[LearningObjective(**obj) for obj in plan_data["objectives"]],
                 total_hours=plan_data["total_hours"],
-                created_by=self.agent_id
+                created_by=self.agent_id,
             )
-            
+
             # Update state
             self.tutor_state.current_plan = study_plan
             self.tutor_state.current_topic = user_input
-            
+
             # Add to conversation memory
             self.add_message(HumanMessage(content=user_input))
-            self.add_message(AIMessage(content=f"I've created a personalized study plan for: {plan_data['title']}"))
-            
+            self.add_message(
+                AIMessage(
+                    content=f"I've created a personalized study plan for: {plan_data['title']}"
+                )
+            )
+
             return AgentResponse(
                 success=True,
                 message="Study plan created successfully",
                 data={
                     "study_plan": study_plan.model_dump(),
                     "milestones": plan_data.get("milestones", []),
-                    "recommendations": plan_data.get("recommendations", [])
+                    "recommendations": plan_data.get("recommendations", []),
                 },
-                metadata={"action": "create_plan", "agent_id": self.agent_id}
+                metadata={"action": "create_plan", "agent_id": self.agent_id},
             )
-            
+
         except Exception as e:
             logger.error(f"Error parsing study plan response: {str(e)}")
             logger.error(f"Raw response was: {response}")
-            
+
             # Fallback to a simpler approach
             try:
                 # Create a basic study plan from the text response
@@ -221,48 +218,51 @@ Format your response as a JSON object with the following structure:
                             title="Foundation",
                             description="Build foundational knowledge",
                             estimated_hours=10,
-                            difficulty="beginner"
+                            difficulty="beginner",
                         ),
                         LearningObjective(
-                            id="obj2", 
+                            id="obj2",
                             title="Practice",
                             description="Apply knowledge through practice",
                             estimated_hours=15,
-                            difficulty="intermediate"
-                        )
+                            difficulty="intermediate",
+                        ),
                     ],
                     total_hours=25,
-                    created_by=self.agent_id
+                    created_by=self.agent_id,
                 )
-                
+
                 return AgentResponse(
                     success=True,
                     message="Created a basic study plan. For a more detailed plan, please try again.",
                     data={
                         "study_plan": study_plan.model_dump(),
                         "raw_response": response[:500],
-                        "note": "The AI generated a text response instead of structured data"
+                        "note": "The AI generated a text response instead of structured data",
                     },
-                    metadata={"action": "create_plan", "agent_id": self.agent_id}
+                    metadata={"action": "create_plan", "agent_id": self.agent_id},
                 )
             except Exception as fallback_error:
                 return AgentResponse(
                     success=False,
                     message="Failed to create study plan",
-                    errors=[f"Could not parse plan: {str(e)}", f"Fallback also failed: {str(fallback_error)}"],
-                    metadata={"action": "create_plan", "agent_id": self.agent_id}
+                    errors=[
+                        f"Could not parse plan: {str(e)}",
+                        f"Fallback also failed: {str(fallback_error)}",
+                    ],
+                    metadata={"action": "create_plan", "agent_id": self.agent_id},
                 )
-    
+
     def _explain_concept(self, concept: str, context: Dict[str, Any]) -> AgentResponse:
         """Explain a concept in a way tailored to the student's learning style"""
-        
+
         learning_style = context.get("learning_style", self.tutor_state.learning_style or "visual")
         prior_knowledge = context.get("prior_knowledge", [])
-        
+
         explanation_prompt = f"""Explain the concept: {concept}
 
 Student's learning style: {learning_style}
-Prior knowledge: {', '.join(prior_knowledge) if prior_knowledge else 'Basic understanding'}
+Prior knowledge: {", ".join(prior_knowledge) if prior_knowledge else "Basic understanding"}
 
 Provide a clear, engaging explanation that:
 1. Starts with a simple overview
@@ -272,28 +272,24 @@ Provide a clear, engaging explanation that:
 5. Suggests ways to practice or apply this knowledge
 
 Format your response with clear sections and emphasis on important terms."""
-        
+
         messages = self.format_prompt(explanation_prompt)
         response = self.invoke_llm(messages[0].content + "\n" + messages[-1].content)
-        
+
         # Add to conversation memory
         self.add_message(HumanMessage(content=f"Explain: {concept}"))
         self.add_message(AIMessage(content=response))
-        
+
         return AgentResponse(
             success=True,
             message="Concept explained",
-            data={
-                "concept": concept,
-                "explanation": response,
-                "learning_style": learning_style
-            },
-            metadata={"action": "explain_concept", "agent_id": self.agent_id}
+            data={"concept": concept, "explanation": response, "learning_style": learning_style},
+            metadata={"action": "explain_concept", "agent_id": self.agent_id},
         )
-    
+
     def _check_understanding(self, topic: str, context: Dict[str, Any]) -> AgentResponse:
         """Generate questions to check student understanding"""
-        
+
         check_prompt = f"""Create 3-5 questions to check understanding of: {topic}
 
 Difficulty level: {self.tutor_state.difficulty_level}
@@ -317,90 +313,89 @@ Format as JSON:
         }}
     ]
 }}"""
-        
+
         response = self.invoke_llm(check_prompt)
-        
+
         try:
-            questions_data = self.json_parser.parse(response)
-            
+            questions_data = self._parse_json_response(response)
+
             return AgentResponse(
                 success=True,
                 message="Understanding check questions generated",
-                data={
-                    "topic": topic,
-                    "questions": questions_data["questions"]
-                },
-                metadata={"action": "check_understanding", "agent_id": self.agent_id}
+                data={"topic": topic, "questions": questions_data["questions"]},
+                metadata={"action": "check_understanding", "agent_id": self.agent_id},
             )
-            
+
         except Exception as e:
             return self.handle_error(e, "generating understanding check questions")
-    
+
     def _provide_feedback(self, context: Dict[str, Any]) -> AgentResponse:
         """Provide feedback on student performance"""
-        
+
         performance_data = context.get("performance", {})
         completed_objectives = context.get("completed_objectives", [])
-        
+
         feedback_prompt = f"""Provide constructive feedback based on the following performance:
 
-Correct answers: {performance_data.get('correct', 0)}
-Total questions: {performance_data.get('total', 0)}
-Topics struggled with: {', '.join(performance_data.get('struggled_topics', []))}
-Time taken: {performance_data.get('time_taken', 'unknown')}
+Correct answers: {performance_data.get("correct", 0)}
+Total questions: {performance_data.get("total", 0)}
+Topics struggled with: {", ".join(performance_data.get("struggled_topics", []))}
+Time taken: {performance_data.get("time_taken", "unknown")}
 
 Be encouraging while identifying areas for improvement. Suggest specific next steps."""
-        
+
         response = self.invoke_llm(feedback_prompt)
-        
+
         # Update completed objectives
         self.tutor_state.completed_objectives.extend(completed_objectives)
-        
+
         return AgentResponse(
             success=True,
             message="Feedback provided",
             data={
                 "feedback": response,
                 "performance_summary": performance_data,
-                "next_steps": self._generate_next_steps(performance_data)
+                "next_steps": self._generate_next_steps(performance_data),
             },
-            metadata={"action": "provide_feedback", "agent_id": self.agent_id}
+            metadata={"action": "provide_feedback", "agent_id": self.agent_id},
         )
-    
+
     def _general_interaction(self, user_input: str, context: Dict[str, Any]) -> AgentResponse:
         """Handle general tutoring interactions"""
-        
+
         # Use conversation history for context
         messages = self.format_prompt(user_input)
         response = self.invoke_llm(messages[0].content + "\n" + messages[-1].content)
-        
+
         # Add to conversation memory
         self.add_message(HumanMessage(content=user_input))
         self.add_message(AIMessage(content=response))
-        
+
         # Try to extract any actionable items from the response
         actionable_items = self._extract_actionable_items(response)
-        
+
         return AgentResponse(
             success=True,
             message="Response generated",
             data={
                 "response": response,
                 "actionable_items": actionable_items,
-                "conversation_length": len(self.get_messages())
+                "conversation_length": len(self.get_messages()),
             },
-            metadata={"action": "general", "agent_id": self.agent_id}
+            metadata={"action": "general", "agent_id": self.agent_id},
         )
-    
+
     def _generate_next_steps(self, performance_data: Dict[str, Any]) -> List[str]:
         """Generate recommended next steps based on performance"""
-        accuracy = performance_data.get('correct', 0) / max(performance_data.get('total', 1), 1)
-        
+        accuracy = performance_data.get("correct", 0) / max(performance_data.get("total", 1), 1)
+
         next_steps = []
-        
+
         if accuracy >= 0.9:
             next_steps.append("Excellent work! Consider moving to more advanced topics.")
-            next_steps.append("Try teaching this concept to someone else to solidify understanding.")
+            next_steps.append(
+                "Try teaching this concept to someone else to solidify understanding."
+            )
         elif accuracy >= 0.7:
             next_steps.append("Good progress! Review the topics you struggled with.")
             next_steps.append("Practice more problems in those specific areas.")
@@ -408,26 +403,33 @@ Be encouraging while identifying areas for improvement. Suggest specific next st
             next_steps.append("Let's revisit the fundamentals of this topic.")
             next_steps.append("Break down the concepts into smaller parts.")
             next_steps.append("Consider different learning resources or approaches.")
-        
+
         return next_steps
-    
+
     def _extract_actionable_items(self, response: str) -> List[str]:
         """Extract actionable items from a response"""
         actionable_keywords = [
-            "try", "practice", "review", "study", "complete",
-            "solve", "work through", "focus on", "consider"
+            "try",
+            "practice",
+            "review",
+            "study",
+            "complete",
+            "solve",
+            "work through",
+            "focus on",
+            "consider",
         ]
-        
+
         items = []
-        sentences = response.split('.')
-        
+        sentences = response.split(".")
+
         for sentence in sentences:
             sentence_lower = sentence.lower().strip()
             if any(keyword in sentence_lower for keyword in actionable_keywords):
                 items.append(sentence.strip() + ".")
-        
+
         return items[:5]  # Limit to 5 actionable items
-    
+
     def adapt_difficulty(self, performance_score: float) -> None:
         """Adapt difficulty based on student performance"""
         if performance_score >= 0.9:
@@ -440,17 +442,19 @@ Be encouraging while identifying areas for improvement. Suggest specific next st
                 self.tutor_state.difficulty_level = "intermediate"
             elif self.tutor_state.difficulty_level == "intermediate":
                 self.tutor_state.difficulty_level = "beginner"
-    
+
     def get_progress_summary(self) -> Dict[str, Any]:
         """Get a summary of the student's progress"""
         total_objectives = len(self.tutor_state.session_goals)
         completed = len(self.tutor_state.completed_objectives)
-        
+
         return {
             "total_objectives": total_objectives,
             "completed_objectives": completed,
-            "progress_percentage": (completed / total_objectives * 100) if total_objectives > 0 else 0,
+            "progress_percentage": (completed / total_objectives * 100)
+            if total_objectives > 0
+            else 0,
             "current_topic": self.tutor_state.current_topic,
             "difficulty_level": self.tutor_state.difficulty_level,
-            "completed_items": self.tutor_state.completed_objectives
+            "completed_items": self.tutor_state.completed_objectives,
         }
