@@ -42,6 +42,7 @@ jobs:
           JWT_SECRET_KEY: test-secret
           SECRET_KEY: test-secret
           DATABASE_URL: postgresql+psycopg2://test:test@localhost:5432/test_db
+          RATELIMIT_ENABLED: "false"
 
       - name: Set up Node
         uses: actions/setup-node@v4
