@@ -7,6 +7,15 @@ import { render, screen, fireEvent, waitFor, mockTokens } from '../../../test/te
 import { LoginForm } from '../LoginForm'
 import * as AuthContext from '../../../contexts/AuthContext'
 
+const mockNavigate = vi.fn()
+vi.mock('react-router-dom', async () => {
+  const actual = await vi.importActual('react-router-dom')
+  return {
+    ...actual,
+    useNavigate: () => mockNavigate,
+  }
+})
+
 describe('LoginForm', () => {
   const mockLogin = vi.fn()
   const mockClearError = vi.fn()
@@ -289,17 +298,7 @@ describe('LoginForm', () => {
   })
 
   describe('Navigation', () => {
-    it('redirects to home when user is already logged in', () => {
-      const mockNavigate = vi.fn()
-
-      vi.mock('react-router-dom', async () => {
-        const actual = await vi.importActual('react-router-dom')
-        return {
-          ...actual,
-          useNavigate: () => mockNavigate,
-        }
-      })
-
+    it('redirects to home when user is already logged in', async () => {
       vi.spyOn(AuthContext, 'useAuth').mockReturnValue({
         user: { id: '123', email: 'user@example.com' },
         login: mockLogin,
@@ -312,8 +311,9 @@ describe('LoginForm', () => {
 
       render(<LoginForm />)
 
-      // Navigation happens in useEffect, so we just verify the user state
-      // In a real scenario, you'd use a router testing library
+      await waitFor(() => {
+        expect(mockNavigate).toHaveBeenCalledWith('/')
+      })
     })
   })
 
@@ -352,8 +352,8 @@ describe('LoginForm', () => {
 
       fireEvent.change(passwordInput, { target: { value: 'password123' } })
 
-      // Submit using Enter key
-      fireEvent.keyDown(form, { key: 'Enter', code: 'Enter' })
+      // Submit the form
+      fireEvent.submit(form)
 
       await waitFor(() => {
         expect(mockLogin).toHaveBeenCalled()

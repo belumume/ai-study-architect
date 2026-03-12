@@ -86,7 +86,7 @@ export const LoginForm: React.FC = () => {
           </Alert>
         )}
 
-        <form onSubmit={handleSubmit(onSubmit)}>
+        <form onSubmit={handleSubmit(onSubmit)} aria-label="Sign in form">
           <TextField
             fullWidth
             label="Username"
