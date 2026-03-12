@@ -63,7 +63,7 @@ jobs:
     - name: Run frontend tests
       run: |
         cd frontend
-        npx vitest run --dangerouslyIgnoreUnhandledErrors
+        npx vitest run
 
     - name: Build frontend
       run: |
