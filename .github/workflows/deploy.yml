@@ -81,6 +81,8 @@ jobs:
           alembic upgrade head
         env:
           DATABASE_URL: ${{ secrets.NEON_DATABASE_URL }}
+          SECRET_KEY: migration-only
+          JWT_SECRET_KEY: migration-only
 
   deploy:
     needs: migrate
