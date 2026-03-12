@@ -13,14 +13,6 @@ afterEach(() => {
   vi.clearAllMocks()
 })
 
-// Suppress jsdom DataCloneError from axios's transformRequest
-// jsdom's XMLHttpRequest uses structured clone which can't serialize functions.
-// This is a jsdom limitation, not a test or application bug.
-process.on('unhandledRejection', (error: any) => {
-  if (error?.name === 'DataCloneError') return
-  throw error
-})
-
 // Mock window.matchMedia
 Object.defineProperty(window, 'matchMedia', {
   writable: true,

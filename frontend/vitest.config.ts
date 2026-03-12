@@ -10,7 +10,6 @@ export default defineConfig({
     setupFiles: './src/test/setup.ts',
     css: true,
     exclude: ['tests/**', 'node_modules/**'],
-    pool: 'vmThreads',
   },
   resolve: {
     alias: {
