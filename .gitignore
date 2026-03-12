@@ -745,3 +745,8 @@ comprehensive_*.py
 diagnostic_*.py
 windows_*.py
 sync_*.py
+# Superpowers brainstorm sessions
+.superpowers/
+
+# Playwright MCP artifacts
+.playwright-mcp/
