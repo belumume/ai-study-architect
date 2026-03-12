@@ -8,53 +8,61 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
-// Build the mock axios instance with interceptor tracking
-const requestInterceptors: Array<{ fulfilled: Function; rejected?: Function }> = []
-const responseInterceptors: Array<{ fulfilled: Function; rejected?: Function }> = []
+// vi.hoisted runs before vi.mock hoisting — safe to reference in mock factories
+const {
+  requestInterceptors,
+  responseInterceptors,
+  mockAxiosInstance,
+  mockTokenStorage,
+} = vi.hoisted(() => {
+  const requestInterceptors: Array<{ fulfilled: Function; rejected?: Function }> = []
+  const responseInterceptors: Array<{ fulfilled: Function; rejected?: Function }> = []
 
-const mockAxiosInstance = {
-  defaults: {
-    baseURL: '',
-    headers: { 'Content-Type': 'application/json' } as Record<string, any>,
-    withCredentials: true,
-  },
-  interceptors: {
-    request: {
-      use: vi.fn((fulfilled, rejected) => {
-        requestInterceptors.push({ fulfilled, rejected })
-        return requestInterceptors.length - 1
-      }),
-      clear: vi.fn(),
+  const mockAxiosInstance = {
+    defaults: {
+      baseURL: '',
+      headers: { 'Content-Type': 'application/json' } as Record<string, any>,
+      withCredentials: true,
     },
-    response: {
-      use: vi.fn((fulfilled, rejected) => {
-        responseInterceptors.push({ fulfilled, rejected })
-        return responseInterceptors.length - 1
-      }),
-      clear: vi.fn(),
+    interceptors: {
+      request: {
+        use: vi.fn((fulfilled: Function, rejected?: Function) => {
+          requestInterceptors.push({ fulfilled, rejected })
+          return requestInterceptors.length - 1
+        }),
+        clear: vi.fn(),
+      },
+      response: {
+        use: vi.fn((fulfilled: Function, rejected?: Function) => {
+          responseInterceptors.push({ fulfilled, rejected })
+          return responseInterceptors.length - 1
+        }),
+        clear: vi.fn(),
+      },
     },
-  },
-  get: vi.fn(),
-  post: vi.fn(),
-  put: vi.fn(),
-  delete: vi.fn(),
-  patch: vi.fn(),
-  request: vi.fn(),
-}
+    get: vi.fn(),
+    post: vi.fn(),
+    put: vi.fn(),
+    delete: vi.fn(),
+    patch: vi.fn(),
+    request: vi.fn(),
+  }
+
+  const mockTokenStorage = {
+    getAccessToken: vi.fn(),
+    getRefreshToken: vi.fn(),
+    setTokens: vi.fn(),
+    clearTokens: vi.fn(),
+  }
+
+  return { requestInterceptors, responseInterceptors, mockAxiosInstance, mockTokenStorage }
+})
 
 vi.mock('axios', () => ({
   default: {
     create: vi.fn(() => mockAxiosInstance),
   },
 }))
-
-// Mock tokenStorage
-const mockTokenStorage = {
-  getAccessToken: vi.fn(),
-  getRefreshToken: vi.fn(),
-  setTokens: vi.fn(),
-  clearTokens: vi.fn(),
-}
 
 vi.mock('../tokenStorage', () => ({
   default: mockTokenStorage,
