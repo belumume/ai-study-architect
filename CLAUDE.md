@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **Study Architect** by Quantelect — Mastery-based AI study companion that proves you learned it. Currently focused on CS education as beachhead market. Uses Claude API (primary) and OpenAI (fallback).
 
-**Live**: https://ai-study-architect.onrender.com | https://aistudyarchitect.com
+**Live**: https://aistudyarchitect.com
 **Core Philosophy**: "Build cognitive strength, not cognitive debt"
 **Strategic Direction**: See [docs/direction/NEW_DIRECTION_2025.md](docs/direction/NEW_DIRECTION_2025.md)
 **Design Direction**: Analytics Pro "cyberpunk telemetry" aesthetic — see [design/PRD.md](design/PRD.md)
@@ -413,12 +413,14 @@ grep -A 10 "security_headers" backend/app/main.py && echo "[OK] Security headers
 - Database passwords with special chars need `quote_plus()` encoding
 - May need to uncomment `python-magic-bin` in requirements.txt for file processing
 
-### Render Platform Constraints
-- No root access (use Python packages, not apt-get)
-- Starter plan benefits: SSH access, no spin-down, persistent disk
-- Pre-Deploy command MUST be empty in Render dashboard
-- Database upgraded to Basic-256mb plan ($6/month, expires Sept 6, 2025)
-- Uses `python-magic` (not python-magic-bin) for file type detection
+### Cloudflare Containers
+- Backend runs in CF Container (Docker, basic instance: 1/4 vCPU, 1 GiB)
+- Worker routes /api/* to Container (singleton Durable Objects pattern)
+- Scale-to-zero: container sleeps after 5 min idle, ~2-5s cold start
+- Database: Neon PostgreSQL (serverless, auto-suspend)
+- Storage: R2 (S3-compatible, file uploads + backups)
+- Cache: Upstash Redis (REST API)
+- Deploy: `cd worker && npx wrangler deploy`
 
 ### Vercel Frontend Hosting
 - SPA routing configured via `vercel.json`
@@ -427,7 +429,7 @@ grep -A 10 "security_headers" backend/app/main.py && echo "[OK] Security headers
 - Environment variables managed via Vercel dashboard
 
 ### Cloudflare Worker Routing
-- Routes https://aistudyarchitect.com/api/* to backend (Render)
+- Routes https://aistudyarchitect.com/api/* to backend (CF Container)
 - MUST NOT strip /api prefix - backend expects full paths
 - Returns 404 for /api/docs, /api/openapi.json, /api/redoc (security)
 - Handles CORS for cross-origin requests
@@ -441,8 +443,8 @@ grep -A 10 "security_headers" backend/app/main.py && echo "[OK] Security headers
 - **Documentation** - See docs/README.md for organized doc navigation
 
 ### Database & Backend
-- **Pre-Deploy MUST be empty** - Any migration command will fail on Render
-- **Port 5433 on Windows** - PostgreSQL uses non-standard port
+- **Neon for migrations** - Use direct (non-pooled) connection for `alembic upgrade head`
+- **Port 5432 on Windows** - Local PostgreSQL for development
 - **NEVER change BACKUP_ENCRYPTION_KEY** - Will lose access to all previous backups
 - **MockRedisClient fallback** - No external Redis needed, uses in-memory fallback
 - **API keys at runtime** - Services must check keys at runtime, not import time
@@ -454,7 +456,7 @@ grep -A 10 "security_headers" backend/app/main.py && echo "[OK] Security headers
 - **CSRF protection** - Double-submit cookie pattern with strategic exemptions
 
 ### Frontend & Deployment
-- **Frontend on Vercel** - Not Render, requires `vercel.json` for SPA routing
+- **Frontend on Vercel** - Requires `vercel.json` for SPA routing
 - **Cloudflare Worker routing** - MUST NOT strip /api prefix, backend expects full paths
 - **API docs blocked** - Worker returns 404 for /api/docs, /api/openapi.json, /api/redoc
 - **Browser caching** - Chrome aggressively caches ES modules, use cache-busting strategies
