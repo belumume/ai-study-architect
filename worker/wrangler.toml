@@ -1,0 +1,17 @@
+name = "study-architect"
+main = "src/index.ts"
+compatibility_date = "2026-01-10"
+
+[[containers]]
+class_name = "StudyArchitectBackend"
+image = "../backend"
+instance_type = "basic"
+max_instances = 1
+
+[[durable_objects.bindings]]
+name = "BACKEND"
+class_name = "StudyArchitectBackend"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["StudyArchitectBackend"]
