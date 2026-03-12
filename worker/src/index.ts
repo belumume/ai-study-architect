@@ -8,7 +8,9 @@ export class StudyArchitectBackend extends Container {
 }
 
 interface Env {
-  BACKEND: DurableObjectNamespace<StudyArchitectBackend>;
+  BACKEND: DurableObjectNamespace & {
+    getByName(name: string): StudyArchitectBackend;
+  };
 }
 
 const ALLOWED_ORIGINS = [
@@ -45,9 +47,7 @@ export default {
 
     // Route /api/* to the container (singleton pattern — single backend instance)
     if (url.pathname.startsWith("/api/") || url.pathname === "/health" || url.pathname === "/health/ready") {
-      const container = env.BACKEND.get(
-        env.BACKEND.idFromName("singleton")
-      ) as unknown as StudyArchitectBackend;
+      const container = env.BACKEND.getByName("singleton");
       await container.startAndWaitForPorts();
       return container.fetch(request);
     }
