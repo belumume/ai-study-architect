@@ -4,6 +4,7 @@ CSRF protection tests
 
 import pytest
 import time
+from unittest.mock import patch
 from fastapi import Request, Response
 from fastapi.responses import JSONResponse
 from httpx import AsyncClient
@@ -350,18 +351,31 @@ class TestCSRFSecurityEdgeCases:
             csrf.validate_csrf_token(None, None)
 
     def test_token_lifetime_boundary(self):
-        """Test token at exact lifetime boundary"""
-        csrf = CSRFProtect(token_lifetime=1)  # 1 second
-        token = csrf.generate_csrf_token()
+        """Test token expiration using mocked time (deterministic, no sleeps)"""
+        csrf = CSRFProtect(token_lifetime=300)  # 5 minutes
+        base_time = 1700000000.0
 
-        # Should be valid immediately
-        assert csrf.validate_csrf_token(token, token) is True
+        # Generate token at t=0
+        with patch("app.core.csrf.time.time", return_value=base_time):
+            token = csrf.generate_csrf_token()
 
-        # Wait past lifetime
-        time.sleep(3)
-        with pytest.raises(CSRFError) as exc_info:
-            csrf.validate_csrf_token(token, token)
-        assert "expired" in str(exc_info.value).lower()
+        # Valid at t=0
+        with patch("app.core.csrf.time.time", return_value=base_time):
+            assert csrf.validate_csrf_token(token, token) is True
+
+        # Valid at t=299 (just under lifetime)
+        with patch("app.core.csrf.time.time", return_value=base_time + 299):
+            assert csrf.validate_csrf_token(token, token) is True
+
+        # Valid at t=300 (exactly at lifetime, uses > not >=)
+        with patch("app.core.csrf.time.time", return_value=base_time + 300):
+            assert csrf.validate_csrf_token(token, token) is True
+
+        # Expired at t=301 (just past lifetime)
+        with patch("app.core.csrf.time.time", return_value=base_time + 301):
+            with pytest.raises(CSRFError) as exc_info:
+                csrf.validate_csrf_token(token, token)
+            assert "expired" in str(exc_info.value).lower()
 
     def test_sql_injection_in_token(self):
         """Test that SQL injection attempts in tokens are safely handled"""

@@ -11,11 +11,11 @@ function sanitizeErrorMessage(message: string): string {
   // Redact potential API keys (patterns like sk-xxx, api_xxx, key_xxx)
   let sanitized = message.replace(/\b(sk|api|key)[-_][a-zA-Z0-9]{10,}\b/gi, '[REDACTED_KEY]')
 
+  // Redact potential URLs with credentials (before path redaction to avoid partial match)
+  sanitized = sanitized.replace(/https?:\/\/[^:]+:[^@]+@[^\s]+/g, '[REDACTED_URL]')
+
   // Redact potential file paths
   sanitized = sanitized.replace(/([A-Z]:\\|\/)[^\s)]+/g, '[REDACTED_PATH]')
-
-  // Redact potential URLs with credentials
-  sanitized = sanitized.replace(/https?:\/\/[^:]+:[^@]+@[^\s]+/g, '[REDACTED_URL]')
 
   // Redact email addresses
   sanitized = sanitized.replace(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g, '[REDACTED_EMAIL]')
