@@ -759,3 +759,6 @@ sync_*.py
 
 # RSA keys directory (JWT signing keys)
 backend/keys/
+
+# Local archive of removed files (not for GitHub)
+.local-archive/
