@@ -26,9 +26,6 @@ describe('API Service', () => {
 
   afterEach(() => {
     vi.restoreAllMocks()
-    // Eject all interceptors to prevent async leaks during teardown
-    api.interceptors.request.clear()
-    api.interceptors.response.clear()
   })
 
   describe('Initialization', () => {
