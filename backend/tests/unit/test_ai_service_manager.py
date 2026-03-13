@@ -578,11 +578,9 @@ class TestChatCompletionStreaming:
 
         assert result is gen
 
-    async def test_streaming_fallback_path_fails_because_generator_has_no_get(self):
-        """BUG documentation: The fallback (non-prefer) path calls
-        result.get('error') on an async generator, causing AttributeError
-        which is caught and the service is skipped. Streaming only works
-        reliably via the prefer_service path."""
+    async def test_streaming_fallback_path_returns_generator(self):
+        """Streaming via fallback path returns the generator directly
+        (fixed: previously called .get() on the generator)."""
 
         async def mock_stream():
             yield '{"response": "from fallback", "done": true}'
@@ -596,9 +594,8 @@ class TestChatCompletionStreaming:
             stream=True,
         )
 
-        # Falls through to "All AI services unavailable" because the
-        # generator doesn't have .get() and the AttributeError is caught
-        assert result["error"] == "All AI services unavailable"
+        # After fix: generator returned directly, not swallowed by .get() error
+        assert result is gen
 
 
 # ---------------------------------------------------------------------------
