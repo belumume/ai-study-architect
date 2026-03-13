@@ -22,7 +22,7 @@ from sqlalchemy import (
     Float,
     JSON,
     CheckConstraint,
-    UniqueConstraint
+    UniqueConstraint,
 )
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
@@ -34,6 +34,7 @@ from app.core.database import Base
 
 class DifficultyLevel(str, enum.Enum):
     """Difficulty levels for concepts"""
+
     BEGINNER = "beginner"
     INTERMEDIATE = "intermediate"
     ADVANCED = "advanced"
@@ -42,12 +43,13 @@ class DifficultyLevel(str, enum.Enum):
 
 class ConceptType(str, enum.Enum):
     """Types of learning concepts"""
-    DEFINITION = "definition"          # Basic definition or terminology
-    PROCEDURE = "procedure"            # Step-by-step process
-    PRINCIPLE = "principle"            # Fundamental rule or law
-    EXAMPLE = "example"                # Concrete example or case study
-    APPLICATION = "application"        # Practical application
-    COMPARISON = "comparison"          # Comparison between concepts
+
+    DEFINITION = "definition"  # Basic definition or terminology
+    PROCEDURE = "procedure"  # Step-by-step process
+    PRINCIPLE = "principle"  # Fundamental rule or law
+    EXAMPLE = "example"  # Concrete example or case study
+    APPLICATION = "application"  # Practical application
+    COMPARISON = "comparison"  # Comparison between concepts
 
 
 class Concept(Base):
@@ -69,16 +71,13 @@ class Concept(Base):
     __table_args__ = (
         CheckConstraint(
             "difficulty IN ('beginner', 'intermediate', 'advanced', 'expert')",
-            name="concept_difficulty_check"
+            name="concept_difficulty_check",
         ),
         CheckConstraint(
             "concept_type IN ('definition', 'procedure', 'principle', 'example', 'application', 'comparison')",
-            name="concept_type_check"
+            name="concept_type_check",
         ),
-        CheckConstraint(
-            "estimated_minutes >= 0",
-            name="concept_estimated_minutes_positive"
-        ),
+        CheckConstraint("estimated_minutes >= 0", name="concept_estimated_minutes_positive"),
     )
 
     # Primary key
@@ -96,7 +95,9 @@ class Concept(Base):
     estimated_minutes = Column(Integer, nullable=False, default=15)  # Time to master
 
     # Content relationship
-    content_id = Column(UUID(as_uuid=True), ForeignKey("content.id", ondelete="CASCADE"), nullable=False)
+    content_id = Column(
+        UUID(as_uuid=True), ForeignKey("content.id", ondelete="CASCADE"), nullable=False
+    )
 
     # Additional context
     examples = Column(JSON, nullable=True)  # List of example questions/scenarios
@@ -112,7 +113,7 @@ class Concept(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 
     # Relationships
-    content = relationship("Content", back_populates="concepts")
+    content = relationship("Content")
 
     # Concept dependencies (prerequisites)
     # A concept can have multiple prerequisites
@@ -120,7 +121,7 @@ class Concept(Base):
         "ConceptDependency",
         foreign_keys="ConceptDependency.dependent_concept_id",
         back_populates="dependent_concept",
-        cascade="all, delete-orphan"
+        cascade="all, delete-orphan",
     )
 
     # Concepts that depend on this one
@@ -128,7 +129,7 @@ class Concept(Base):
         "ConceptDependency",
         foreign_keys="ConceptDependency.prerequisite_concept_id",
         back_populates="prerequisite_concept",
-        cascade="all, delete-orphan"
+        cascade="all, delete-orphan",
     )
 
     def __repr__(self) -> str:
@@ -154,14 +155,9 @@ class ConceptDependency(Base):
     __table_args__ = (
         # Ensure unique prerequisite relationships
         UniqueConstraint(
-            'prerequisite_concept_id',
-            'dependent_concept_id',
-            name='unique_concept_dependency'
+            "prerequisite_concept_id", "dependent_concept_id", name="unique_concept_dependency"
         ),
-        CheckConstraint(
-            "strength >= 0.0 AND strength <= 1.0",
-            name="dependency_strength_range"
-        ),
+        CheckConstraint("strength >= 0.0 AND strength <= 1.0", name="dependency_strength_range"),
     )
 
     # Primary key
@@ -173,13 +169,13 @@ class ConceptDependency(Base):
         UUID(as_uuid=True),
         ForeignKey("concepts.id", ondelete="CASCADE"),
         nullable=False,
-        index=True
+        index=True,
     )
     dependent_concept_id = Column(
         UUID(as_uuid=True),
         ForeignKey("concepts.id", ondelete="CASCADE"),
         nullable=False,
-        index=True
+        index=True,
     )
 
     # Dependency metadata
@@ -191,14 +187,10 @@ class ConceptDependency(Base):
 
     # Relationships
     prerequisite_concept = relationship(
-        "Concept",
-        foreign_keys=[prerequisite_concept_id],
-        back_populates="dependents"
+        "Concept", foreign_keys=[prerequisite_concept_id], back_populates="dependents"
     )
     dependent_concept = relationship(
-        "Concept",
-        foreign_keys=[dependent_concept_id],
-        back_populates="prerequisites"
+        "Concept", foreign_keys=[dependent_concept_id], back_populates="prerequisites"
     )
 
     def __repr__(self) -> str:
