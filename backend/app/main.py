@@ -3,12 +3,14 @@ AI Study Architect - Main FastAPI Application
 """
 
 from fastapi import FastAPI, Request, Response, HTTPException, APIRouter
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 import logging
+import traceback
 from typing import Any
 
 # Configure logging FIRST (before any logger usage)
@@ -49,6 +51,18 @@ app.state.csrf_protect = csrf_protect
 # Add rate limiter to app state
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+
+@app.exception_handler(Exception)
+async def debug_exception_handler(request: Request, exc: Exception):
+    """Temporary debug handler — remove after diagnosing production ISE."""
+    tb = traceback.format_exception(type(exc), exc, exc.__traceback__)
+    logger.error(f"Unhandled exception on {request.url.path}: {''.join(tb)}")
+    return JSONResponse(
+        status_code=500,
+        content={"detail": str(exc), "type": type(exc).__name__},
+    )
+
 
 # CSRF middleware will be added as a regular middleware function below
 
