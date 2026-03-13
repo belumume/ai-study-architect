@@ -59,6 +59,28 @@ jobs:
           cd frontend
           npm test -- --run
 
+      - name: Security scan (privacy + secrets)
+        run: |
+          echo "=== Checking for hardcoded secrets ==="
+          ! grep -rn "sk-ant-api\|sk-proj-\|ghp_\|AKIA[0-9A-Z]" \
+            --include="*.py" --include="*.ts" --include="*.tsx" --include="*.js" \
+            --exclude-dir=node_modules --exclude-dir=venv --exclude-dir=.git \
+            backend/ frontend/ worker/ \
+          && echo "[OK] No hardcoded secrets found" \
+          || { echo "[FAIL] Possible secrets in source code"; exit 1; }
+
+          echo "=== Checking for personal paths in source ==="
+          PERSONAL_PATHS=$(grep -rn "C:\\\\Users\\\\[a-zA-Z]\|/home/[a-zA-Z]" \
+            --include="*.py" --include="*.ts" --include="*.tsx" --include="*.js" \
+            --exclude-dir=node_modules --exclude-dir=venv --exclude-dir=.git \
+            backend/ frontend/ worker/ 2>/dev/null || true)
+          if [ -n "$PERSONAL_PATHS" ]; then
+            echo "[WARN] Personal paths found:"
+            echo "$PERSONAL_PATHS"
+          else
+            echo "[OK] No personal paths in source"
+          fi
+
   migrate:
     needs: test
     runs-on: ubuntu-latest
