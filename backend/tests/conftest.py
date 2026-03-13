@@ -76,16 +76,9 @@ async def client(db_session: Session) -> AsyncClient:
 
     fastapi_app.dependency_overrides[get_db] = override_get_db
 
-    # Disable rate limiting for tests
-    from slowapi import Limiter
-    from slowapi.util import get_remote_address
-    disabled_limiter = Limiter(key_func=get_remote_address, enabled=False)
-    fastapi_app.state.limiter = disabled_limiter
-    # Also patch module-level limiters in route files
-    import app.api.v1.auth as auth_module
-    auth_module.limiter = disabled_limiter
-    import app.main as main_module
-    main_module.limiter = disabled_limiter
+    # Disable rate limiting for tests (shared limiter instance)
+    from app.core.rate_limiter import limiter as shared_limiter
+    shared_limiter.enabled = False
 
     transport = ASGITransport(app=fastapi_app)
     async with AsyncClient(transport=transport, base_url="http://localhost") as c:

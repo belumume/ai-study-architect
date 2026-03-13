@@ -5,9 +5,8 @@ AI Study Architect - Main FastAPI Application
 from fastapi import FastAPI, Request, Response, HTTPException, APIRouter
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
-from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi import _rate_limit_exceeded_handler
 from slowapi.middleware import SlowAPIMiddleware
-from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 import logging
 from typing import Any
@@ -34,8 +33,7 @@ except ImportError as e:
         return init_db_minimal(engine, Base)
 
 
-# Create rate limiter
-limiter = Limiter(key_func=get_remote_address)
+from app.core.rate_limiter import limiter
 
 # Create FastAPI app
 app = FastAPI(

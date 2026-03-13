@@ -5,7 +5,7 @@ import { Routes, Route, Link, Navigate } from 'react-router-dom'
 import { AccountCircle, ChatBubbleOutline, FolderOpen } from '@mui/icons-material'
 import { useState, useEffect } from 'react'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
-import { LoginForm, RegisterForm, ProtectedRoute } from './components/auth'
+import { LoginForm, RegisterForm, GuestRoute, ProtectedRoute } from './components/auth'
 import { ContentUpload, ContentList, ContentSelector } from './components/content'
 import { ChatInterface } from './components/chat'
 import { ErrorBoundary } from './components/ErrorBoundary'
@@ -103,8 +103,8 @@ function AppContent() {
         <Container maxWidth="lg">
           <ErrorBoundary>
             <Routes>
-              <Route path="/login" element={<LoginForm />} />
-              <Route path="/register" element={<RegisterForm />} />
+              <Route path="/login" element={<GuestRoute><LoginForm /></GuestRoute>} />
+              <Route path="/register" element={<GuestRoute><RegisterForm /></GuestRoute>} />
               <Route
                 path="/"
                 element={

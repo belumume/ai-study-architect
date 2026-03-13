@@ -9,9 +9,6 @@ from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, s
 from sqlalchemy.orm import Session, selectinload, joinedload
 from sqlalchemy import and_, func, select
 import hashlib
-from slowapi import Limiter
-from slowapi.util import get_remote_address
-
 from app.api.dependencies import get_current_user, get_db
 from app.models.user import User
 from app.models.content import Content
@@ -35,7 +32,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/content", tags=["content"])
-limiter = Limiter(key_func=get_remote_address)
+from app.core.rate_limiter import limiter
 
 
 # File type validation

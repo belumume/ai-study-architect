@@ -3,68 +3,50 @@ Rate limiter tests.
 
 Tests that slowapi rate limiting works on auth endpoints.
 The conftest client fixture disables rate limiting — these tests
-use a separate fixture with rate limiting enabled.
+use a separate fixture with rate limiting enabled via sync TestClient,
+which properly triggers SlowAPIMiddleware route detection.
 """
 
 import pytest
-from httpx import AsyncClient, ASGITransport
+from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
-from app.main import app as fastapi_app
 from app.api.dependencies import get_db
+from app.main import app as fastapi_app
 
 
 @pytest.fixture
-async def rate_limited_client(db_session: Session) -> AsyncClient:
-    """Client with rate limiting ENABLED (unlike the default client fixture)."""
+def rate_limited_client(db_session: Session) -> TestClient:
+    """Sync TestClient with rate limiting ENABLED.
+
+    Uses the shared limiter instance and toggles enabled=True.
+    Uses FastAPI's TestClient for proper SlowAPIMiddleware integration.
+    """
 
     def override_get_db():
         yield db_session
 
     fastapi_app.dependency_overrides[get_db] = override_get_db
 
-    # Re-enable rate limiting on both limiter instances
-    from slowapi import Limiter
-    from slowapi.util import get_remote_address
+    from app.core.rate_limiter import limiter
 
-    enabled_limiter = Limiter(key_func=get_remote_address, enabled=True)
-    fastapi_app.state.limiter = enabled_limiter
+    limiter.enabled = True
+    limiter.reset()
 
-    import app.api.v1.auth as auth_module
-
-    auth_module.limiter = enabled_limiter
-
-    import app.main as main_module
-
-    main_module.limiter = enabled_limiter
-
-    transport = ASGITransport(app=fastapi_app)
-    async with AsyncClient(transport=transport, base_url="http://localhost") as c:
+    with TestClient(fastapi_app, base_url="http://localhost") as c:
         yield c
 
     fastapi_app.dependency_overrides.clear()
-
-    # Restore disabled limiters for other tests
-    disabled_limiter = Limiter(key_func=get_remote_address, enabled=False)
-    fastapi_app.state.limiter = disabled_limiter
-    auth_module.limiter = disabled_limiter
-    main_module.limiter = disabled_limiter
+    limiter.enabled = False
 
 
 class TestRateLimiter:
-    """Test rate limiting on auth endpoints.
+    """Test rate limiting on auth endpoints."""
 
-    Note: slowapi rate limiting through SlowAPIMiddleware with ASGI test
-    transport has known issues with route handler detection. The middleware
-    is correctly installed in production (main.py). These tests verify the
-    fixture setup; enforcement tests are xfail pending slowapi test patterns.
-    """
-
-    @pytest.mark.asyncio
-    async def test_register_rate_limit_allows_under_limit(self, rate_limited_client):
+    def test_register_rate_limit_allows_under_limit(self, rate_limited_client):
         """Requests under the limit should succeed (or fail for other reasons, not 429)."""
         for i in range(3):
-            response = await rate_limited_client.post(
+            response = rate_limited_client.post(
                 "/api/v1/auth/register",
                 json={
                     "email": f"ratelimit{i}@example.com",
@@ -74,12 +56,10 @@ class TestRateLimiter:
             )
             assert response.status_code != 429, f"Request {i + 1} was rate limited unexpectedly"
 
-    @pytest.mark.xfail(reason="SlowAPIMiddleware route detection issue with ASGI test transport")
-    @pytest.mark.asyncio
-    async def test_register_rate_limit_blocks_over_limit(self, rate_limited_client):
+    def test_register_rate_limit_blocks_over_limit(self, rate_limited_client):
         """The 6th request within a minute should be rate limited (429)."""
         for i in range(6):
-            response = await rate_limited_client.post(
+            response = rate_limited_client.post(
                 "/api/v1/auth/register",
                 json={
                     "email": f"overlimit{i}@example.com",
@@ -94,12 +74,10 @@ class TestRateLimiter:
                     f"Request {i + 1}/6 should have been rate limited but got {response.status_code}"
                 )
 
-    @pytest.mark.xfail(reason="SlowAPIMiddleware route detection issue with ASGI test transport")
-    @pytest.mark.asyncio
-    async def test_login_rate_limit_blocks_over_limit(self, rate_limited_client):
+    def test_login_rate_limit_blocks_over_limit(self, rate_limited_client):
         """Login endpoint should also be rate limited at 5/minute."""
         for i in range(6):
-            response = await rate_limited_client.post(
+            response = rate_limited_client.post(
                 "/api/v1/auth/login",
                 data={
                     "username": "nonexistent",
@@ -116,13 +94,10 @@ class TestRateLimiter:
                     f"Login request {i + 1}/6 should have been rate limited but got {response.status_code}"
                 )
 
-    @pytest.mark.xfail(reason="SlowAPIMiddleware route detection issue with ASGI test transport")
-    @pytest.mark.asyncio
-    async def test_rate_limit_response_format(self, rate_limited_client):
+    def test_rate_limit_response_format(self, rate_limited_client):
         """Rate limited response should have proper error format."""
-        # Exhaust the limit
         for i in range(6):
-            response = await rate_limited_client.post(
+            response = rate_limited_client.post(
                 "/api/v1/auth/register",
                 json={
                     "email": f"format{i}@example.com",
