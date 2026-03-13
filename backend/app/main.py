@@ -6,6 +6,7 @@ from fastapi import FastAPI, Request, Response, HTTPException, APIRouter
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.middleware import SlowAPIMiddleware
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 import logging
@@ -46,8 +47,9 @@ app = FastAPI(
 # CSRF protection is now handled by the new comprehensive implementation
 app.state.csrf_protect = csrf_protect
 
-# Add rate limiter to app state
+# Add rate limiter to app state + middleware
 app.state.limiter = limiter
+app.add_middleware(SlowAPIMiddleware)
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # CSRF middleware will be added as a regular middleware function below

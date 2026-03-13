@@ -100,9 +100,8 @@ class TestLeadTutorAgent:
     @pytest.fixture
     def lead_tutor(self):
         """Create a Lead Tutor Agent instance"""
-        with patch("app.agents.base.Ollama"):
-            agent = LeadTutorAgent(model_name="llama3.2", temperature=0.7)
-            return agent
+        agent = LeadTutorAgent(agent_id="test_tutor", temperature=0.7)
+        return agent
 
     @pytest.mark.asyncio
     async def test_create_study_plan(self, lead_tutor, mock_llm_response):
