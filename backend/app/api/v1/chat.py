@@ -341,6 +341,15 @@ NEVER:
                     # Parse the JSON response (same format for all services now)
                     chunk_data = json.loads(chunk)
 
+                    if "error" in chunk_data:
+                        error_msg = chunk_data["error"]
+                        logger.error(f"AI streaming error: {error_msg}")
+                        full_response = (
+                            f"I encountered an error processing your request. Please try again."
+                        )
+                        yield f"data: {json.dumps({'type': 'content', 'content': full_response, 'index': 0})}\n\n"
+                        break
+
                     if "response" in chunk_data:
                         content = chunk_data["response"]
                         full_response += content
