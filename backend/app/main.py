@@ -2,14 +2,15 @@
 AI Study Architect - Main FastAPI Application
 """
 
-from fastapi import FastAPI, Request, Response, HTTPException, APIRouter
+import logging
+from typing import Any
+
+from fastapi import APIRouter, FastAPI, HTTPException, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from slowapi import _rate_limit_exceeded_handler
-from slowapi.middleware import SlowAPIMiddleware
 from slowapi.errors import RateLimitExceeded
-import logging
-from typing import Any
+from slowapi.middleware import SlowAPIMiddleware
 
 # Configure logging FIRST (before any logger usage)
 logging.basicConfig(
@@ -25,8 +26,8 @@ try:
     from app.core.init_db_safe import init_db
 except ImportError as e:
     logger.warning(f"Could not import init_db_safe: {e}")
+    from app.core.database import Base, engine
     from app.core.init_db_minimal import init_db_minimal
-    from app.core.database import engine, Base
 
     def init_db():
         """Wrapper for minimal init"""
