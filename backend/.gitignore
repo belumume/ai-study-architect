@@ -150,11 +150,12 @@ private_key.pem
 public_key.pem
 .env.local
 .env.production
-test_*.py
-quick_*.py
-debug_*.py
-*_test.py
-*_debug.py
+# Root-level ad-hoc scripts only (not tests/ directory)
+/test_*.py
+/quick_*.py
+/debug_*.py
+/*_test.py
+/*_debug.py
 DEFINITIVE_*.py
 diagnose_*.py
 verify_*.py
