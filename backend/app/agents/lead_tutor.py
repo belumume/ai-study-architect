@@ -78,6 +78,7 @@ Always structure your responses clearly and provide actionable next steps."""
         - session_id: Current study session ID (optional)
         - action: Specific action requested (optional): 'create_plan', 'explain_concept', 'check_understanding'
         """
+        action = "general"
         try:
             user_input = input_data.get("user_input", "")
             user_id = input_data.get("user_id")
