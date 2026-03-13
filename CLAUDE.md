@@ -227,7 +227,7 @@ backend/
 │   │   ├── security.py          # JWT, password hashing
 │   │   ├── database.py          # Database connections
 │   │   ├── csrf.py              # CSRF protection
-│   │   ├── cache.py             # Redis caching (with MockRedis fallback)
+│   │   ├── cache.py             # Upstash Redis caching (with _NoOpCache fallback)
 │   │   ├── agent_manager.py     # Agent orchestration
 │   │   ├── rsa_keys.py          # RSA key management for JWT
 │   │   ├── security_headers.py  # Security headers middleware
@@ -266,7 +266,7 @@ backend/
 - `app/services/ai_service_manager.py` - Intelligent AI service selection and fallback
 - `app/core/security.py` - JWT authentication with RS256 algorithm
 - `app/core/csrf.py` - CSRF protection with strategic exemptions
-- `app/core/cache.py` - Redis caching with MockRedisClient fallback
+- `app/core/cache.py` - Upstash Redis caching with _NoOpCache fallback
 - `app/models/` - SQLAlchemy models for users, content, sessions, and practice
 
 **Key Design Patterns:**
@@ -349,7 +349,7 @@ frontend/
 **Multi-Provider Strategy:**
 1. **Claude API** (Primary) - Superior educational performance via Anthropic
 2. **OpenAI API** (Fallback) - Automatic failover for reliability
-3. **LangChain** - Orchestration and prompt management
+3. **Direct SDK calls** - Anthropic + OpenAI SDKs (LangChain removed March 2026)
 
 **Key Features:**
 - Server-sent events (SSE) for streaming responses
@@ -446,7 +446,7 @@ grep -A 10 "security_headers" backend/app/main.py && echo "[OK] Security headers
 - **Neon for migrations** - Use direct (non-pooled) connection for `alembic upgrade head`
 - **Port 5432 on Windows** - Local PostgreSQL for development
 - **NEVER change BACKUP_ENCRYPTION_KEY** - Will lose access to all previous backups
-- **MockRedisClient fallback** - No external Redis needed, uses in-memory fallback
+- **_NoOpCache fallback** - When Upstash Redis unavailable, falls back to no-op cache (no external Redis needed)
 - **API keys at runtime** - Services must check keys at runtime, not import time
 
 ### Security & Authentication
@@ -469,7 +469,7 @@ grep -A 10 "security_headers" backend/app/main.py && echo "[OK] Security headers
 | PostgreSQL version mismatch | Python backup using psycopg2 (automatic fallback) |
 | CSRF 403 on API calls | JWT endpoints exempted in `app/core/csrf.py` |
 | Database free tier expiring | Upgrade to Basic-256mb plan ($6/month) |
-| Redis connection fails | MockRedisClient automatically takes over |
+| Redis connection fails | _NoOpCache automatically takes over (Upstash REST) |
 | Frontend 404 on direct route | CF Worker proxies all non-API to Vercel (SPA routing). Direct Vercel access (`*.vercel.app`) may need vercel.json if ever exposed. |
 | File upload fails on Windows | Uncomment `python-magic-bin` in requirements.txt |
 | Streaming responses not working | Check SSE implementation in AI service manager |
@@ -480,8 +480,8 @@ grep -A 10 "security_headers" backend/app/main.py && echo "[OK] Security headers
 - **Framework**: FastAPI 0.109.0
 - **Database**: SQLAlchemy 2.0.35 + PostgreSQL (pg8000/psycopg2-binary)
 - **Authentication**: python-jose[cryptography], passlib[bcrypt]
-- **AI/ML**: langchain 0.3.27, anthropic 0.39.0, openai 1.35.0
-- **Caching**: redis 5.0.1 (with MockRedis fallback)
+- **AI/ML**: anthropic 0.39.0, openai 1.35.0 (LangChain removed)
+- **Caching**: Upstash Redis (REST API via httpx, with _NoOpCache fallback)
 - **File Processing**: PyPDF2, python-docx, python-pptx, Pillow, pytesseract
 - **Cloud Storage**: boto3 (AWS S3 for backups)
 - **Testing**: pytest 7.4.4, pytest-asyncio, pytest-cov
