@@ -83,8 +83,7 @@ jobs:
 
       - name: Semgrep security scan
         run: |
-          pip install semgrep
-          semgrep scan --config p/python-security --config p/owasp-top-ten \
+          pipx run semgrep scan --config p/python-security --config p/owasp-top-ten \
             --quiet --metrics off --error \
             backend/app/
         continue-on-error: false
