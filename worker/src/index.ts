@@ -1,10 +1,23 @@
 import { Container } from "@cloudflare/containers";
+import { env } from "cloudflare:workers";
+
+const secrets = env as unknown as Record<string, string>;
 
 export class StudyArchitectBackend extends Container {
   defaultPort = 8000;
   sleepAfter = "5m";
   enableInternet = true;
   pingEndpoint = "/health";
+  envVars = {
+    DATABASE_URL: secrets.DATABASE_URL,
+    JWT_SECRET_KEY: secrets.JWT_SECRET_KEY,
+    SECRET_KEY: secrets.SECRET_KEY,
+    UPSTASH_REDIS_REST_URL: secrets.UPSTASH_REDIS_REST_URL,
+    UPSTASH_REDIS_REST_TOKEN: secrets.UPSTASH_REDIS_REST_TOKEN,
+    R2_ENDPOINT_URL: secrets.R2_ENDPOINT_URL,
+    R2_ACCESS_KEY_ID: secrets.R2_ACCESS_KEY_ID,
+    R2_SECRET_ACCESS_KEY: secrets.R2_SECRET_ACCESS_KEY,
+  };
 }
 
 interface Env {
@@ -47,9 +60,18 @@ export default {
 
     // Route /api/* to the container (singleton pattern — single backend instance)
     if (url.pathname.startsWith("/api/") || url.pathname === "/health" || url.pathname === "/health/ready") {
-      const container = env.BACKEND.getByName("singleton");
-      await container.startAndWaitForPorts();
-      return container.fetch(request);
+      try {
+        const container = env.BACKEND.getByName("singleton");
+        await container.startAndWaitForPorts();
+        return container.fetch(request);
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Unknown error";
+        console.error("Container error:", message);
+        return new Response(
+          JSON.stringify({ error: "Service temporarily unavailable" }),
+          { status: 503, headers: { "Content-Type": "application/json" } },
+        );
+      }
     }
 
     // Everything else returns 404 (frontend is on Vercel)
