@@ -1,3 +1,5 @@
+> **Note (March 2026)**: This document was written August 2025. The project pivoted in October 2025 from multi-agent architecture to mastery-based learning. See [NEW_DIRECTION_2025.md](../direction/NEW_DIRECTION_2025.md) for current direction. The anti-dogma philosophy below remains core to how we work.
+
 # Our Philosophy: Pragmatic Innovation
 
 *Build on what works. Question everything. Ship daily.*
