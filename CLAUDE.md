@@ -409,7 +409,7 @@ grep -A 10 "security_headers" backend/app/main.py && echo "[OK] Security headers
 ### Windows Development
 - PostgreSQL runs on port 5433 (not standard 5432)
 - Use `venv\Scripts\python.exe` for virtual environment
-- Line endings enforced as LF via `.gitattributes`
+- Line endings: `.gitattributes` not currently present (was removed during migration)
 - Database passwords with special chars need `quote_plus()` encoding
 - May need to uncomment `python-magic-bin` in requirements.txt for file processing
 
@@ -423,7 +423,7 @@ grep -A 10 "security_headers" backend/app/main.py && echo "[OK] Security headers
 - Deploy: `cd worker && npx wrangler deploy`
 
 ### Vercel Frontend Hosting
-- SPA routing configured via `vercel.json`
+- SPA routing handled by CF Worker (proxies all non-API routes to Vercel). No `vercel.json` in repo — direct Vercel access may need SPA rewrites if accessed outside CF Worker.
 - Automatic deployments from GitHub
 - Custom domain: aistudyarchitect.com
 - Environment variables managed via Vercel dashboard
@@ -456,7 +456,7 @@ grep -A 10 "security_headers" backend/app/main.py && echo "[OK] Security headers
 - **CSRF protection** - Double-submit cookie pattern with strategic exemptions
 
 ### Frontend & Deployment
-- **Frontend on Vercel** - Requires `vercel.json` for SPA routing
+- **Frontend on Vercel** - SPA routing via CF Worker proxy (no vercel.json needed when accessed through aistudyarchitect.com)
 - **Cloudflare Worker routing** - MUST NOT strip /api prefix, backend expects full paths
 - **API docs blocked** - Worker returns 404 for /api/docs, /api/openapi.json, /api/redoc
 - **Browser caching** - Chrome aggressively caches ES modules, use cache-busting strategies
@@ -470,7 +470,7 @@ grep -A 10 "security_headers" backend/app/main.py && echo "[OK] Security headers
 | CSRF 403 on API calls | JWT endpoints exempted in `app/core/csrf.py` |
 | Database free tier expiring | Upgrade to Basic-256mb plan ($6/month) |
 | Redis connection fails | MockRedisClient automatically takes over |
-| Frontend 404 on direct route | Fixed with `vercel.json` SPA rewrites |
+| Frontend 404 on direct route | CF Worker proxies all non-API to Vercel (SPA routing). Direct Vercel access (`*.vercel.app`) may need vercel.json if ever exposed. |
 | File upload fails on Windows | Uncomment `python-magic-bin` in requirements.txt |
 | Streaming responses not working | Check SSE implementation in AI service manager |
 
