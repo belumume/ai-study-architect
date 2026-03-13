@@ -1,5 +1,7 @@
 # Project Genesis: From "I'm Clueless" to AI Study Architect
 
+> **Note (March 2026)**: This document preserves the original project genesis story from July-August 2025. Technical details (deployment, architecture) have evolved — see [IMPLEMENTATION_STATUS.md](../technical/IMPLEMENTATION_STATUS.md) for current state.
+
 ---
 Document Level: 1
 Created: August 2025
@@ -124,7 +126,7 @@ Student explores → AI guides → Student discovers → Understands
 ### The Technical Vision
 
 - **Multi-agent orchestration** with LangChain
-- **Local + cloud hybrid** for privacy and power
+- **Local + cloud hybrid** for privacy and power *(architecture evolved to fully cloud-based: Cloudflare Workers + Containers, March 2026)*
 - **Multimodal processing** for any content type
 - **Adaptive algorithms** that truly personalize
 

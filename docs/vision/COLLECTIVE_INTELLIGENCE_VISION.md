@@ -134,6 +134,10 @@ Our original vision included Collaboration as one of the first five agents. As w
 
 ## Implementation Roadmap
 
+> Implementation was deferred to Phase 2+ per the mastery-based pivot. See [NEW_DIRECTION_2025.md](../direction/NEW_DIRECTION_2025.md).
+
+> **Note (March 2026)**: The Aug 17, 2025 Karpathy challenge deadline has passed. Phase 1 was deferred to focus on individual mastery MVP first, consistent with the October 2025 strategic pivot.
+
 ### Phase 1: Foundation (By Aug 17 - Karpathy Challenge)
 - [ ] Document collective intelligence vision
 - [ ] Prototype teach-back protocol
