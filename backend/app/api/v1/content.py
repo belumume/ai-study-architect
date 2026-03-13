@@ -27,12 +27,12 @@ from app.utils.file_validation import get_mime_type
 from app.utils.sanitization import sanitize_input, sanitize_filename
 from app.services.content_processor import content_processor
 from app.services import storage as r2
+from app.core.rate_limiter import limiter
 import logging
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/content", tags=["content"])
-from app.core.rate_limiter import limiter
 
 
 # File type validation

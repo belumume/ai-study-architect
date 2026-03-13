@@ -11,12 +11,12 @@ from app.agents.lead_tutor import LeadTutorAgent
 from app.core.agent_manager import agent_manager
 from app.core.config import settings
 from app.core.exceptions import AgentProcessingError
+from app.core.rate_limiter import limiter
 import logging
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/tutor", tags=["tutor"])
-from app.core.rate_limiter import limiter
 
 
 class TutorRequest(BaseModel):

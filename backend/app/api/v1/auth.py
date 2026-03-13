@@ -10,6 +10,7 @@ from fastapi.security import HTTPBearer, OAuth2PasswordRequestForm
 from sqlalchemy import or_
 from sqlalchemy.orm import Session
 from app.api.dependencies import get_current_user, get_db
+from app.core.rate_limiter import limiter
 from app.core.config import settings
 from app.core.security import (
     create_access_token,
@@ -57,7 +58,6 @@ class OAuth2PasswordRequestFormWithRememberMe:
 
 
 router = APIRouter(prefix="/auth")
-from app.core.rate_limiter import limiter
 security = HTTPBearer()
 
 
