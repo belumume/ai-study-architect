@@ -13,7 +13,7 @@ class TestOpenAIFallbackService:
         return OpenAIFallbackService()
 
     def test_default_model(self, service):
-        assert service.model == "gpt-3.5-turbo"
+        assert service.model == "gpt-5-mini"
 
     @patch.dict("os.environ", {"OPENAI_MODEL": "gpt-4"})
     def test_custom_model(self):
@@ -95,7 +95,8 @@ class TestOpenAIFallbackService:
 
             call_kwargs = mock_client.post.call_args
             payload = call_kwargs.kwargs.get("json") or call_kwargs[1].get("json")
-            assert payload["max_tokens"] == 10
+            # gpt-5-mini uses max_completion_tokens with doubled budget
+            assert payload["max_completion_tokens"] == max(10 * 2, 1024)
 
     @pytest.mark.asyncio
     @patch.dict("os.environ", {"OPENAI_API_KEY": "sk-test123"})
