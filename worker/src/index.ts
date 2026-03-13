@@ -17,6 +17,8 @@ export class StudyArchitectBackend extends Container {
     R2_ENDPOINT_URL: secrets.R2_ENDPOINT_URL,
     R2_ACCESS_KEY_ID: secrets.R2_ACCESS_KEY_ID,
     R2_SECRET_ACCESS_KEY: secrets.R2_SECRET_ACCESS_KEY,
+    ANTHROPIC_API_KEY: secrets.ANTHROPIC_API_KEY,
+    OPENAI_API_KEY: secrets.OPENAI_API_KEY,
   };
 }
 
