@@ -1,8 +1,7 @@
 """Tests for the Lead Tutor Agent"""
 
 import pytest
-import asyncio
-from unittest.mock import Mock, patch, AsyncMock
+from unittest.mock import Mock, patch
 
 from app.agents.lead_tutor import LeadTutorAgent, LeadTutorState
 from app.agents.base import AgentResponse
@@ -103,8 +102,7 @@ class TestLeadTutorAgent:
         agent = LeadTutorAgent(agent_id="test_tutor", temperature=0.7)
         return agent
 
-    @pytest.mark.asyncio
-    async def test_create_study_plan(self, lead_tutor, mock_llm_response):
+    def test_create_study_plan(self, lead_tutor, mock_llm_response):
         """Test creating a personalized study plan"""
         # Mock the LLM response
         lead_tutor.invoke_llm = Mock(return_value=mock_llm_response["create_plan"])
@@ -120,7 +118,7 @@ class TestLeadTutorAgent:
         }
 
         # Process the request
-        response = await lead_tutor.process(input_data)
+        response = lead_tutor.process(input_data)
 
         # Assertions
         assert response.success is True
@@ -134,8 +132,7 @@ class TestLeadTutorAgent:
         assert lead_tutor.tutor_state.current_topic == "I want to learn Python programming"
         assert lead_tutor.tutor_state.current_plan is not None
 
-    @pytest.mark.asyncio
-    async def test_explain_concept(self, lead_tutor, mock_llm_response):
+    def test_explain_concept(self, lead_tutor, mock_llm_response):
         """Test explaining a concept"""
         # Mock the LLM response
         lead_tutor.invoke_llm = Mock(return_value=mock_llm_response["explain_concept"])
@@ -150,7 +147,7 @@ class TestLeadTutorAgent:
         }
 
         # Process the request
-        response = await lead_tutor.process(input_data)
+        response = lead_tutor.process(input_data)
 
         # Assertions
         assert response.success is True
@@ -160,8 +157,7 @@ class TestLeadTutorAgent:
         assert response.data["concept"] == "functions in Python"
         assert response.data["learning_style"] == "visual"
 
-    @pytest.mark.asyncio
-    async def test_check_understanding(self, lead_tutor, mock_llm_response):
+    def test_check_understanding(self, lead_tutor, mock_llm_response):
         """Test generating understanding check questions"""
         # Mock the LLM response
         lead_tutor.invoke_llm = Mock(return_value=mock_llm_response["check_understanding"])
@@ -174,7 +170,7 @@ class TestLeadTutorAgent:
         }
 
         # Process the request
-        response = await lead_tutor.process(input_data)
+        response = lead_tutor.process(input_data)
 
         # Assertions
         assert response.success is True
@@ -183,8 +179,7 @@ class TestLeadTutorAgent:
         assert len(response.data["questions"]) == 2
         assert response.data["questions"][0]["correct_answer"] == "def"
 
-    @pytest.mark.asyncio
-    async def test_provide_feedback(self, lead_tutor):
+    def test_provide_feedback(self, lead_tutor):
         """Test providing feedback on performance"""
         # Mock the LLM response
         lead_tutor.invoke_llm = Mock(return_value="Great job! You got 4 out of 5 correct.")
@@ -203,7 +198,7 @@ class TestLeadTutorAgent:
         }
 
         # Process the request
-        response = await lead_tutor.process(input_data)
+        response = lead_tutor.process(input_data)
 
         # Assertions
         assert response.success is True
@@ -213,8 +208,7 @@ class TestLeadTutorAgent:
         assert len(response.data["next_steps"]) > 0
         assert "obj1" in lead_tutor.tutor_state.completed_objectives
 
-    @pytest.mark.asyncio
-    async def test_general_interaction(self, lead_tutor, mock_llm_response):
+    def test_general_interaction(self, lead_tutor, mock_llm_response):
         """Test general tutoring interaction"""
         # Mock the LLM response
         lead_tutor.invoke_llm = Mock(return_value=mock_llm_response["general"])
@@ -223,7 +217,7 @@ class TestLeadTutorAgent:
         input_data = {"user_input": "I want to learn Python", "user_id": "test_user_123"}
 
         # Process the request
-        response = await lead_tutor.process(input_data)
+        response = lead_tutor.process(input_data)
 
         # Assertions
         assert response.success is True
@@ -283,8 +277,7 @@ class TestLeadTutorAgent:
         assert any("Practice using" in item for item in items)
         assert any("Review the" in item for item in items)
 
-    @pytest.mark.asyncio
-    async def test_error_handling(self, lead_tutor):
+    def test_error_handling(self, lead_tutor):
         """Test error handling in the agent"""
         # Mock LLM to raise an exception
         lead_tutor.invoke_llm = Mock(side_effect=Exception("LLM connection failed"))
@@ -297,7 +290,7 @@ class TestLeadTutorAgent:
         }
 
         # Process the request
-        response = await lead_tutor.process(input_data)
+        response = lead_tutor.process(input_data)
 
         # Assertions
         assert response.success is False
@@ -305,8 +298,7 @@ class TestLeadTutorAgent:
         assert len(response.errors) > 0
         assert "LLM connection failed" in response.errors[0]
 
-    @pytest.mark.asyncio
-    async def test_create_study_plan_fallback_on_invalid_json(self, lead_tutor):
+    def test_create_study_plan_fallback_on_invalid_json(self, lead_tutor):
         """Test fallback study plan when LLM returns unparseable response."""
         lead_tutor.invoke_llm = Mock(
             return_value="Here's a study plan for Python: start with variables, then functions..."
@@ -321,7 +313,7 @@ class TestLeadTutorAgent:
             "learning_style": "visual",
         }
 
-        response = await lead_tutor.process(input_data)
+        response = lead_tutor.process(input_data)
 
         assert response.success is True
         assert (
@@ -337,8 +329,7 @@ class TestLeadTutorAgent:
         assert plan["total_hours"] == 25
         assert "raw_response" in response.data
 
-    @pytest.mark.asyncio
-    async def test_create_study_plan_fallback_on_partial_json(self, lead_tutor):
+    def test_create_study_plan_fallback_on_partial_json(self, lead_tutor):
         """Test fallback when LLM returns truncated/malformed JSON."""
         lead_tutor.invoke_llm = Mock(
             return_value='{"title": "Python Plan", "description": "Learn Python", "total_hours": 20, "objectives": [{'
@@ -350,7 +341,7 @@ class TestLeadTutorAgent:
             "action": "create_plan",
         }
 
-        response = await lead_tutor.process(input_data)
+        response = lead_tutor.process(input_data)
 
         assert response.success is True
         assert "study_plan" in response.data
