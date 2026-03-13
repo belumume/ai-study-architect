@@ -48,4 +48,31 @@ else
     echo "[pre-commit] pytest not installed -- skipping (CI will verify)."
 fi
 
+# Privacy scan: check staged files for personal identifiers
+STAGED_CONTENT=$(git diff --cached --diff-filter=ACM -U0 2>/dev/null)
+
+PRIVACY_ISSUES=0
+
+# Check for home directory paths (Windows and Unix)
+if echo "$STAGED_CONTENT" | grep -qiE "(C:\\\\Users\\\\[a-zA-Z]|/home/[a-zA-Z]|/Users/[a-zA-Z])" 2>/dev/null; then
+    # Allow paths in .githooks, .claude, CLAUDE.md, and config files
+    REAL_PATH_FILES=$(echo "$STAGED_CONTENT" | grep -E "^\+\+\+ b/" | grep -v ".githooks\|.claude\|CLAUDE.md\|.local\|.gitignore" | head -5)
+    if [ -n "$REAL_PATH_FILES" ]; then
+        echo "[pre-commit] WARNING: Possible personal paths in staged files:"
+        echo "$REAL_PATH_FILES" | sed 's/^+++ b\//  /'
+        PRIVACY_ISSUES=1
+    fi
+fi
+
+# Check for hardcoded API keys/tokens (common patterns)
+if echo "$STAGED_CONTENT" | grep -qE "^\\+(.*)(sk-[a-zA-Z0-9]{20,}|sk-ant-[a-zA-Z0-9]{20,}|sk-proj-[a-zA-Z0-9]{20,}|ghp_[a-zA-Z0-9]{36}|AKIA[0-9A-Z]{16})" 2>/dev/null; then
+    echo "[pre-commit] BLOCKED: Possible API key/token in staged changes."
+    echo "[pre-commit] Use environment variables or Proton Pass instead."
+    exit 1
+fi
+
+if [ $PRIVACY_ISSUES -ne 0 ]; then
+    echo "[pre-commit] Privacy warnings above -- review before pushing to public repo."
+fi
+
 exit 0
