@@ -27,34 +27,34 @@ security = HTTPBearer(auto_error=False)
 def get_current_user(
     request: Request,
     credentials: Optional[HTTPAuthorizationCredentials] = Depends(security),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ) -> User:
     """
     Get the current authenticated user from either:
     1. Authorization header (Bearer token) - for backward compatibility
     2. httpOnly cookie - new secure method (industry standard)
-    
+
     Args:
         request: The FastAPI request object
         credentials: The HTTP authorization credentials (optional)
         db: Database session
-        
+
     Returns:
         The current user object
-        
+
     Raises:
         HTTPException: If authentication fails
     """
     token = None
-    
+
     # First, try Authorization header (backward compatibility)
     if credentials and credentials.credentials:
         token = credentials.credentials
-    
+
     # If no header token, try cookie (new secure method)
     if not token:
         token = request.cookies.get("access_token")
-    
+
     # If still no token, raise unauthorized
     if not token:
         raise HTTPException(
@@ -62,7 +62,7 @@ def get_current_user(
             detail="Not authenticated",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    
+
     # Verify the token
     try:
         user_id = verify_token(token, token_type="access")
@@ -70,31 +70,29 @@ def get_current_user(
             raise InvalidTokenError()
     except Exception:
         raise InvalidTokenError()
-    
+
     # Get user from database
     user = db.query(User).filter(User.id == user_id).first()
-    
+
     if not user:
         raise UserNotFoundError()
-    
+
     if not user.is_active:
         raise InactiveUserError()
-    
+
     return user
 
 
-def get_current_active_user(
-    current_user: User = Depends(get_current_user)
-) -> User:
+def get_current_active_user(current_user: User = Depends(get_current_user)) -> User:
     """
     Get current active user.
-    
+
     Args:
         current_user: The current user from token
-        
+
     Returns:
         The current active user
-        
+
     Raises:
         HTTPException: If user is not active
     """
@@ -103,18 +101,16 @@ def get_current_active_user(
     return current_user
 
 
-def get_current_superuser(
-    current_user: User = Depends(get_current_user)
-) -> User:
+def get_current_superuser(current_user: User = Depends(get_current_user)) -> User:
     """
     Get current superuser.
-    
+
     Args:
         current_user: The current user from token
-        
+
     Returns:
         The current superuser
-        
+
     Raises:
         HTTPException: If user is not a superuser
     """
@@ -124,38 +120,43 @@ def get_current_superuser(
 
 
 def get_optional_current_user(
-    credentials: Optional[HTTPAuthorizationCredentials] = Depends(
-        HTTPBearer(auto_error=False)
-    ),
-    db: Session = Depends(get_db)
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(HTTPBearer(auto_error=False)),
+    db: Session = Depends(get_db),
 ) -> Optional[User]:
     """
     Get current user if authenticated, None otherwise.
-    
+
     Args:
         credentials: Optional HTTP authorization credentials
         db: Database session
-        
+
     Returns:
         The current user or None
     """
     if not credentials:
         return None
-        
+
     try:
-        return get_current_user(credentials, db)
-    except (InvalidTokenError, UserNotFoundError, InactiveUserError):
+        token = credentials.credentials
+        user_id = verify_token(token, token_type="access")
+        if not user_id:
+            return None
+        user = db.query(User).filter(User.id == user_id).first()
+        if not user or not user.is_active:
+            return None
+        return user
+    except Exception:
         return None
 
 
 async def get_current_user_ws(token: str, db: Session) -> Optional[User]:
     """
     Get current user from WebSocket token.
-    
+
     Args:
         token: JWT token string
         db: Database session
-        
+
     Returns:
         The current user or None
     """
@@ -164,13 +165,13 @@ async def get_current_user_ws(token: str, db: Session) -> Optional[User]:
         user_id = verify_token(token, token_type="access")
         if not user_id:
             return None
-        
+
         # Get user from database
         user = db.query(User).filter(User.id == user_id).first()
-        
+
         if not user or not user.is_active:
             return None
-            
+
         return user
     except (JWTError, Exception):
         return None
