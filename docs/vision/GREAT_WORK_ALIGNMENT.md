@@ -61,7 +61,7 @@ When choosing features: Pick what makes you most curious
 
 **Current Ambition:**
 - Multi-agent AI system that will orchestrate 7 specialized agents
-- Cloud-based architecture with intelligent AI service selection (Claude → OpenAI)  
+- Cloud-based architecture with intelligent AI service selection (Claude → OpenAI)
 - Comprehensive learning ecosystem (content, synthesis, practice, tracking)
 
 **Path to ★★★★★:**
@@ -72,7 +72,7 @@ Transform from "helping students learn" to "rewiring how humanity acquires knowl
 **Our Approach:**
 - Document failures openly (CLAUDE_PROJECT_LEARNINGS.md)
 - Security-first even when it complicates development
-- Acknowledge limitations (18% test coverage)
+- Acknowledge limitations (18% test coverage) *(now 49% as of March 2026)*
 - No shortcuts on privacy or quality
 
 **Maintain This By:**

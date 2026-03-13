@@ -1,5 +1,7 @@
 # Daily Development Plan: 1-2 Hour Sessions
 
+> **Status: SUPERSEDED.** This plan was created Oct 2025 but never executed. The project pivoted to building the MVP frontend (Analytics Pro dashboard) first. See [docs/direction/NEW_DIRECTION_2025.md](../direction/NEW_DIRECTION_2025.md) for current strategic direction.
+
 **Philosophy**: Consistency over intensity. Small daily wins compound into major progress.
 
 **Your Schedule**: 1-2 hours per day, working around CS studies
