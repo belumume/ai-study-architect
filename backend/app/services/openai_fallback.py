@@ -15,7 +15,7 @@ class OpenAIFallbackService:
     """Fallback to OpenAI when Claude is not available"""
 
     def __init__(self):
-        self.model = os.getenv("OPENAI_MODEL", "gpt-4.1-mini")
+        self.model = os.getenv("OPENAI_MODEL", "gpt-5-mini")
         self.base_url = "https://api.openai.com/v1"
 
     @property
@@ -46,10 +46,18 @@ class OpenAIFallbackService:
 
         headers = {"Authorization": f"Bearer {self.api_key}", "Content-Type": "application/json"}
 
-        payload = {"model": self.model, "messages": messages, "temperature": temperature}
+        payload = {"model": self.model, "messages": messages}
 
-        if max_tokens:
-            payload["max_tokens"] = max_tokens
+        if self.model.startswith("gpt-5"):
+            # GPT-5 series: reasoning model, no temperature control,
+            # uses max_completion_tokens (includes reasoning + visible output)
+            # Reasoning typically uses 128-256 tokens, so budget accordingly
+            budget = max(max_tokens * 2, 1024) if max_tokens else 4096
+            payload["max_completion_tokens"] = budget
+        else:
+            payload["temperature"] = temperature
+            if max_tokens:
+                payload["max_tokens"] = max_tokens
 
         try:
             async with httpx.AsyncClient() as client:
