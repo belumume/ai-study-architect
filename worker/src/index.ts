@@ -76,7 +76,13 @@ export default {
       }
     }
 
-    // Everything else returns 404 (frontend is on Vercel)
-    return new Response("Not Found", { status: 404 });
+    // Proxy everything else to Vercel (frontend SPA)
+    const vercelUrl = new URL(request.url);
+    vercelUrl.hostname = "ai-study-architect.vercel.app";
+    const vercelRequest = new Request(vercelUrl.toString(), {
+      method: request.method,
+      headers: request.headers,
+    });
+    return fetch(vercelRequest);
   },
 };
