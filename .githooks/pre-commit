@@ -26,14 +26,24 @@ fi
 # Run tests (skip if pytest not installed)
 if "$PYTHON" -c "import pytest" 2>/dev/null; then
     cd "$REPO_ROOT/backend"
-    OUTPUT=$("$PYTHON" -m pytest tests/ --ignore=tests/scripts -x -q --tb=short 2>&1)
+
+    # Only run staged test files (not the full suite)
+    STAGED_TESTS=$(git diff --cached --name-only -- 'backend/tests/' | sed 's|^backend/||' | grep -v 'scripts/' | grep -v 'integration/' || true)
+
+    if [ -n "$STAGED_TESTS" ]; then
+        echo "[pre-commit] Running staged test files..."
+        OUTPUT=$("$PYTHON" -m pytest $STAGED_TESTS -x -q --tb=short 2>&1)
+    else
+        echo "[pre-commit] No test files staged -- running import check..."
+        OUTPUT=$("$PYTHON" -c "from app.main import app; print(f'[OK] App imports cleanly ({len(list(app.routes))} routes)')" 2>&1)
+    fi
     RESULT=$?
     cd "$REPO_ROOT"
 
     if [ $RESULT -ne 0 ]; then
-        # Check if ALL failures are DB connection errors (no local PG)
-        DB_ERRORS=$(echo "$OUTPUT" | grep -c "OperationalError\|connection refused\|could not connect\|pg8000\|No module named" || true)
-        if [ "$DB_ERRORS" -gt 0 ]; then
+        # Check if failures are environment errors (no local PG, missing deps)
+        ENV_ERRORS=$(echo "$OUTPUT" | grep -c "OperationalError\|connection refused\|could not connect\|pg8000\|No module named" || true)
+        if [ "$ENV_ERRORS" -gt 0 ]; then
             echo "[pre-commit] Failures are environment errors (no local PG or missing deps)."
             echo "[pre-commit] CI will run full tests. Allowing commit."
             exit 0
@@ -43,7 +53,7 @@ if "$PYTHON" -c "import pytest" 2>/dev/null; then
         echo "[pre-commit] Tests FAILED (non-environment errors). Commit blocked."
         exit 1
     fi
-    echo "[pre-commit] Tests passed."
+    echo "[pre-commit] $OUTPUT" | tail -3
 else
     echo "[pre-commit] pytest not installed -- skipping (CI will verify)."
 fi
@@ -73,6 +83,34 @@ fi
 
 if [ $PRIVACY_ISSUES -ne 0 ]; then
     echo "[pre-commit] Privacy warnings above -- review before pushing to public repo."
+fi
+
+# Semgrep security scan on staged Python files
+STAGED_PY=$(git diff --cached --name-only --diff-filter=ACM -- '*.py' | grep -v 'tests/' || true)
+
+if [ -n "$STAGED_PY" ] && command -v semgrep &>/dev/null; then
+    echo "[pre-commit] Running semgrep security scan..."
+    SEMGREP_OUTPUT=$(semgrep scan --config p/python-security --config p/owasp-top-ten \
+        --quiet --no-git-ignore --metrics off \
+        $STAGED_PY 2>&1)
+    SEMGREP_RESULT=$?
+
+    if [ $SEMGREP_RESULT -ne 0 ] && [ -n "$SEMGREP_OUTPUT" ]; then
+        # Check if it's a real finding vs network/config error
+        if echo "$SEMGREP_OUTPUT" | grep -q "Findings:"; then
+            echo "$SEMGREP_OUTPUT"
+            echo ""
+            echo "[pre-commit] Semgrep found security issues. Review before committing."
+            echo "[pre-commit] To bypass (not recommended): git commit --no-verify"
+            exit 1
+        else
+            echo "[pre-commit] Semgrep scan had non-finding errors (network/config). Allowing commit."
+        fi
+    else
+        echo "[pre-commit] Semgrep: no security issues found."
+    fi
+elif [ -n "$STAGED_PY" ]; then
+    echo "[pre-commit] semgrep not found -- skipping security scan."
 fi
 
 exit 0

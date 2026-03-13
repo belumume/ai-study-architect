@@ -22,7 +22,6 @@ from datetime import datetime
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
-from app.core.rate_limiter import limiter
 
 
 class KeyRotationResponse(BaseModel):
