@@ -81,6 +81,14 @@ jobs:
             echo "[OK] No personal paths in source"
           fi
 
+      - name: Semgrep security scan
+        run: |
+          pip install semgrep
+          semgrep scan --config p/python-security --config p/owasp-top-ten \
+            --quiet --metrics off --error \
+            backend/app/
+        continue-on-error: false
+
   migrate:
     needs: test
     runs-on: ubuntu-latest
