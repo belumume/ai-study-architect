@@ -82,11 +82,11 @@ jobs:
           fi
 
       - name: Semgrep security scan
-        run: |
-          pipx run semgrep scan --config p/python-security --config p/owasp-top-ten \
-            --quiet --metrics off --error \
-            backend/app/
-        continue-on-error: false
+        uses: returntocorp/semgrep-action@v1
+        with:
+          config: p/python-security p/owasp-top-ten
+        env:
+          SEMGREP_APP_TOKEN: ""
 
   migrate:
     needs: test
