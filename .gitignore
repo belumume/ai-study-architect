@@ -8,10 +8,10 @@
 #==============================================================================
 # CRITICAL: Development/Debugging Scripts (Added 2025-07-23)
 #==============================================================================
-# Prevent accumulation of debugging scripts
-*debug*.py
-*test_*.py
-diagnose_*.py
+# Prevent accumulation of root-level debugging scripts
+/debug*.py
+/diagnose_*.py
+/test_*.py
 verify_*.py
 check_*.py
 start_*.py
@@ -667,7 +667,6 @@ fine_tuning_experiments/
 #==============================================================================
 # Prevent accidental commit of debugging scripts
 debug_*.py
-test_*.py
 fix_*.py
 setup_*.py
 diagnose_*.py
