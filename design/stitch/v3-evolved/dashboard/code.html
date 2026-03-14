@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Study Architect Mastery Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400..700&amp;family=JetBrains+Mono:wght@400..700&amp;family=Inter:wght@400..700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#D4FF00",
+                        "secondary": "#00F2FE",
+                        "tertiary": "#FF2D7B",
+                        "background-light": "#f8f8f5",
+                        "background-dark": "#050505",
+                        "surface": "#0a0a0a",
+                        "border-color": "#1a1a1a"
+                    },
+                    fontFamily: {
+                        "display": ["Space Grotesk", "sans-serif"],
+                        "mono": ["JetBrains Mono", "monospace"],
+                        "body": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" },
+                },
+            },
+        }
+    </script>
+<style>
+        .neon-border {
+            border: 1px solid theme('colors.border-color');
+            box-shadow: 0 0 10px rgba(212, 255, 0, 0.05);
+        }
+        .text-neon-cyan { color: theme('colors.secondary'); text-shadow: 0 0 8px rgba(0, 242, 254, 0.4); }
+        .text-neon-magenta { color: theme('colors.tertiary'); text-shadow: 0 0 8px rgba(255, 45, 123, 0.4); }
+        .text-neon-chartreuse { color: theme('colors.primary'); text-shadow: 0 0 8px rgba(212, 255, 0, 0.4); }
+        .btn-glow-primary {
+            box-shadow: 0 0 15px rgba(212, 255, 0, 0.6), inset 0 0 10px rgba(212, 255, 0, 0.2);
+        }
+        .heatmap-cell {
+            border-radius: 2px;
+        }
+    </style>
+</head>
+<body class="bg-background-dark text-slate-100 font-body min-h-screen overflow-x-hidden">
+<div class="relative flex min-h-screen w-full flex-col group/design-root">
+<div class="layout-container flex h-full grow flex-col max-w-[1440px] mx-auto w-full px-8 py-6 gap-6">
+<header class="flex items-center justify-between whitespace-nowrap border-b border-solid border-border-color pb-4 font-display">
+<div class="flex items-center gap-4 text-primary">
+<div class="size-6">
+<svg fill="currentColor" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+<path clip-rule="evenodd" d="M39.475 21.6262C40.358 21.4363 40.6863 21.5589 40.7581 21.5934C40.7876 21.655 40.8547 21.857 40.8082 22.3336C40.7408 23.0255 40.4502 24.0046 39.8572 25.2301C38.6799 27.6631 36.5085 30.6631 33.5858 33.5858C30.6631 36.5085 27.6632 38.6799 25.2301 39.8572C24.0046 40.4502 23.0255 40.7407 22.3336 40.8082C21.8571 40.8547 21.6551 40.7875 21.5934 40.7581C21.5589 40.6863 21.4363 40.358 21.6262 39.475C21.8562 38.4054 22.4689 36.9657 23.5038 35.2817C24.7575 33.2417 26.5497 30.9744 28.7621 28.762C30.9744 26.5497 33.2417 24.7574 35.2817 23.5037C36.9657 22.4689 38.4054 21.8562 39.475 21.6262ZM4.41189 29.2403L18.7597 43.5881C19.8813 44.7097 21.4027 44.9179 22.7217 44.7893C24.0585 44.659 25.5148 44.1631 26.9723 43.4579C29.9052 42.0387 33.2618 39.5667 36.4142 36.4142C39.5667 33.2618 42.0387 29.9052 43.4579 26.9723C44.1631 25.5148 44.659 24.0585 44.7893 22.7217C44.9179 21.4027 44.7097 19.8813 43.5881 18.7597L29.2403 4.41187C27.8527 3.02428 25.8765 3.02573 24.2861 3.36776C22.6081 3.72863 20.7334 4.58419 18.8396 5.74801C16.4978 7.18716 13.9881 9.18353 11.5858 11.5858C9.18354 13.988 7.18717 16.4978 5.74802 18.8396C4.58421 20.7334 3.72865 22.6081 3.36778 24.2861C3.02574 25.8765 3.02429 27.8527 4.41189 29.2403Z" fill-rule="evenodd"></path>
+</svg>
+</div>
+<h2 class="text-slate-100 text-xl font-bold uppercase tracking-wider">Study Architect</h2>
+</div>
+<div class="flex items-center gap-4 border border-border-color rounded-full px-4 py-1.5 bg-surface/50">
+<span class="material-symbols-outlined text-primary">analytics</span>
+<span class="text-slate-100 text-sm font-bold uppercase tracking-wider">Telemetry Active</span>
+</div>
+<div class="flex items-center gap-4">
+<div class="bg-surface border border-border-color aspect-square bg-cover rounded-full size-10" data-alt="User Avatar Placeholder" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuBoQM8OJiGefyl5kn7x61PsGfWdkOWzB19MNX5weRfe4SlvOF-imjrBEmUYiMFKNP7Trv3tTw0UoUJni4mED8mYf-VXGp81ZT-ZyBePy48q5q6aczDsXT2dhShN5WW6zJPoMsxLC1xAyodICvuynSrttzgTdZaXFrYqUy6zaa-wVG7Dbbmrao9js8CHv2XF7YP9cnJSeFNnOmI-iv98el-GrYGUBm3KSw8CMzX9XzZAQ7bYCW9g36oWJvSKY1_HXcAOSfLXg9qpDAYv");'></div>
+</div>
+</header>
+<div class="grid grid-cols-4 gap-4">
+<div class="bg-surface neon-border rounded-lg p-5 flex flex-col gap-2 relative overflow-hidden">
+<div class="absolute -right-4 -top-4 w-24 h-24 bg-primary/10 rounded-full blur-2xl"></div>
+<p class="text-slate-400 text-xs font-mono uppercase tracking-widest">Today's Focus</p>
+<p class="text-neon-chartreuse font-mono text-3xl font-bold">02:45:00</p>
+<p class="text-slate-500 text-xs font-mono mt-auto pt-2 border-t border-border-color/50">Target: 04:00:00</p>
+</div>
+<div class="bg-surface neon-border rounded-lg p-5 flex flex-col gap-2 relative overflow-hidden">
+<div class="absolute -right-4 -top-4 w-24 h-24 bg-secondary/10 rounded-full blur-2xl"></div>
+<p class="text-slate-400 text-xs font-mono uppercase tracking-widest">Mastery Index</p>
+<p class="text-neon-cyan font-mono text-3xl font-bold">74%</p>
+<div class="w-full bg-border-color h-1 mt-auto">
+<div class="bg-secondary h-1 w-[74%]"></div>
+</div>
+</div>
+<div class="bg-surface neon-border rounded-lg p-5 flex flex-col gap-2 relative overflow-hidden">
+<div class="absolute -right-4 -top-4 w-24 h-24 bg-primary/10 rounded-full blur-2xl"></div>
+<p class="text-slate-400 text-xs font-mono uppercase tracking-widest">Current Streak</p>
+<p class="text-neon-chartreuse font-mono text-3xl font-bold">12 DAYS</p>
+<p class="text-slate-500 text-xs font-mono mt-auto pt-2 border-t border-border-color/50">Best: 24 DAYS</p>
+</div>
+<div class="bg-surface neon-border rounded-lg p-5 flex flex-col gap-2 relative overflow-hidden">
+<div class="absolute -right-4 -top-4 w-24 h-24 bg-tertiary/10 rounded-full blur-2xl"></div>
+<p class="text-slate-400 text-xs font-mono uppercase tracking-widest">Due for Review</p>
+<p class="text-neon-magenta font-mono text-3xl font-bold">8 CONCEPTS</p>
+<p class="text-tertiary text-xs font-mono mt-auto pt-2 border-t border-border-color/50">Critical Action Required</p>
+</div>
+</div>
+<div class="flex flex-1 gap-6">
+<div class="w-[60%] flex flex-col gap-4">
+<div class="flex items-center justify-between border-b border-border-color pb-2">
+<h2 class="text-slate-100 text-xl font-display font-bold uppercase tracking-wide">Recommended Next</h2>
+<span class="text-xs text-slate-400 font-mono">Sorted by: Weakest Mastery</span>
+</div>
+<div class="flex flex-col gap-3">
+<div class="bg-surface border border-border-color rounded-lg p-4 flex flex-col gap-3 group hover:bg-surface/80 transition-colors">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-4">
+<div class="w-10 h-10 rounded bg-tertiary/10 flex items-center justify-center border border-tertiary/20">
+<span class="material-symbols-outlined text-tertiary">memory</span>
+</div>
+<div>
+<p class="text-slate-100 font-bold mb-1">Process Scheduling</p>
+<div class="flex gap-2 text-xs font-mono">
+<span class="text-slate-400">Operating Systems</span>
+<span class="text-border-color">|</span>
+<span class="text-slate-500">Last Reviewed: 14d ago</span>
+</div>
+</div>
+</div>
+<span class="font-mono text-tertiary font-bold">23% Mastery</span>
+</div>
+<div class="w-full bg-background-dark h-1.5 rounded-full overflow-hidden border border-border-color">
+<div class="bg-tertiary h-full w-[23%]"></div>
+</div>
+</div>
+<div class="bg-surface border border-border-color rounded-lg p-4 flex flex-col gap-3 group hover:bg-surface/80 transition-colors">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-4">
+<div class="w-10 h-10 rounded bg-tertiary/10 flex items-center justify-center border border-tertiary/20">
+<span class="material-symbols-outlined text-tertiary">data_object</span>
+</div>
+<div>
+<p class="text-slate-100 font-bold mb-1">Graph Traversals</p>
+<div class="flex gap-2 text-xs font-mono">
+<span class="text-slate-400">Algorithms</span>
+<span class="text-border-color">|</span>
+<span class="text-slate-500">Last Reviewed: 8d ago</span>
+</div>
+</div>
+</div>
+<span class="font-mono text-tertiary font-bold">45% Mastery</span>
+</div>
+<div class="w-full bg-background-dark h-1.5 rounded-full overflow-hidden border border-border-color">
+<div class="bg-tertiary h-full w-[45%]"></div>
+</div>
+</div>
+<div class="bg-surface border border-border-color rounded-lg p-4 flex flex-col gap-3 group hover:bg-surface/80 transition-colors">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-4">
+<div class="w-10 h-10 rounded bg-secondary/10 flex items-center justify-center border border-secondary/20">
+<span class="material-symbols-outlined text-secondary">router</span>
+</div>
+<div>
+<p class="text-slate-100 font-bold mb-1">TCP/IP Handshake</p>
+<div class="flex gap-2 text-xs font-mono">
+<span class="text-slate-400">Networks</span>
+<span class="text-border-color">|</span>
+<span class="text-slate-500">Last Reviewed: 3d ago</span>
+</div>
+</div>
+</div>
+<span class="font-mono text-secondary font-bold">67% Mastery</span>
+</div>
+<div class="w-full bg-background-dark h-1.5 rounded-full overflow-hidden border border-border-color">
+<div class="bg-secondary h-full w-[67%]"></div>
+</div>
+</div>
+</div>
+</div>
+<div class="w-[40%] flex flex-col gap-4">
+<div class="flex items-center justify-between border-b border-border-color pb-2">
+<h2 class="text-slate-100 text-xl font-display font-bold uppercase tracking-wide">Subject Mastery</h2>
+</div>
+<div class="bg-surface border border-border-color rounded-lg p-6 flex flex-col gap-6">
+<div class="flex items-center justify-between">
+<div class="flex flex-col gap-1 w-2/3">
+<span class="text-sm font-bold text-slate-100">Data Structures</span>
+<div class="w-full bg-background-dark h-2 rounded-full overflow-hidden border border-border-color">
+<div class="bg-primary h-full w-[82%]"></div>
+</div>
+</div>
+<span class="font-mono text-primary font-bold">82%</span>
+</div>
+<div class="flex items-center justify-between">
+<div class="flex flex-col gap-1 w-2/3">
+<span class="text-sm font-bold text-slate-100">Algorithms</span>
+<div class="w-full bg-background-dark h-2 rounded-full overflow-hidden border border-border-color">
+<div class="bg-tertiary h-full w-[45%]"></div>
+</div>
+</div>
+<span class="font-mono text-tertiary font-bold">45%</span>
+</div>
+<div class="flex items-center justify-between">
+<div class="flex flex-col gap-1 w-2/3">
+<span class="text-sm font-bold text-slate-100">Operating Systems</span>
+<div class="w-full bg-background-dark h-2 rounded-full overflow-hidden border border-border-color">
+<div class="bg-tertiary h-full w-[23%]"></div>
+</div>
+</div>
+<span class="font-mono text-tertiary font-bold">23%</span>
+</div>
+<div class="flex items-center justify-between">
+<div class="flex flex-col gap-1 w-2/3">
+<span class="text-sm font-bold text-slate-100">Networks</span>
+<div class="w-full bg-background-dark h-2 rounded-full overflow-hidden border border-border-color">
+<div class="bg-secondary h-full w-[67%]"></div>
+</div>
+</div>
+<span class="font-mono text-secondary font-bold">67%</span>
+</div>
+</div>
+<div class="flex items-center justify-between border-b border-border-color pb-2 mt-4">
+<h2 class="text-slate-100 text-xl font-display font-bold uppercase tracking-wide">Contribution Heatmap</h2>
+<span class="text-xs text-slate-400 font-mono">28-Day Activity</span>
+</div>
+<div class="bg-surface border border-border-color rounded-lg p-6">
+<div class="grid grid-cols-7 gap-2">
+<div class="w-full aspect-square bg-[#121212] heatmap-cell"></div>
+<div class="w-full aspect-square bg-[#004d52] heatmap-cell"></div>
+<div class="w-full aspect-square bg-[#008f96] heatmap-cell"></div>
+<div class="w-full aspect-square bg-[#121212] heatmap-cell"></div>
+<div class="w-full aspect-square bg-[#00F2FE] heatmap-cell" style="box-shadow: 0 0 8px rgba(0, 242, 254, 0.4);"></div>
+<div class="w-full aspect-square bg-[#121212] heatmap-cell"></div>
+<div class="w-full aspect-square bg-[#00383b] heatmap-cell"></div>
+<div class="w-full aspect-square bg-[#00a8b0] heatmap-cell"></div>
+<div class="w-full aspect-square bg-[#121212] heatmap-cell"></div>
+<div class="w-full aspect-square bg-[#121212] heatmap-cell"></div>
+<div class="w-full aspect-square bg-[#006369] heatmap-cell"></div>
+<div class="w-full aspect-square bg-[#121212] heatmap-cell"></div>
+<div class="w-full aspect-square bg-[#00F2FE] heatmap-cell" style="box-shadow: 0 0 8px rgba(0, 242, 254, 0.4);"></div>
+<div class="w-full aspect-square bg-[#00a8b0] heatmap-cell"></div>
+<div class="w-full aspect-square bg-[#121212] heatmap-cell"></div>
+<div class="w-full aspect-square bg-[#121212] heatmap-cell"></div>
+<div class="w-full aspect-square bg-[#00383b] heatmap-cell"></div>
+<div class="w-full aspect-square bg-[#008f96] heatmap-cell"></div>
+<div class="w-full aspect-square bg-[#121212] heatmap-cell"></div>
+<div class="w-full aspect-square bg-[#121212] heatmap-cell"></div>
+<div class="w-full aspect-square bg-[#006369] heatmap-cell"></div>
+<div class="w-full aspect-square bg-[#00F2FE] heatmap-cell" style="box-shadow: 0 0 8px rgba(0, 242, 254, 0.4);"></div>
+<div class="w-full aspect-square bg-[#00a8b0] heatmap-cell"></div>
+<div class="w-full aspect-square bg-[#121212] heatmap-cell"></div>
+<div class="w-full aspect-square bg-[#121212] heatmap-cell"></div>
+<div class="w-full aspect-square bg-[#004d52] heatmap-cell"></div>
+<div class="w-full aspect-square bg-[#121212] heatmap-cell"></div>
+<div class="w-full aspect-square bg-[#00F2FE] heatmap-cell" style="box-shadow: 0 0 8px rgba(0, 242, 254, 0.4);"></div>
+</div>
+</div>
+</div>
+</div>
+<div class="mt-auto pt-6 flex justify-center">
+<button class="bg-primary text-black font-display font-bold uppercase tracking-widest text-xl px-16 py-4 rounded-full btn-glow-primary hover:scale-105 transition-transform">
+                Initiate Focus
+            </button>
+</div>
+</div>
+</div>
+</body></html>
