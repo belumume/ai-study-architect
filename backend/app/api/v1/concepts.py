@@ -89,6 +89,9 @@ async def extract_concepts(
         )
         content.extraction_status = "completed" if not result.chunks_failed else "partial"
         content.extraction_error = None
+        # Update legacy key_concepts field with extracted concept names
+        extracted = db.query(Concept.name).filter(Concept.content_id == content.id).all()
+        content.key_concepts = [row.name for row in extracted]
         db.commit()
         return result
     except ExtractionError as e:

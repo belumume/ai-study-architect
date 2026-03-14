@@ -1,3 +1,5 @@
+import { Link } from 'react-router-dom'
+
 interface SubjectProgress {
   readonly id: string
   readonly name: string
@@ -29,8 +31,8 @@ export function SubjectList({ subjects }: SubjectListProps) {
               : 0
 
           return (
-            <a
-              href={`/subjects/${subject.id}`}
+            <Link
+              to={`/subjects/${subject.id}`}
               key={subject.id}
               className="block rounded-lg border border-border bg-surface p-3 transition-colors hover:border-secondary/50"
             >
@@ -50,7 +52,7 @@ export function SubjectList({ subjects }: SubjectListProps) {
                   }}
                 />
               </div>
-            </a>
+            </Link>
           )
         })}
       </div>
