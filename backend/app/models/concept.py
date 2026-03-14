@@ -99,6 +99,14 @@ class Concept(Base):
         UUID(as_uuid=True), ForeignKey("content.id", ondelete="CASCADE"), nullable=False
     )
 
+    # Subject relationship (for direct subject-concept queries)
+    subject_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("subjects.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+
     # Additional context
     examples = Column(JSON, nullable=True)  # List of example questions/scenarios
     keywords = Column(JSON, nullable=True)  # List of related keywords for search
@@ -114,6 +122,7 @@ class Concept(Base):
 
     # Relationships
     content = relationship("Content")
+    subject = relationship("Subject")
 
     # Concept dependencies (prerequisites)
     # A concept can have multiple prerequisites
@@ -129,6 +138,12 @@ class Concept(Base):
         "ConceptDependency",
         foreign_keys="ConceptDependency.prerequisite_concept_id",
         back_populates="prerequisite_concept",
+        cascade="all, delete-orphan",
+    )
+
+    mastery_records = relationship(
+        "UserConceptMastery",
+        back_populates="concept",
         cascade="all, delete-orphan",
     )
 
