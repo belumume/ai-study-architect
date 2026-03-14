@@ -24,6 +24,8 @@ interface DashboardData {
     weekly_goal_minutes: number
     week_minutes: number
     today_minutes: number
+    concept_count: number
+    mastery_percentage: number
   }[]
   heatmap: { date: string; minutes: number }[]
   mastery_index: number | null
@@ -120,6 +122,7 @@ export function DashboardPage() {
         todayMinutes={dashboard.today_minutes}
         streak={dashboard.current_streak}
         masteryIndex={dashboard.mastery_index ?? undefined}
+        totalConcepts={dashboard.total_concepts}
       />
 
       <div className="grid gap-6 lg:grid-cols-[1fr_300px]">
@@ -132,6 +135,8 @@ export function DashboardPage() {
               weeklyGoalMinutes: s.weekly_goal_minutes,
               weekMinutes: s.week_minutes,
               todayMinutes: s.today_minutes,
+              conceptCount: s.concept_count,
+              masteryPercentage: s.mastery_percentage,
             }))}
           />
         </div>

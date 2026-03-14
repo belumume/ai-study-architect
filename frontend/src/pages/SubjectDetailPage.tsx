@@ -76,9 +76,13 @@ export default function SubjectDetailPage() {
                   <p className="font-mono text-[10px] text-text-muted">
                     {content.concept_count > 0
                       ? `${content.concept_count} concepts`
-                      : content.processing_status === 'completed'
-                        ? 'Ready to extract'
-                        : content.processing_status}
+                      : content.extraction_status === 'completed_empty'
+                        ? 'No concepts found -- try re-extracting'
+                        : content.extraction_status === 'failed'
+                          ? 'Extraction failed'
+                          : content.processing_status === 'completed'
+                            ? 'Ready to extract'
+                            : content.processing_status}
                   </p>
                 </div>
                 {content.processing_status === 'completed' && (

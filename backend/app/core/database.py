@@ -2,11 +2,12 @@
 Database configuration and session management
 """
 
-from typing import Generator
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker, Session, declarative_base
-from sqlalchemy.pool import QueuePool
 import logging
+from collections.abc import Generator
+
+from sqlalchemy import create_engine
+from sqlalchemy.orm import Session, declarative_base, sessionmaker
+from sqlalchemy.pool import QueuePool
 
 from app.core.config import settings
 
@@ -54,7 +55,7 @@ def get_db() -> Generator[Session, None, None]:
 def get_pool_status() -> dict:
     """
     Get database connection pool status for monitoring
-    
+
     Returns:
         Dictionary containing pool statistics
     """
@@ -63,7 +64,7 @@ def get_pool_status() -> dict:
     checked_out = pool.checkedout()
     overflow = pool.overflow()
     pool_size = pool.size()
-    
+
     return {
         "pool_size": pool_size,
         "checked_in": checked_in,
@@ -85,7 +86,7 @@ def close_db() -> None:
 def test_database_connection() -> bool:
     """
     Test database connectivity
-    
+
     Returns:
         True if connection successful, False otherwise
     """

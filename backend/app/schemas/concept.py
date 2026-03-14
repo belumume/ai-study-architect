@@ -5,9 +5,10 @@ These schemas support the mastery-based learning system for concept management.
 """
 
 from datetime import datetime
-from typing import List, Optional, Dict, Any
-from pydantic import BaseModel, Field, ConfigDict, field_validator, HttpUrl
+from typing import Any
 from uuid import UUID
+
+from pydantic import BaseModel, ConfigDict, Field, HttpUrl, field_validator
 
 from app.schemas.mastery import MasteryResponse
 
@@ -42,11 +43,11 @@ class ConceptBase(BaseModel):
     estimated_minutes: int = Field(
         default=15, ge=0, le=480, description="Estimated time to master in minutes"
     )
-    examples: Optional[List[str]] = Field(
+    examples: list[str] | None = Field(
         default=None, description="List of example questions or scenarios"
     )
-    keywords: Optional[List[str]] = Field(default=None, description="Related keywords for search")
-    external_resources: Optional[List[ExternalResource]] = Field(
+    keywords: list[str] | None = Field(default=None, description="Related keywords for search")
+    external_resources: list[ExternalResource] | None = Field(
         default=None, description="Links to additional resources with validated URLs"
     )
 
@@ -55,13 +56,13 @@ class ConceptCreate(ConceptBase):
     """Schema for creating a new concept"""
 
     content_id: UUID = Field(..., description="ID of the content this concept was extracted from")
-    subject_id: Optional[UUID] = Field(
+    subject_id: UUID | None = Field(
         default=None, description="ID of the subject this concept belongs to"
     )
-    extraction_confidence: Optional[float] = Field(
+    extraction_confidence: float | None = Field(
         default=None, ge=0.0, le=1.0, description="AI extraction confidence score (0.0 to 1.0)"
     )
-    extraction_metadata: Optional[Dict[str, Any]] = Field(
+    extraction_metadata: dict[str, Any] | None = Field(
         default=None, description="Additional AI extraction metadata"
     )
 
@@ -69,18 +70,18 @@ class ConceptCreate(ConceptBase):
 class ConceptUpdate(BaseModel):
     """Schema for updating a concept"""
 
-    name: Optional[str] = Field(default=None, min_length=1, max_length=255)
-    description: Optional[str] = Field(default=None, min_length=1, max_length=2000)
-    concept_type: Optional[str] = Field(
+    name: str | None = Field(default=None, min_length=1, max_length=255)
+    description: str | None = Field(default=None, min_length=1, max_length=2000)
+    concept_type: str | None = Field(
         default=None, pattern="^(definition|procedure|principle|example|application|comparison)$"
     )
-    difficulty: Optional[str] = Field(
+    difficulty: str | None = Field(
         default=None, pattern="^(beginner|intermediate|advanced|expert)$"
     )
-    estimated_minutes: Optional[int] = Field(default=None, ge=0, le=480)
-    examples: Optional[List[str]] = Field(default=None)
-    keywords: Optional[List[str]] = Field(default=None)
-    external_resources: Optional[List[ExternalResource]] = Field(default=None)
+    estimated_minutes: int | None = Field(default=None, ge=0, le=480)
+    examples: list[str] | None = Field(default=None)
+    keywords: list[str] | None = Field(default=None)
+    external_resources: list[ExternalResource] | None = Field(default=None)
 
     model_config = ConfigDict(extra="forbid")
 
@@ -90,8 +91,8 @@ class ConceptResponse(ConceptBase):
 
     id: UUID
     content_id: UUID
-    extraction_confidence: Optional[float] = None
-    extraction_metadata: Optional[Dict[str, Any]] = None
+    extraction_confidence: float | None = None
+    extraction_metadata: dict[str, Any] | None = None
     created_at: datetime
     updated_at: datetime
 
@@ -104,10 +105,10 @@ class ConceptDetail(ConceptResponse):
     Includes prerequisite and dependent concepts
     """
 
-    prerequisites: List["ConceptDependencyResponse"] = Field(
+    prerequisites: list["ConceptDependencyResponse"] = Field(
         default_factory=list, description="Concepts that are prerequisites for this one"
     )
-    dependents: List["ConceptDependencyResponse"] = Field(
+    dependents: list["ConceptDependencyResponse"] = Field(
         default_factory=list, description="Concepts that depend on this one"
     )
 
@@ -125,7 +126,7 @@ class ConceptDependencyBase(BaseModel):
     strength: float = Field(
         default=1.0, ge=0.0, le=1.0, description="Dependency strength (0.0=optional, 1.0=required)"
     )
-    reason: Optional[str] = Field(
+    reason: str | None = Field(
         default=None, max_length=500, description="Why this dependency exists"
     )
 
@@ -186,8 +187,8 @@ class ConceptGraphNode(BaseModel):
     concept_type: str
     estimated_minutes: int
     # Coordinates for graph visualization (can be calculated client-side)
-    x: Optional[float] = None
-    y: Optional[float] = None
+    x: float | None = None
+    y: float | None = None
 
 
 class ConceptGraphEdge(BaseModel):
@@ -206,13 +207,13 @@ class ConceptGraph(BaseModel):
     """
 
     content_id: UUID
-    nodes: List[ConceptGraphNode] = Field(
+    nodes: list[ConceptGraphNode] = Field(
         default_factory=list, description="All concepts as graph nodes"
     )
-    edges: List[ConceptGraphEdge] = Field(
+    edges: list[ConceptGraphEdge] = Field(
         default_factory=list, description="All dependencies as graph edges"
     )
-    metadata: Dict[str, Any] = Field(
+    metadata: dict[str, Any] = Field(
         default_factory=dict,
         description="Additional graph metadata (total concepts, difficulty distribution, etc.)",
     )
@@ -228,7 +229,7 @@ class ConceptGraph(BaseModel):
 class ConceptListResponse(BaseModel):
     """Response for listing concepts with pagination"""
 
-    items: List[ConceptResponse]
+    items: list[ConceptResponse]
     total: int
     skip: int
     limit: int
@@ -237,7 +238,7 @@ class ConceptListResponse(BaseModel):
 class ConceptDependencyListResponse(BaseModel):
     """Response for listing concept dependencies"""
 
-    items: List[ConceptDependencyResponse]
+    items: list[ConceptDependencyResponse]
     total: int
     skip: int
     limit: int
@@ -252,13 +253,13 @@ class ConceptBulkCreate(BaseModel):
     """Schema for bulk concept creation from knowledge graph extraction"""
 
     content_id: UUID
-    concepts: List[ConceptCreate] = Field(
+    concepts: list[ConceptCreate] = Field(
         ..., min_length=1, description="List of concepts to create"
     )
-    dependencies: List[ConceptDependencyCreate] = Field(
+    dependencies: list[ConceptDependencyCreate] = Field(
         default_factory=list, description="List of dependencies between concepts"
     )
-    extraction_metadata: Optional[Dict[str, Any]] = Field(
+    extraction_metadata: dict[str, Any] | None = Field(
         default=None, description="Metadata about the extraction process"
     )
 
@@ -268,12 +269,16 @@ class ConceptBulkCreateResponse(BaseModel):
 
     created_concepts: int
     created_dependencies: int
-    concept_ids: List[UUID]
-    dependency_ids: List[UUID]
-    errors: List[str] = Field(default_factory=list, description="Any errors during creation")
+    concept_ids: list[UUID]
+    dependency_ids: list[UUID]
+    errors: list[str] = Field(default_factory=list, description="Any errors during creation")
     chunks_total: int = 0
     chunks_succeeded: int = 0
     chunks_failed: int = 0
+    message: str | None = Field(
+        default=None,
+        description="User-facing message about the extraction result",
+    )
 
 
 # ============================================================================
@@ -292,7 +297,7 @@ class ConceptExtractionRequest(BaseModel):
 class ConceptWithMastery(ConceptResponse):
     """Concept with optional mastery data for the current user"""
 
-    mastery: Optional[MasteryResponse] = None
+    mastery: MasteryResponse | None = None
 
     model_config = ConfigDict(from_attributes=True)
 

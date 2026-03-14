@@ -23,14 +23,25 @@ export function SubjectMasteryOverview({ summary }: SubjectMasteryOverviewProps)
             Mastery Overview
           </h3>
           {hasData ? (
-            <>
-              <p className="font-mono text-xs text-text-muted">
-                {summary.mastered_count}/{summary.total_concepts} concepts mastered
-              </p>
-              <p className="font-mono text-[10px] text-text-muted">
-                {summary.learning_count} learning | {summary.not_started_count} not started
-              </p>
-            </>
+            summary.mastered_count === 0 && summary.learning_count === 0 ? (
+              <>
+                <p className="font-mono text-xs text-text-muted">
+                  {summary.total_concepts} concepts extracted
+                </p>
+                <p className="font-mono text-[10px] text-text-muted">
+                  Practice features coming soon
+                </p>
+              </>
+            ) : (
+              <>
+                <p className="font-mono text-xs text-text-muted">
+                  {summary.mastered_count}/{summary.total_concepts} concepts mastered
+                </p>
+                <p className="font-mono text-[10px] text-text-muted">
+                  {summary.learning_count} learning | {summary.not_started_count} not started
+                </p>
+              </>
+            )
           ) : (
             <p className="font-mono text-xs text-text-muted">No concepts extracted yet</p>
           )}

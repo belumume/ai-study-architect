@@ -9,25 +9,24 @@ These models support the mastery-based learning system by representing:
 This is part of the Knowledge Graph Foundation (Week 1 of mastery-based pivot)
 """
 
+import enum
+import uuid
 from datetime import datetime
-from typing import Optional, List
+
 from sqlalchemy import (
+    JSON,
+    CheckConstraint,
     Column,
     DateTime,
-    Enum,
+    Float,
     ForeignKey,
     Integer,
     String,
     Text,
-    Float,
-    JSON,
-    CheckConstraint,
     UniqueConstraint,
 )
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
-import uuid
-import enum
 
 from app.core.database import Base
 

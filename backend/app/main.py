@@ -5,7 +5,7 @@ AI Study Architect - Main FastAPI Application
 import logging
 from typing import Any
 
-from fastapi import APIRouter, FastAPI, HTTPException, Request, Response
+from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from slowapi import _rate_limit_exceeded_handler
@@ -19,7 +19,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 from app.core.config import settings
-from app.core.csrf import csrf_protect, require_csrf_token
+from app.core.csrf import csrf_protect
 
 # Try to import init_db, fallback to minimal version
 try:
@@ -34,18 +34,18 @@ except ImportError as e:
         return init_db_minimal(engine, Base)
 
 
-from app.core.rate_limiter import limiter
+import app.models.chat_message  # noqa: F401
+import app.models.concept  # noqa: F401
+import app.models.content  # noqa: F401
+import app.models.practice  # noqa: F401
+import app.models.study_session  # noqa: F401
+import app.models.subject  # noqa: F401
 
 # Ensure all models are registered before any query runs
 # (SQLAlchemy string-based relationship references need all models imported)
 import app.models.user  # noqa: F401
-import app.models.content  # noqa: F401
-import app.models.study_session  # noqa: F401
-import app.models.subject  # noqa: F401
-import app.models.concept  # noqa: F401
 import app.models.user_concept_mastery  # noqa: F401
-import app.models.practice  # noqa: F401
-import app.models.chat_message  # noqa: F401
+from app.core.rate_limiter import limiter
 
 # Create FastAPI app
 app = FastAPI(

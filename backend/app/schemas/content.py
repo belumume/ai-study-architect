@@ -1,18 +1,18 @@
 """Pydantic schemas for content management"""
 
 from datetime import datetime
-from typing import List, Optional
-from pydantic import BaseModel, Field, ConfigDict
 from uuid import UUID
+
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class ContentBase(BaseModel):
     """Base content schema"""
 
     title: str = Field(..., min_length=1, max_length=255)
-    description: Optional[str] = Field(None, max_length=1000)
+    description: str | None = Field(None, max_length=1000)
     content_type: str = Field(..., description="Type of content: notes, textbook, video, etc.")
-    tags: Optional[List[str]] = Field(default_factory=list)
+    tags: list[str] | None = Field(default_factory=list)
 
 
 class ContentCreate(ContentBase):
@@ -24,10 +24,10 @@ class ContentCreate(ContentBase):
 class ContentUpdate(BaseModel):
     """Schema for updating content metadata"""
 
-    title: Optional[str] = Field(None, min_length=1, max_length=255)
-    description: Optional[str] = Field(None, max_length=1000)
-    tags: Optional[List[str]] = None
-    subject_id: Optional[UUID] = None
+    title: str | None = Field(None, min_length=1, max_length=255)
+    description: str | None = Field(None, max_length=1000)
+    tags: list[str] | None = None
+    subject_id: UUID | None = None
 
     model_config = ConfigDict(extra="forbid")
 
@@ -43,9 +43,9 @@ class ContentResponse(ContentBase):
     file_hash: str
     original_filename: str
     processing_status: str
-    extracted_text: Optional[str] = None
-    summary: Optional[str] = None
-    key_concepts: Optional[List[str]] = None
+    extracted_text: str | None = None
+    summary: str | None = None
+    key_concepts: list[str] | None = None
     embeddings_generated: bool = False
     created_at: datetime
     updated_at: datetime
@@ -56,7 +56,7 @@ class ContentResponse(ContentBase):
 class ContentListResponse(BaseModel):
     """Response for listing content"""
 
-    items: List[ContentResponse]
+    items: list[ContentResponse]
     total: int
     skip: int
     limit: int

@@ -55,4 +55,5 @@ export interface ExtractionResult {
   chunks_total: number
   chunks_succeeded: number
   chunks_failed: number
+  message: string | null
 }

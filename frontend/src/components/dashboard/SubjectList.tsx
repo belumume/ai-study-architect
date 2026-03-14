@@ -7,6 +7,8 @@ interface SubjectProgress {
   readonly weeklyGoalMinutes: number
   readonly weekMinutes: number
   readonly todayMinutes: number
+  readonly conceptCount: number
+  readonly masteryPercentage: number
 }
 
 interface SubjectListProps {
@@ -38,9 +40,16 @@ export function SubjectList({ subjects }: SubjectListProps) {
             >
               <div className="flex items-center justify-between">
                 <span className="font-body text-sm text-text-primary">{subject.name}</span>
-                <span className="font-mono text-xs text-text-muted">
-                  {formatHours(subject.weekMinutes)}/{formatHours(subject.weeklyGoalMinutes)}h
-                </span>
+                <div className="flex items-center gap-3">
+                  {subject.conceptCount > 0 && (
+                    <span className="font-mono text-[10px] text-text-muted">
+                      {subject.conceptCount} concepts
+                    </span>
+                  )}
+                  <span className="font-mono text-xs text-text-muted">
+                    {formatHours(subject.weekMinutes)}/{formatHours(subject.weeklyGoalMinutes)}h
+                  </span>
+                </div>
               </div>
               <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-border">
                 <div
