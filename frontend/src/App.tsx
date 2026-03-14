@@ -5,6 +5,7 @@ import { GuestRoute, ProtectedRoute } from './components/auth'
 import { LoginForm, RegisterForm } from './components/auth'
 import { AppShell } from './app/layout'
 import { DashboardPage, StudyPage, ContentPage, FocusPage } from './pages'
+import SubjectDetailPage from './pages/SubjectDetailPage'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import api from './services/api'
 import tokenStorage from './services/tokenStorage'
@@ -53,6 +54,7 @@ function App() {
             }
           >
             <Route path="/" element={<DashboardPage />} />
+            <Route path="/subjects/:id" element={<SubjectDetailPage />} />
             <Route path="/study" element={<StudyPage />} />
             <Route path="/focus" element={<FocusPage />} />
             <Route path="/content" element={<ContentPage />} />

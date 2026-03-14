@@ -26,6 +26,9 @@ interface DashboardData {
     today_minutes: number
   }[]
   heatmap: { date: string; minutes: number }[]
+  mastery_index: number | null
+  total_concepts: number
+  mastered_concepts: number
 }
 
 export function DashboardPage() {
@@ -89,10 +92,15 @@ export function DashboardPage() {
           </div>
         </Card>
 
-        <ContributionHeatmap data={dashboard?.heatmap ?? Array.from({ length: 28 }, (_, i) => ({
-          date: new Date(Date.now() - (27 - i) * 86400000).toISOString().split('T')[0],
-          minutes: 0,
-        }))} />
+        <ContributionHeatmap
+          data={
+            dashboard?.heatmap ??
+            Array.from({ length: 28 }, (_, i) => ({
+              date: new Date(Date.now() - (27 - i) * 86400000).toISOString().split('T')[0],
+              minutes: 0,
+            }))
+          }
+        />
       </div>
     )
   }
@@ -111,6 +119,7 @@ export function DashboardPage() {
       <HeroMetrics
         todayMinutes={dashboard.today_minutes}
         streak={dashboard.current_streak}
+        masteryIndex={dashboard.mastery_index ?? undefined}
       />
 
       <div className="grid gap-6 lg:grid-cols-[1fr_300px]">

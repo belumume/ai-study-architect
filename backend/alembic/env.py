@@ -36,6 +36,8 @@ try:
         from app.models.study_session import StudySession
         from app.models.practice import PracticeSession, Problem
         from app.models.subject import Subject
+        from app.models.concept import Concept, ConceptDependency
+        from app.models.user_concept_mastery import UserConceptMastery
 
         print("[Alembic] ✓ All models imported successfully", file=sys.stderr)
     except ImportError as e:
