@@ -83,8 +83,8 @@ jobs:
 
       - name: Semgrep security scan
         run: |
-          pip install semgrep
-          semgrep scan --config p/python-security --config p/owasp-top-ten backend/
+          pipx install semgrep
+          semgrep scan --config auto --include "*.py" backend/
 
   migrate:
     needs: test
