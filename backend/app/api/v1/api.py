@@ -13,6 +13,7 @@ from app.api.v1.agents import router as agents_router
 from app.api.v1.endpoints.backup import router as backup_router
 from app.api.v1.subjects import router as subjects_router
 from app.api.v1.study_sessions import router as sessions_router
+from app.api.v1.dashboard import router as dashboard_router
 
 api_router = APIRouter()
 
@@ -27,3 +28,4 @@ api_router.include_router(admin_router, prefix="/admin", tags=["admin"])
 api_router.include_router(backup_router, prefix="/backup", tags=["maintenance"])
 api_router.include_router(subjects_router, tags=["subjects"])
 api_router.include_router(sessions_router, tags=["sessions"])
+api_router.include_router(dashboard_router, tags=["dashboard"])
