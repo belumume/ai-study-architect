@@ -2,24 +2,24 @@
 Upstash Redis REST API client for serverless Redis caching
 """
 
-import os
 import json
-import requests
 import logging
-from typing import Any, Optional
-from datetime import timedelta
+import os
+from typing import Any
+
+import requests
 
 logger = logging.getLogger(__name__)
 
 
 class UpstashRedisClient:
     """REST-based Redis client for Upstash (works on serverless)"""
-    
+
     def __init__(self):
         self.url = os.getenv("UPSTASH_REDIS_REST_URL")
         self.token = os.getenv("UPSTASH_REDIS_REST_TOKEN")
         self.headers = {}
-        
+
         if self.url and self.token:
             self.headers = {"Authorization": f"Bearer {self.token}"}
             self.connected = True
@@ -27,12 +27,12 @@ class UpstashRedisClient:
         else:
             self.connected = False
             logger.warning("Upstash Redis not configured, using mock cache")
-    
-    def get(self, key: str) -> Optional[Any]:
+
+    def get(self, key: str) -> Any | None:
         """Get value from Upstash Redis"""
         if not self.connected:
             return None
-            
+
         try:
             response = requests.get(
                 f"{self.url}/get/{key}",
@@ -51,22 +51,22 @@ class UpstashRedisClient:
         except Exception as e:
             logger.warning(f"Upstash get failed for {key}: {e}")
             return None
-    
-    def set(self, key: str, value: Any, ex: Optional[int] = None) -> bool:
+
+    def set(self, key: str, value: Any, ex: int | None = None) -> bool:
         """Set value in Upstash Redis with optional TTL in seconds"""
         if not self.connected:
             return True  # Mock success
-            
+
         try:
             # Serialize value to JSON
             if isinstance(value, (dict, list)):
                 value = json.dumps(value)
-            
+
             # Build command
             command = ["SET", key, value]
             if ex:
                 command.extend(["EX", str(ex)])
-            
+
             response = requests.post(
                 f"{self.url}/",
                 headers=self.headers,
@@ -76,12 +76,12 @@ class UpstashRedisClient:
         except Exception as e:
             logger.warning(f"Upstash set failed for {key}: {e}")
             return False
-    
+
     def delete(self, key: str) -> bool:
         """Delete key from Upstash Redis"""
         if not self.connected:
             return True
-            
+
         try:
             response = requests.post(
                 f"{self.url}/",
@@ -92,12 +92,12 @@ class UpstashRedisClient:
         except Exception as e:
             logger.warning(f"Upstash delete failed for {key}: {e}")
             return False
-    
+
     def exists(self, key: str) -> bool:
         """Check if key exists in Upstash Redis"""
         if not self.connected:
             return False
-            
+
         try:
             response = requests.post(
                 f"{self.url}/",
@@ -110,12 +110,12 @@ class UpstashRedisClient:
         except Exception as e:
             logger.warning(f"Upstash exists check failed for {key}: {e}")
             return False
-    
+
     def ping(self) -> bool:
         """Check if Upstash is reachable"""
         if not self.connected:
             return False
-            
+
         try:
             response = requests.post(
                 f"{self.url}/",
@@ -125,12 +125,12 @@ class UpstashRedisClient:
             return response.status_code == 200
         except Exception:
             return False
-    
+
     def keys(self, pattern: str = "*") -> list:
         """Get keys matching pattern (use sparingly)"""
         if not self.connected:
             return []
-            
+
         try:
             response = requests.post(
                 f"{self.url}/",
@@ -143,12 +143,12 @@ class UpstashRedisClient:
         except Exception as e:
             logger.warning(f"Upstash keys failed for {pattern}: {e}")
             return []
-    
+
     def info(self) -> dict:
         """Get Upstash stats"""
         if not self.connected:
             return {}
-            
+
         try:
             # Get database info via INFO command
             response = requests.post(

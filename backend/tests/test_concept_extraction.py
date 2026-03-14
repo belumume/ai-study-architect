@@ -352,3 +352,36 @@ class TestExtractionService:
             )
 
         assert result.created_concepts >= 0
+
+    @pytest.mark.asyncio
+    async def test_zero_concepts_returns_message(self, db_session, test_data):
+        """When Claude returns no concepts, result has message and 0 counts."""
+        empty_response = {
+            "concepts": [],
+            "dependencies": [],
+            "metadata": {
+                "total_extracted": 0,
+                "extraction_confidence": 0.0,
+                "notes": "No extractable concepts found",
+            },
+        }
+        mock_call = AsyncMock(return_value=empty_response)
+
+        with (
+            patch.object(self.service, "_call_claude", mock_call),
+            patch("app.services.concept_extraction.claude_service") as mock_cs,
+        ):
+            mock_cs.api_key = "test-key"
+            result = await self.service.extract_concepts(
+                test_data["content"].id,
+                test_data["subject"].id,
+                "Some content here. " * 20,
+                test_data["user"].id,
+                db_session,
+            )
+
+        assert result.created_concepts == 0
+        assert result.concept_ids == []
+        assert result.chunks_succeeded >= 1
+        assert result.message is not None
+        assert "No concepts found" in result.message

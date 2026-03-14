@@ -1,5 +1,5 @@
 ---
-status: pending
+status: complete
 priority: p2
 issue_id: "008"
 tags: [code-review, implementation, deferred]
@@ -45,7 +45,14 @@ During Phase 2 `/ce:work`, several deliverables were skipped or partially implem
 
 ## Acceptance Criteria
 
-- [ ] ExtractionTrigger receives a real content_id (from content items linked to subject)
-- [ ] Content upload/update endpoint handles subject_id
-- [ ] All plan deliverable checkboxes checked or explicitly marked deferred
-- [ ] Critical tests written (dashboard 0-concepts, extraction integration)
+- [x] ExtractionTrigger receives a real content_id (from content items linked to subject)
+- [x] Content upload/update endpoint handles subject_id
+- [x] All plan deliverable checkboxes checked or explicitly marked deferred
+- [x] Critical tests written (dashboard 0-concepts, extraction integration)
+- [x] Subject mastery % in SubjectList cards (concept_count + mastery_percentage from dashboard API)
+- [x] Zero-concept extraction test (message field validation)
+
+## Remaining Deferred (low priority, v2)
+- SubjectConceptList filter component (concepts rendered inline, acceptable for v1)
+- ContentExtractionStatus component (status shown in SubjectDetailPage content list)
+- ConceptNotFoundError (not needed until CRUD endpoints exist)

@@ -1,12 +1,10 @@
 """Enhanced file validation utilities with deep content validation and security checks"""
 
-import sys
-import logging
 import hashlib
-import zipfile
 import io
-from typing import Tuple, Dict, Optional, List
+import logging
 import re
+import zipfile
 
 logger = logging.getLogger(__name__)
 
@@ -97,9 +95,9 @@ def _basic_mime_detection(content: bytes) -> str:
 def validate_file_content(
     file_content: bytes,
     file_name: str,
-    allowed_mime_types: Optional[List[str]] = None,
+    allowed_mime_types: list[str] | None = None,
     max_file_size: int = 50 * 1024 * 1024,  # 50MB default
-) -> Tuple[bool, str, Dict[str, any]]:
+) -> tuple[bool, str, dict[str, any]]:
     """
     Perform deep file content validation with security checks.
 
@@ -196,7 +194,7 @@ def validate_file_content(
     return True, "", validation_info
 
 
-def _validate_pdf_content(content: bytes, validation_info: Dict) -> Tuple[bool, str]:
+def _validate_pdf_content(content: bytes, validation_info: dict) -> tuple[bool, str]:
     """Validate PDF file content for security issues."""
     # Check for embedded JavaScript
     if b"/JavaScript" in content or b"/JS" in content:
@@ -222,8 +220,8 @@ def _validate_pdf_content(content: bytes, validation_info: Dict) -> Tuple[bool, 
 
 
 def _validate_image_content(
-    content: bytes, mime_type: str, validation_info: Dict
-) -> Tuple[bool, str]:
+    content: bytes, mime_type: str, validation_info: dict
+) -> tuple[bool, str]:
     """Validate image file content for security issues."""
     # Check for embedded PHP in images
     if b"<?php" in content:
@@ -241,8 +239,8 @@ def _validate_image_content(
 
 
 def _validate_office_content(
-    content: bytes, mime_type: str, validation_info: Dict
-) -> Tuple[bool, str]:
+    content: bytes, mime_type: str, validation_info: dict
+) -> tuple[bool, str]:
     """Validate Office document content for security issues."""
     try:
         # Office files are ZIP archives
@@ -282,7 +280,7 @@ def _validate_office_content(
     return True, ""
 
 
-def _validate_text_content(content: bytes, validation_info: Dict) -> Tuple[bool, str]:
+def _validate_text_content(content: bytes, validation_info: dict) -> tuple[bool, str]:
     """Validate text file content for security issues."""
     try:
         # Try to decode as text

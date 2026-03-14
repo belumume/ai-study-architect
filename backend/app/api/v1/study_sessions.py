@@ -3,15 +3,14 @@ Study session lifecycle endpoints (start/pause/resume/stop)
 """
 
 from datetime import datetime
-from typing import List, Optional
+from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
-from sqlalchemy import update
 from sqlalchemy.orm import Session
 
 from app.api.dependencies import get_current_user, get_db
 from app.core.rate_limiter import limiter
-from app.models.study_session import StudySession, SessionStatus, StudyMode
+from app.models.study_session import SessionStatus, StudyMode, StudySession
 from app.models.subject import Subject
 from app.models.user import User
 from app.schemas.study_session import (
@@ -213,7 +212,7 @@ async def get_active_session(
     return session
 
 
-@router.get("/history", response_model=List[SessionStateResponse])
+@router.get("/history", response_model=list[SessionStateResponse])
 @limiter.limit("60/minute")
 async def get_session_history(
     request: Request,
