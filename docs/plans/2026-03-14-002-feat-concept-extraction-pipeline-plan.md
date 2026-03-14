@@ -293,14 +293,14 @@ class SubjectMasterySummary(BaseModel):
 ```
 
 **Deliverables:**
-- [ ] `backend/app/models/user_concept_mastery.py` — new model
-- [ ] `backend/app/models/concept.py` — add `subject_id` column + relationship
-- [ ] `backend/app/models/content.py` — add `subject_id` FK + relationship
-- [ ] `backend/alembic/versions/XXXX_add_mastery_and_subject_fks.py` — manual migration
-- [ ] `backend/alembic/env.py` — add Concept, ConceptDependency, UserConceptMastery imports
-- [ ] `backend/app/schemas/mastery.py` — mastery response schemas
-- [ ] `backend/app/schemas/concept.py` — update ConceptCreate to accept optional `subject_id`
-- [ ] Run migration locally and verify on Neon
+- [x] `backend/app/models/user_concept_mastery.py` — new model
+- [x] `backend/app/models/concept.py` — add `subject_id` column + relationship
+- [x] `backend/app/models/content.py` — add `subject_id` FK + relationship
+- [x] `backend/alembic/versions/XXXX_add_mastery_and_subject_fks.py` — manual migration
+- [x] `backend/alembic/env.py` — add Concept, ConceptDependency, UserConceptMastery imports
+- [x] `backend/app/schemas/mastery.py` — mastery response schemas
+- [x] `backend/app/schemas/concept.py` — update ConceptCreate to accept optional `subject_id`
+- [x] Run migration locally and verify on Neon
 
 ---
 
@@ -647,9 +647,9 @@ class ExtractionError(Exception):
 - Dependencies are informational (display-only) in Phase 2. Store whatever Claude returns. Cycle detection deferred to Phase 5 when learning paths enforce prerequisite ordering.
 
 **Deliverables:**
-- [ ] `backend/app/services/concept_extraction.py` — extraction service with Claude prompt, chunking, dedup, dependency resolution (includes `ExtractionError` as plain Exception — NOT in core/exceptions.py)
+- [x] `backend/app/services/concept_extraction.py` — extraction service with Claude prompt, chunking, dedup, dependency resolution (includes `ExtractionError` as plain Exception — NOT in core/exceptions.py)
 - [ ] `backend/app/core/exceptions.py` — add `ConceptNotFoundError` only (ExtractionError lives in the service module)
-- [ ] Tests: `backend/tests/test_concept_extraction.py` — unit tests with mocked Claude responses
+- [x] Tests: `backend/tests/test_concept_extraction.py` — unit tests with mocked Claude responses
 - [ ] Tests: `backend/tests/test_concept_extraction_integration.py` — integration tests with real (small) content
 
 ---
@@ -771,11 +771,11 @@ class ConceptWithMastery(ConceptResponse):
 ```
 
 **Deliverables:**
-- [ ] `backend/app/api/v1/concepts.py` — router with all endpoints
-- [ ] `backend/app/api/v1/api.py` — register concepts router
-- [ ] `backend/app/core/csrf.py` — add concepts to exempt paths
-- [ ] `backend/app/schemas/concept.py` — add `ConceptExtractionRequest`, `ConceptWithMastery`
-- [ ] Tests: `backend/tests/test_concepts_api.py` — endpoint tests
+- [x] `backend/app/api/v1/concepts.py` — router with all endpoints
+- [x] `backend/app/api/v1/api.py` — register concepts router
+- [x] `backend/app/core/csrf.py` — add concepts to exempt paths
+- [x] `backend/app/schemas/concept.py` — add `ConceptExtractionRequest`, `ConceptWithMastery`
+- [x] Tests: `backend/tests/test_concepts_api.py` — endpoint tests
 - [ ] Verify endpoints on local and Neon after deploy
 
 ---
@@ -918,19 +918,19 @@ const extractMutation = useMutation({
 - Status feedback: `toast` from sonner (already installed, not `<Alert>`)
 
 **Deliverables:**
-- [ ] `frontend/src/types/concept.ts` — TypeScript interfaces with union literal types (not bare string)
-- [ ] `frontend/src/pages/SubjectDetailPage.tsx` — with `useParams` validation + 404 state
-- [ ] `frontend/src/components/subject-detail/SubjectMasteryOverview.tsx` — includes custom SVG mastery ring (circular progress — not available from shadcn)
+- [x] `frontend/src/types/concept.ts` — TypeScript interfaces with union literal types (not bare string)
+- [x] `frontend/src/pages/SubjectDetailPage.tsx` — with `useParams` validation + 404 state
+- [x] `frontend/src/components/subject-detail/SubjectMasteryOverview.tsx` — includes custom SVG mastery ring (circular progress — not available from shadcn)
 - [ ] `frontend/src/components/subject-detail/SubjectConceptList.tsx` — with CSS-only mastery bars (not shadcn `<Progress>`)
-- [ ] `frontend/src/components/subject-detail/ConceptCard.tsx` — mastery-to-color mapping: mastered=primary, learning=secondary, not_started=muted
-- [ ] `frontend/src/components/subject-detail/ExtractionTrigger.tsx` — with `isPending` loading state, disabled during extraction, `AxiosError.response?.data?.detail` for errors
+- [x] `frontend/src/components/subject-detail/ConceptCard.tsx` — mastery-to-color mapping: mastered=primary, learning=secondary, not_started=muted
+- [x] `frontend/src/components/subject-detail/ExtractionTrigger.tsx` — with `isPending` loading state, disabled during extraction, `AxiosError.response?.data?.detail` for errors
 - [ ] `frontend/src/components/subject-detail/ContentExtractionStatus.tsx`
 - [ ] `frontend/src/components/subject-detail/index.ts` — barrel export
-- [ ] Route: `/subjects/:id` in App.tsx with `useParams` + undefined guard
-- [ ] SubjectList cards link to Subject Detail
-- [ ] Add shadcn components one at a time: badge, tooltip (drop separator — use spacing per dashboard pattern)
+- [x] Route: `/subjects/:id` in App.tsx with `useParams` + undefined guard
+- [x] SubjectList cards link to Subject Detail
+- [x] Add shadcn components one at a time: badge, tooltip (drop separator — use spacing per dashboard pattern)
 - [ ] Responsive layout (desktop-first, readable on mobile)
-- [ ] Backend: `GET /api/v1/subjects/{id}/detail` — consolidated endpoint returning subject + concepts with mastery + summary
+- [x] Backend: `GET /api/v1/subjects/{id}/detail` — consolidated endpoint returning subject + concepts with mastery + summary
 
 ---
 
@@ -1006,7 +1006,7 @@ class ContentUpdate(BaseModel):
 **Frontend (ContentUpload):** This is a MUI component (Phase 3 restyle). For now, add a minimal subject selector to the existing upload flow. Can be a simple dropdown using the existing subjects API.
 
 **Deliverables:**
-- [ ] `backend/app/schemas/content.py` — add `subject_id` to ContentUpdate
+- [x] `backend/app/schemas/content.py` — add `subject_id` to ContentUpdate
 - [ ] `backend/app/api/v1/content.py` — handle `subject_id` in upload and update
 - [ ] Frontend: subject selector in content upload (minimal, MUI-compatible for now)
 - [ ] Frontend: "Link Content" action on Subject Detail page
