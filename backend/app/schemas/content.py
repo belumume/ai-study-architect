@@ -8,6 +8,7 @@ from uuid import UUID
 
 class ContentBase(BaseModel):
     """Base content schema"""
+
     title: str = Field(..., min_length=1, max_length=255)
     description: Optional[str] = Field(None, max_length=1000)
     content_type: str = Field(..., description="Type of content: notes, textbook, video, etc.")
@@ -16,20 +17,24 @@ class ContentBase(BaseModel):
 
 class ContentCreate(ContentBase):
     """Schema for creating content - file upload handled separately"""
+
     pass
 
 
 class ContentUpdate(BaseModel):
     """Schema for updating content metadata"""
+
     title: Optional[str] = Field(None, min_length=1, max_length=255)
     description: Optional[str] = Field(None, max_length=1000)
     tags: Optional[List[str]] = None
-    
-    model_config = ConfigDict(extra='forbid')
+    subject_id: Optional[UUID] = None
+
+    model_config = ConfigDict(extra="forbid")
 
 
 class ContentResponse(ContentBase):
     """Schema for content response"""
+
     id: UUID
     user_id: UUID
     file_path: str
@@ -44,12 +49,13 @@ class ContentResponse(ContentBase):
     embeddings_generated: bool = False
     created_at: datetime
     updated_at: datetime
-    
+
     model_config = ConfigDict(from_attributes=True)
 
 
 class ContentListResponse(BaseModel):
     """Response for listing content"""
+
     items: List[ContentResponse]
     total: int
     skip: int
