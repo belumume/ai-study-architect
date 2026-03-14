@@ -12,11 +12,14 @@ dependencies: []
 
 During Phase 2 `/ce:work`, several deliverables were skipped or partially implemented. These need attention before the PR is merge-ready.
 
-## Code Gaps (broken as-is)
+## Code Gaps (FIXED)
 
-1. **`contentId=""` in SubjectDetailPage.tsx line 70** — ExtractionTrigger receives empty string. Extraction requires a content_id. The Subject Detail page needs to show content items linked to the subject and let users extract per-content-item, not per-subject.
+1. ~~`contentId=""` in SubjectDetailPage~~ — FIXED in 7ef197a. Content items now shown with per-item extraction.
+2. ~~Content upload subject_id~~ — Already works via generic `setattr` in update endpoint. Schema has `subject_id`.
+3. ~~`<a href>` in SubjectList~~ — FIXED in 4e8ba98. Uses `<Link to>` now.
+4. ~~`Content.key_concepts` not updated~~ — FIXED in 4e8ba98. Queries concept names after extraction.
 
-2. **Content upload doesn't handle `subject_id`** — ContentUpdate schema has `subject_id` but the upload/update endpoint in `content.py` doesn't read or store it. Users can't associate content with subjects via API.
+## Remaining Gaps
 
 ## Missing Components
 
