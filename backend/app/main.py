@@ -36,6 +36,13 @@ except ImportError as e:
 
 from app.core.rate_limiter import limiter
 
+# Ensure all models are registered before any query runs
+# (SQLAlchemy string-based relationship references need all models imported)
+import app.models.user  # noqa: F401
+import app.models.content  # noqa: F401
+import app.models.concept  # noqa: F401
+import app.models.user_concept_mastery  # noqa: F401
+
 # Create FastAPI app
 app = FastAPI(
     title="AI Study Architect API",
