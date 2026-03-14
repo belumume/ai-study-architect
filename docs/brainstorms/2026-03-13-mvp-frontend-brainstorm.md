@@ -456,7 +456,7 @@ Phase 1 = minimum shippable (subjects, time tracking, dashboard, basic focus tim
 
 2. **MUI replacement strategy?** Full Tailwind v4 + shadcn/ui. No retheme, no hybrid. Clean replacement.
 
-3. **Design tool pipeline?** Stitch + Figma from day 1. Stitch generates, Figma refines + governs tokens, Figma MCP extracts structured data. Both MCP-integrated, zero platform switching. ~4-7 hour setup.
+3. **Design tool pipeline?** Stitch for design generation. Figma deferred (plan review decision: tokens-as-code via DESIGN.md → Tailwind @theme is the direct path; Figma adds a sync layer that doesn't add information for a solo dev). Figma plugs in later if team grows. See plan reconciliation.
 
 4. **v0/Storybook/Chromatic?** All skipped with research-backed rationale. Playwright visual tests cover the quality gap for free.
 
