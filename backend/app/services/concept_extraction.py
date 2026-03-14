@@ -162,6 +162,9 @@ class ConceptExtractionService:
         user_id: uuid.UUID,
         db: Session,
     ) -> ConceptBulkCreateResponse:
+        if not claude_service.api_key:
+            raise ExtractionError("Claude API key not configured")
+
         text = extracted_text[: self.MAX_TEXT_LENGTH]
 
         chunks = content_processor.extract_chunks(text, self.CHUNK_SIZE, self.CHUNK_OVERLAP)
@@ -346,6 +349,7 @@ class ConceptExtractionService:
         if mastery_records:
             db.execute(insert(UserConceptMastery), mastery_records)
 
+        db.flush()  # Ensure inserts are visible to subsequent queries in same transaction
         return concept_ids
 
 

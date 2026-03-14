@@ -9,7 +9,7 @@ from datetime import datetime, timedelta
 
 from fastapi import APIRouter, Depends, Request
 from pydantic import BaseModel, ConfigDict
-from sqlalchemy import Date, cast, distinct, func
+from sqlalchemy import Date, case, cast, distinct, func
 from sqlalchemy.orm import Session
 
 from app.api.dependencies import get_current_user, get_db
@@ -190,9 +190,12 @@ async def get_dashboard(
         mastery_stats = (
             db.query(
                 func.count(UserConceptMastery.id).label("total"),
-                func.count(func.nullif(UserConceptMastery.status != "mastered", True)).label(
-                    "mastered"
-                ),
+                func.sum(
+                    case(
+                        (UserConceptMastery.status == "mastered", 1),
+                        else_=0,
+                    )
+                ).label("mastered"),
             )
             .filter(UserConceptMastery.user_id == current_user.id)
             .first()

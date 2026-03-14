@@ -96,9 +96,16 @@ async def extract_concepts(
         return result
     except ExtractionError as e:
         content.extraction_status = "failed"
-        content.extraction_error = str(e)
+        content.extraction_error = str(e)[:500]
         db.commit()
         raise HTTPException(status.HTTP_502_BAD_GATEWAY, f"Extraction failed: {e}") from e
+    except Exception as e:
+        # Catch unexpected exceptions to prevent extraction_status stuck as
+        # "extracting" forever (which blocks all future extraction attempts)
+        content.extraction_status = "failed"
+        content.extraction_error = f"Unexpected: {e!s}"[:500]
+        db.commit()
+        raise HTTPException(status.HTTP_500_INTERNAL_SERVER_ERROR, "Extraction error") from e
 
 
 @router.get("/subjects/{subject_id}/detail")
