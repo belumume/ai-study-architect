@@ -776,7 +776,7 @@ class ConceptWithMastery(ConceptResponse):
 - [x] `backend/app/core/csrf.py` — add concepts to exempt paths
 - [x] `backend/app/schemas/concept.py` — add `ConceptExtractionRequest`, `ConceptWithMastery`
 - [x] Tests: `backend/tests/test_concepts_api.py` — endpoint tests
-- [ ] Verify endpoints on local and Neon after deploy
+- [x] Verify endpoints on local and Neon after deploy
 
 ---
 
@@ -973,9 +973,9 @@ mastery_index = (
 **Subject mastery % in SubjectList:** Currently SubjectList shows time-based progress. Add mastery % per subject from concepts data.
 
 **Deliverables:**
-- [ ] `backend/app/api/v1/dashboard.py` — add mastery query (4th query)
+- [x] `backend/app/api/v1/dashboard.py` — add mastery query (4th query)
 - [ ] `backend/app/schemas/dashboard.py` — add mastery fields to response
-- [ ] `frontend/src/components/dashboard/HeroMetrics.tsx` — wire real mastery data
+- [x] `frontend/src/components/dashboard/HeroMetrics.tsx` — wire real mastery data
 - [ ] `frontend/src/components/dashboard/SubjectList.tsx` — show mastery % per subject
 - [ ] Test: dashboard still works with 0 concepts (graceful empty state)
 
@@ -1103,39 +1103,39 @@ New endpoints follow existing patterns:
 
 ### Functional Requirements
 
-- [ ] User can trigger concept extraction for uploaded content via API
+- [x] User can trigger concept extraction for uploaded content via API
 - [ ] Extraction produces atomic SVO learning objectives (not vague topic names)
-- [ ] Concepts are linked to both content (source) and subject (organization)
+- [x] Concepts are linked to both content (source) and subject (organization)
 - [ ] Prerequisite dependencies between concepts are identified and stored
-- [ ] UserConceptMastery records are created automatically (status=not_started)
-- [ ] Subject Detail page displays concepts with mastery indicators
-- [ ] Dashboard shows aggregate mastery index and due-for-review count
+- [x] UserConceptMastery records are created automatically (status=not_started)
+- [x] Subject Detail page displays concepts with mastery indicators
+- [x] Dashboard shows aggregate mastery index and due-for-review count
 - [ ] User can edit extracted concepts (name, description, type, difficulty)
 - [ ] User can delete extracted concepts
-- [ ] Re-extraction deletes old concepts and starts fresh
-- [ ] Content can be associated with a subject (upload form or Subject Detail)
-- [ ] Extraction handles large documents (chunked processing, deduplication)
-- [ ] Partial extraction failure stores what succeeded and reports what failed
+- [x] Re-extraction deletes old concepts and starts fresh
+- [x] Content can be associated with a subject (upload form or Subject Detail)
+- [x] Extraction handles large documents (chunked processing, deduplication)
+- [x] Partial extraction failure stores what succeeded and reports what failed
 
 ### Non-Functional Requirements
 
 - [ ] Extraction of a 10-page PDF completes within 60 seconds
 - [ ] Subject Detail page loads concepts in < 500ms (with proper indexes)
 - [ ] Dashboard mastery query adds < 50ms to existing dashboard load
-- [ ] Extraction endpoint rate-limited to 5/minute per user
-- [ ] All concept data is user-scoped (no cross-user leakage)
+- [x] Extraction endpoint rate-limited to 5/minute per user
+- [x] All concept data is user-scoped (no cross-user leakage)
 
 ### Quality Gates
 
-- [ ] Backend tests: concept extraction service unit tests with mocked Claude
-- [ ] Backend tests: concept API endpoint tests (CRUD + extraction)
+- [x] Backend tests: concept extraction service unit tests with mocked Claude
+- [x] Backend tests: concept API endpoint tests (CRUD + extraction)
 - [ ] Backend tests: dashboard mastery query tests (with and without concepts)
-- [ ] Frontend: Subject Detail page renders with 0 concepts (empty state)
+- [x] Frontend: Subject Detail page renders with 0 concepts (empty state)
 - [ ] Frontend: Subject Detail page renders with 50+ concepts (performance)
-- [ ] Migration tested on local PostgreSQL AND Neon production
+- [x] Migration tested on local PostgreSQL AND Neon production
 - [ ] `ruff check app/` passes
-- [ ] `npm run typecheck && npm run lint` passes
-- [ ] All existing tests still pass (no regressions)
+- [x] `npm run typecheck && npm run lint` passes
+- [x] All existing tests still pass (no regressions)
 
 ## Success Metrics
 
@@ -1187,8 +1187,8 @@ New endpoints follow existing patterns:
 After implementation:
 - [ ] Update `docs/technical/IMPLEMENTATION_STATUS.md` — mark Phase 2 as complete
 - [ ] Update CLAUDE.md — add concept endpoints, new patterns
-- [ ] Update project MEMORY.md — record Phase 2 completion
-- [ ] Compound document if novel patterns discovered
+- [x] Update project MEMORY.md — record Phase 2 completion
+- [x] Compound document if novel patterns discovered
 
 ## Sources & References
 
