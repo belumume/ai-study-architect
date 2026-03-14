@@ -1,34 +1,35 @@
 """Content management API endpoints"""
 
-import os
+import hashlib
+import logging
 import uuid
 from datetime import datetime
 from pathlib import Path
-from typing import List, Optional
-from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status, Request
-from sqlalchemy.orm import Session, selectinload, joinedload
-from sqlalchemy import and_, func, select
-import hashlib
+
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile, status
+from sqlalchemy import and_, func
+from sqlalchemy.orm import Session
+
 from app.api.dependencies import get_current_user, get_db
-from app.models.user import User
-from app.models.content import Content
 from app.core.config import settings
 from app.core.csrf import require_csrf_token
 from app.core.exceptions import (
-    ContentNotFoundError,
     ContentAlreadyExistsError,
-    InvalidFileTypeError,
+    ContentNotFoundError,
     FileTooLargeError,
     FileUploadError,
+    InvalidFileTypeError,
     ValidationError,
 )
-from app.schemas.content import ContentCreate, ContentResponse, ContentUpdate
-from app.utils.file_validation import get_mime_type
-from app.utils.sanitization import sanitize_input, sanitize_filename
-from app.services.content_processor import content_processor
-from app.services import storage as r2
 from app.core.rate_limiter import limiter
-import logging
+from app.models.concept import Concept
+from app.models.content import Content
+from app.models.user import User
+from app.models.user_concept_mastery import UserConceptMastery
+from app.schemas.content import ContentResponse, ContentUpdate
+from app.services import storage as r2
+from app.services.content_processor import content_processor
+from app.utils.sanitization import sanitize_filename, sanitize_input
 
 logger = logging.getLogger(__name__)
 
@@ -167,11 +168,11 @@ def save_upload_file(
 async def upload_content(
     request: Request,
     file: UploadFile = File(...),
-    title: Optional[str] = Form(None),
-    description: Optional[str] = Form(None),
-    content_type: Optional[str] = Form(None),
-    subject: Optional[str] = Form(None),
-    tags: Optional[str] = Form(None),
+    title: str | None = Form(None),
+    description: str | None = Form(None),
+    content_type: str | None = Form(None),
+    subject: str | None = Form(None),
+    tags: str | None = Form(None),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -268,8 +269,9 @@ async def upload_content(
 
         # Send WebSocket update if available
         try:
-            from app.api.v1.websocket import websocket_manager
             import asyncio
+
+            from app.api.v1.websocket import websocket_manager
 
             asyncio.create_task(
                 websocket_manager.send_personal_message(
@@ -392,14 +394,14 @@ async def upload_content(
         raise FileUploadError(detail="Failed to upload content")
 
 
-@router.get("/", response_model=List[ContentResponse])
+@router.get("/", response_model=list[ContentResponse])
 @limiter.limit("30/minute")
 def list_content(
     request: Request,
     skip: int = 0,
     limit: int = 20,
-    content_type: Optional[str] = None,
-    tag: Optional[str] = None,
+    content_type: str | None = None,
+    tag: str | None = None,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -609,15 +611,16 @@ def update_content(
 def delete_content(
     request: Request,
     content_id: uuid.UUID,
+    confirm_delete: bool = False,
     _csrf: None = Depends(require_csrf_token),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     """
-    Delete content and associated file
+    Delete content and associated file.
 
-    Optimized to only fetch minimal data needed for deletion,
-    with proper error handling and file cleanup.
+    If content has extracted concepts, returns 409 with cascade impact
+    unless confirm_delete=true is passed as a query parameter.
     """
     # Only select the fields we need for deletion
     content = (
@@ -628,6 +631,34 @@ def delete_content(
 
     if not content:
         raise ContentNotFoundError()
+
+    # Check cascade impact before deleting
+    if not confirm_delete:
+        concept_count = (
+            db.query(func.count(Concept.id)).filter(Concept.content_id == content_id).scalar()
+        )
+        if concept_count > 0:
+            mastery_count = (
+                db.query(func.count(UserConceptMastery.id))
+                .join(Concept, Concept.id == UserConceptMastery.concept_id)
+                .filter(
+                    Concept.content_id == content_id,
+                    UserConceptMastery.user_id == current_user.id,
+                )
+                .scalar()
+            )
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail={
+                    "message": (
+                        f"Deleting this content will also delete {concept_count} concepts "
+                        f"and {mastery_count} mastery records. "
+                        f"Add ?confirm_delete=true to proceed."
+                    ),
+                    "concepts_count": concept_count,
+                    "mastery_records": mastery_count,
+                },
+            )
 
     content_title = content.title
     file_path = content.file_path
@@ -674,7 +705,7 @@ def delete_content(
 @limiter.limit("5/minute")
 def bulk_delete_content(
     request: Request,
-    content_ids: List[uuid.UUID],
+    content_ids: list[uuid.UUID],
     _csrf: None = Depends(require_csrf_token),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -792,7 +823,7 @@ def download_content(
     return RedirectResponse(url=url)
 
 
-@router.get("/search", response_model=List[ContentResponse])
+@router.get("/search", response_model=list[ContentResponse])
 @limiter.limit("20/minute")
 def search_content(
     request: Request,

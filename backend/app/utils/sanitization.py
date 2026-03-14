@@ -1,16 +1,15 @@
 """Input sanitization utilities for security"""
-import os
 import html
-from typing import Optional
+import os
 
 
-def sanitize_input(text: Optional[str]) -> Optional[str]:
+def sanitize_input(text: str | None) -> str | None:
     """
     Sanitize user input to prevent XSS attacks.
-    
+
     Args:
         text: The input text to sanitize
-        
+
     Returns:
         Sanitized text with HTML entities escaped
     """
@@ -23,10 +22,10 @@ def sanitize_input(text: Optional[str]) -> Optional[str]:
 def sanitize_filename(filename: str) -> str:
     """
     Sanitize filename to prevent directory traversal attacks.
-    
+
     Args:
         filename: The filename to sanitize
-        
+
     Returns:
         Sanitized filename with only safe characters
     """

@@ -3,9 +3,10 @@ AI Service Manager - Intelligent fallback system for AI services
 Priority: Claude (best for education) → OpenAI (fallback)
 """
 
-import os
 import logging
-from typing import List, Dict, Any, Optional
+import os
+from typing import Any
+
 from app.services.claude_service import claude_service
 from app.services.openai_fallback import openai_fallback
 
@@ -62,12 +63,12 @@ class AIServiceManager:
 
     async def chat_completion(
         self,
-        messages: List[Dict[str, str]],
+        messages: list[dict[str, str]],
         temperature: float = 0.7,
-        max_tokens: Optional[int] = None,
+        max_tokens: int | None = None,
         stream: bool = False,
-        prefer_service: Optional[str] = None,
-    ) -> Dict[str, Any]:
+        prefer_service: str | None = None,
+    ) -> dict[str, Any]:
         """
         Get chat completion from the best available service
 
@@ -137,8 +138,8 @@ class AIServiceManager:
         }
 
     async def analyze_content(
-        self, content: str, content_type: str, instructions: Optional[str] = None
-    ) -> Dict[str, Any]:
+        self, content: str, content_type: str, instructions: str | None = None
+    ) -> dict[str, Any]:
         """Analyze content using the best available service"""
 
         # Try services in priority order

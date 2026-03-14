@@ -2,13 +2,14 @@
 Security utilities for authentication and authorization
 """
 
-from datetime import datetime, timedelta, timezone
-from typing import Any, Optional, Union, Dict, List
-from jose import JWTError, jwt
-from passlib.context import CryptContext
 import logging
 import threading
 import time
+from datetime import UTC, datetime, timedelta
+from typing import Any
+
+from jose import JWTError, jwt
+from passlib.context import CryptContext
 
 from app.core.config import settings
 from app.core.rsa_keys import key_manager
@@ -20,8 +21,8 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 # Global key storage with thread safety
 _key_lock = threading.RLock()
-_current_keys: Dict[str, str] = {}
-_archived_keys: List[Dict[str, Any]] = []
+_current_keys: dict[str, str] = {}
+_archived_keys: list[dict[str, Any]] = []
 
 # Initialize RSA keys for JWT
 try:
@@ -40,13 +41,13 @@ except Exception as e:
     PRIVATE_KEY = PUBLIC_KEY = None
 
 
-def get_current_keys() -> Dict[str, str]:
+def get_current_keys() -> dict[str, str]:
     """Get current RSA keys thread-safely"""
     with _key_lock:
         return _current_keys.copy()
 
 
-def rotate_jwt_keys() -> Dict[str, str]:
+def rotate_jwt_keys() -> dict[str, str]:
     """
     Rotate JWT RSA keys and archive the old ones.
 
@@ -100,7 +101,7 @@ def rotate_jwt_keys() -> Dict[str, str]:
             return {"status": "error", "error": str(e)}
 
 
-def create_access_token(subject: Union[str, Any], expires_delta: Optional[timedelta] = None) -> str:
+def create_access_token(subject: str | Any, expires_delta: timedelta | None = None) -> str:
     """
     Create a JWT access token.
 
@@ -112,9 +113,9 @@ def create_access_token(subject: Union[str, Any], expires_delta: Optional[timede
         Encoded JWT token
     """
     if expires_delta:
-        expire = datetime.now(timezone.utc) + expires_delta
+        expire = datetime.now(UTC) + expires_delta
     else:
-        expire = datetime.now(timezone.utc) + timedelta(
+        expire = datetime.now(UTC) + timedelta(
             minutes=settings.JWT_ACCESS_TOKEN_EXPIRE_MINUTES
         )
 
@@ -135,7 +136,7 @@ def create_access_token(subject: Union[str, Any], expires_delta: Optional[timede
 
 
 def create_refresh_token(
-    subject: Union[str, Any], expires_delta: Optional[timedelta] = None
+    subject: str | Any, expires_delta: timedelta | None = None
 ) -> str:
     """
     Create a JWT refresh token.
@@ -148,9 +149,9 @@ def create_refresh_token(
         Encoded JWT refresh token
     """
     if expires_delta:
-        expire = datetime.now(timezone.utc) + expires_delta
+        expire = datetime.now(UTC) + expires_delta
     else:
-        expire = datetime.now(timezone.utc) + timedelta(days=settings.JWT_REFRESH_TOKEN_EXPIRE_DAYS)
+        expire = datetime.now(UTC) + timedelta(days=settings.JWT_REFRESH_TOKEN_EXPIRE_DAYS)
 
     current_keys = get_current_keys()
     to_encode = {
@@ -168,7 +169,7 @@ def create_refresh_token(
     return encoded_jwt
 
 
-def _find_key_for_token(token: str) -> Optional[str]:
+def _find_key_for_token(token: str) -> str | None:
     """
     Find the appropriate public key for token verification.
     Tries current key first, then archived keys for graceful rotation.
@@ -196,7 +197,7 @@ def _find_key_for_token(token: str) -> Optional[str]:
         return current_keys.get("public")
 
 
-def verify_token(token: str, token_type: str = "access") -> Optional[str]:
+def verify_token(token: str, token_type: str = "access") -> str | None:
     """
     Verify and decode a JWT token with rotation support.
 
@@ -242,7 +243,7 @@ def verify_token(token: str, token_type: str = "access") -> Optional[str]:
         return None
 
 
-def get_key_rotation_info() -> Dict[str, Any]:
+def get_key_rotation_info() -> dict[str, Any]:
     """
     Get information about key rotation status.
 

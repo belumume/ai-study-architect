@@ -6,9 +6,9 @@ Phase 4 will add: total_attempts, correct_attempts, consecutive_correct
 Phase 5 will add: ease_factor, repetition_number, interval_days, next_review_date
 """
 
-from datetime import datetime
 import enum
 import uuid
+from datetime import datetime
 
 from sqlalchemy import (
     CheckConstraint,
