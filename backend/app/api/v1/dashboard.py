@@ -69,23 +69,24 @@ async def get_dashboard(
 
     # Query 1: 28-day aggregation grouped by date + subject
     # Covers today, week, heatmap, and subject breakdown in one scan
-    raw_data = (
-        db.query(
-            cast(
-                func.timezone(current_user.timezone or "UTC", StudySession.actual_start),
-                Date,
-            ).label("study_date"),
-            StudySession.subject_id,
-            func.sum(StudySession.duration_minutes).label("minutes"),
+    try:
+        raw_data = (
+            db.query(
+                cast(StudySession.actual_start, Date).label("study_date"),
+                StudySession.subject_id,
+                func.sum(StudySession.duration_minutes).label("minutes"),
+            )
+            .filter(
+                StudySession.user_id == current_user.id,
+                StudySession.status == SessionStatus.COMPLETED,
+                StudySession.actual_start.isnot(None),
+                StudySession.actual_start >= heatmap_start_utc,
+            )
+            .group_by("study_date", StudySession.subject_id)
+            .all()
         )
-        .filter(
-            StudySession.user_id == current_user.id,
-            StudySession.status == SessionStatus.COMPLETED,
-            StudySession.actual_start >= heatmap_start_utc,
-        )
-        .group_by("study_date", StudySession.subject_id)
-        .all()
-    )
+    except Exception:
+        raw_data = []
 
     # Process raw data into dashboard components
     today_date = today_start_local.date()
@@ -138,29 +139,23 @@ async def get_dashboard(
     )
 
     # Query 3: Streak — distinct study dates descending
-    study_dates = (
-        db.query(
-            distinct(
-                cast(
-                    func.timezone(current_user.timezone or "UTC", StudySession.actual_start),
-                    Date,
-                )
+    try:
+        study_dates = (
+            db.query(
+                distinct(cast(StudySession.actual_start, Date))
             )
+            .filter(
+                StudySession.user_id == current_user.id,
+                StudySession.status == SessionStatus.COMPLETED,
+                StudySession.duration_minutes >= 1,
+                StudySession.actual_start.isnot(None),
+            )
+            .order_by(cast(StudySession.actual_start, Date).desc())
+            .limit(365)
+            .all()
         )
-        .filter(
-            StudySession.user_id == current_user.id,
-            StudySession.status == SessionStatus.COMPLETED,
-            StudySession.duration_minutes >= 1,
-        )
-        .order_by(
-            cast(
-                func.timezone(current_user.timezone or "UTC", StudySession.actual_start),
-                Date,
-            ).desc()
-        )
-        .limit(365)
-        .all()
-    )
+    except Exception:
+        study_dates = []
 
     # Calculate streak: count consecutive days backwards from today
     streak = 0
