@@ -40,8 +40,12 @@ from app.core.rate_limiter import limiter
 # (SQLAlchemy string-based relationship references need all models imported)
 import app.models.user  # noqa: F401
 import app.models.content  # noqa: F401
+import app.models.study_session  # noqa: F401
+import app.models.subject  # noqa: F401
 import app.models.concept  # noqa: F401
 import app.models.user_concept_mastery  # noqa: F401
+import app.models.practice  # noqa: F401
+import app.models.chat_message  # noqa: F401
 
 # Create FastAPI app
 app = FastAPI(

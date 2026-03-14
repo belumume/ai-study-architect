@@ -200,8 +200,8 @@ async def get_dashboard(
             .filter(UserConceptMastery.user_id == current_user.id)
             .first()
         )
-        total_concepts = mastery_stats.total if mastery_stats else 0
-        mastered_concepts = mastery_stats.mastered if mastery_stats else 0
+        total_concepts = (mastery_stats.total or 0) if mastery_stats else 0
+        mastered_concepts = (mastery_stats.mastered or 0) if mastery_stats else 0
     except Exception:
         total_concepts = 0
         mastered_concepts = 0
