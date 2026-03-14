@@ -4,12 +4,30 @@ category: integration-issues
 date: 2026-03-14
 tags: [tailwind-v4, shadcn-ui, mui-migration, fastapi, stitch-mcp, visx, web-worker, session-state-machine, ci-actions, compound-engineering]
 module: Frontend + Backend (full stack)
-symptom: "MUI light-mode prototype needed complete visual identity transplant + new backend features"
-root_cause: "MUI's Material Design DNA fights cyberpunk aesthetic; no subject/session/dashboard APIs existed"
+symptoms:
+  - "MUI light-mode prototype needed complete visual identity transplant"
+  - "No subject/session/dashboard APIs existed"
+  - "shadcn batch install silently created no files"
+  - "husky init failed: .git can't be found from frontend/"
+  - "CSP worker-src: 'none' would silently block Web Worker in production"
+  - "StudySession schema had id: int but model uses UUID"
+  - "Alembic autogenerate failed without local PostgreSQL running"
+  - "@vitejs/plugin-react@latest requires Vite 8, project uses Vite 6"
+  - "Semgrep pip install clobbered backend dependencies"
+  - "func.timezone() crashed on Neon PostgreSQL (production 500)"
+  - "Enum case sensitivity in partial index WHERE clause"
+  - "Rate limiter import name mismatch (shared_limiter vs limiter)"
+  - "@fontsource fonts invisible when imported after Tailwind"
+root_cause: "MUI's Material Design DNA fights cyberpunk aesthetic; no subject/session/dashboard APIs existed; toolchain assumptions from training data were stale"
 severity: major-feature
 resolution_time: "1 session (~6 hours active work)"
 pr: "#25"
 session_export: "~/.claude/exports/ai-study-architect/2026-03-14-session8-full-product-build-phases-neg1-0-1.txt"
+compound_agents: 3
+symptoms_count: 13
+solutions_count: 11
+mistakes_count: 12
+meta_pattern: "User caught 9 of 12 mistakes -- AI as primary quality gate is unsustainable"
 ---
 
 # Full Product Build: MUI to Tailwind v4 + New Backend APIs
@@ -17,18 +35,12 @@ session_export: "~/.claude/exports/ai-study-architect/2026-03-14-session8-full-p
 ## Table of Contents
 
 1. [Problem Statement](#problem-statement)
-2. [Root Cause Analysis](#root-cause-analysis)
-3. [Technology Decisions and Rationale](#technology-decisions-and-rationale)
-4. [Phase -1: Design Iteration](#phase--1-design-iteration)
-5. [Phase 0: Frontend Foundation](#phase-0-frontend-foundation)
-6. [Phase 1: Backend + Frontend Features](#phase-1-backend--frontend-features)
-7. [Bugs Encountered and Solutions](#bugs-encountered-and-solutions)
-8. [Review Findings](#review-findings)
-9. [Mistakes Made and Corrections](#mistakes-made-and-corrections)
-10. [Code Patterns Implemented](#code-patterns-implemented)
-11. [Prevention Strategies](#prevention-strategies)
-12. [Files Changed](#files-changed)
-13. [Compound Engineering Workflow](#compound-engineering-workflow)
+2. [Symptoms (13)](#symptoms)
+3. [Solutions (11)](#solutions)
+4. [Mistakes and Prevention (12)](#mistakes-and-prevention)
+5. [Meta-Pattern Analysis](#meta-pattern-analysis)
+6. [Files Changed](#files-changed)
+7. [Related Documents](#related-documents)
 
 ---
 
@@ -36,95 +48,402 @@ session_export: "~/.claude/exports/ai-study-architect/2026-03-14-session8-full-p
 
 Study Architect was a functional MUI prototype with a light theme (Roboto font, `#f5f5f5` background, Material Design blue `#1976d2`) and only two features: chat interface with Socratic tutor and content upload/management. The target was a cyberpunk telemetry dashboard (void black `#050505`, neon chartreuse `#D4FF00`, cyan `#00F2FE`) with subject management, study session lifecycle tracking, real-time dashboard metrics, contribution heatmap, and a Zen-aesthetic focus session with Web Worker timer.
 
-The gap between "working prototype" and "shippable product" was the entire visual identity layer, three new backend API domains (subjects, sessions, dashboard), database schema changes, and CI modernization.
-
-## Root Cause Analysis
+The gap between "working prototype" and "shippable product" was:
+- The entire visual identity layer (MUI Material Design to cyberpunk telemetry)
+- Three new backend API domains (subjects, sessions, dashboard)
+- Database schema changes (new models, migrations, partial indexes)
+- CI modernization (Node 20, semgrep isolation, updated action versions)
 
 MUI's Material Design opinions (Roboto font assumption, elevation shadows, light-mode defaults, `#f5f5f5` backgrounds, 4px/8px spacing grid) are fundamentally incompatible with a cyberpunk telemetry aesthetic. Every neon glow, every JetBrains Mono data label, every sharp-cornered card with decorative corner markers requires fighting MUI's specificity via `sx` prop overrides and `!important` hacks. The Emotion CSS-in-JS runtime adds ~30-50KB overhead. Rethemeing MUI would cost MORE time than replacing it because the visual philosophies are irreconcilable.
 
-No backend APIs existed for subjects, sessions, or dashboard aggregation. The only backend endpoints were auth (register/login/refresh/logout/me), chat (Socratic dialogue), content (upload/list/get/delete/search), and tutor (study-plan/progress).
+---
+
+## Symptoms
+
+### S1: MUI visual identity incompatible with cyberpunk aesthetic
+
+**Where**: Entire frontend (`frontend/src/`)
+**Manifestation**: Every component needed `sx` overrides, `!important` hacks, and theme provider gymnastics to achieve dark-mode neon styling. Roboto font bled through everywhere. MUI elevation shadows created light-mode visual artifacts on dark backgrounds.
+
+### S2: No backend APIs for subjects, sessions, or dashboard
+
+**Where**: `backend/app/api/v1/`
+**Manifestation**: Only auth, chat, content, and tutor endpoints existed. No way to track what a user is studying, for how long, or to aggregate metrics for a dashboard.
+
+### S3: shadcn batch install silently created no files
+
+**Where**: `frontend/` directory
+**Manifestation**: Running `npx shadcn@latest add button card input dialog dropdown-menu tabs toast --yes` completed without errors but created zero component files. No error output, no partial results, no indication of failure. Only discovered when checking `frontend/src/components/ui/` and finding it empty.
+
+### S4: husky init failed in monorepo
+
+**Where**: `frontend/` directory
+**Manifestation**: `npx husky init` from `frontend/` errored with ".git can't be found". The `.git` directory is at the repo root, not in the frontend subdirectory. Husky requires initialization from the git root.
+
+### S5: CSP worker-src 'none' would silently block Web Worker in production
+
+**Where**: `backend/app/core/security_headers.py` line 183
+**Manifestation**: Caught by security review agent, NOT by runtime testing. The production CSP had `worker-src: 'none'` and `child-src: 'none'`, which would silently block the focus timer Web Worker with no visible error to the user. Development and staging already had `'self' blob:`. This was a showstopper that would have shipped to production undetected by standard testing.
+
+### S6: StudySession schema int/UUID mismatch
+
+**Where**: `backend/app/schemas/study_session.py`
+**Manifestation**: `StudySessionResponse` had `id: int` and `user_id: int` but the database model uses `UUID(as_uuid=True)`. All existing tests passed because they never exercised UUID serialization. The mismatch would cause Pydantic validation errors on real API calls returning UUID values.
+
+### S7: Alembic autogenerate failed without local PostgreSQL
+
+**Where**: `backend/alembic/`
+**Manifestation**: `alembic revision --autogenerate` failed because it needs an active database connection to diff models against schema. Local PostgreSQL was not running (Windows service off). The command fails silently or with a connection error depending on configuration.
+
+### S8: @vitejs/plugin-react version conflict with Vite 6
+
+**Where**: `frontend/package.json`
+**Manifestation**: `npm install` with `@vitejs/plugin-react@latest` (6.0.1) failed with `ERESOLVE unable to resolve dependency tree` because version 6.0.1 requires `vite@^8.0.0` as a peer dependency. The project uses Vite 6.
+
+### S9: Semgrep pip install clobbered backend dependencies
+
+**Where**: `.github/workflows/deploy.yml`
+**Manifestation**: CI deploy failed at test step. `pip install semgrep` in the same virtualenv as the backend replaced pydantic (2.9 to 2.12), starlette (0.35 to 0.52), and httpx (0.27 to 0.28). This broke FastAPI which requires starlette<0.36.
+
+### S10: func.timezone() crashed on Neon PostgreSQL
+
+**Where**: `backend/app/api/v1/dashboard.py`
+**Manifestation**: Dashboard endpoint returned 500 Internal Server Error on production after deploy. Worked locally. SQLAlchemy's `func.timezone(user_tz, StudySession.actual_start)` behaved differently on Neon PostgreSQL, possibly due to NULL `actual_start` values from chat-created sessions.
+
+### S11: Enum case sensitivity in partial index
+
+**Where**: `backend/alembic/versions/942421c3cadb_add_subjects_table_and_session_fields.py`
+**Manifestation**: Partial unique index `WHERE status IN ('in_progress', 'paused')` did not match database records because Python's `SessionStatus` enum stores values as their string representation, and the enum members are `IN_PROGRESS = "in_progress"` but stored through SQLAlchemy's Enum type which may preserve case differently. The index had to match the exact stored values.
+
+### S12: Rate limiter import name mismatch
+
+**Where**: `backend/app/api/v1/subjects.py`, `study_sessions.py`, `dashboard.py`
+**Manifestation**: `ImportError: cannot import name 'shared_limiter' from 'app.core.rate_limiter'`. Three new routers used `shared_limiter` but the module exports `limiter`. This is a consequence of the Session 7 rate limiter consolidation which renamed the singleton.
+
+### S13: @fontsource fonts invisible when imported after Tailwind
+
+**Where**: `frontend/src/index.css`
+**Manifestation**: Space Grotesk, JetBrains Mono, and Inter were not rendering. The browser was falling back to system fonts. CSS specification requires `@import` statements before all other rules. When Tailwind's `@import "tailwindcss"` came first, subsequent `@fontsource` imports were silently ignored in some browsers, or their styles were overridden by Tailwind's Preflight reset.
 
 ---
 
-## Technology Decisions and Rationale
+## Solutions
 
-### Stack Decision: Full Tailwind v4 Migration (Approach A)
+### Solution 1: Full Tailwind v4 Migration with Correct Ordering
 
-Three approaches were evaluated:
+**Symptom addressed**: S1 (MUI incompatibility), S8 (Vite plugin conflict)
 
-| Approach | Description | Verdict |
-|----------|-------------|---------|
-| A: Full Tailwind | Replace MUI entirely with Tailwind + headless primitives | **CHOSEN** |
-| B: Heavy MUI Retheme | Keep MUI, override everything | Rejected: "Material Design wearing a costume" |
-| C: Hybrid | Tailwind layout + MUI forms | Rejected: Two styling systems = worst of both worlds |
+**Why not retheme MUI**: Three approaches were evaluated. Heavy MUI retheme was "Material Design wearing a costume." Hybrid (Tailwind layout + MUI forms) meant two styling systems. Full Tailwind gives total pixel control, smaller bundle (~30-50KB less without Emotion), and Stitch `code.html` files were already Tailwind.
 
-**Why Approach A wins**: DESIGN.md already shipped a Tailwind config with exact tokens. Stitch `code.html` files were already Tailwind. Total pixel control without fighting MUI specificity. Smaller bundle (~30-50KB less without Emotion runtime).
+**Migration ordering** (CRITICAL -- discovered through deepening research):
+1. Install Tailwind + shadcn + all new deps ALONGSIDE MUI (additive)
+2. Rewrite all MUI components to Tailwind (auth forms, layout, pages)
+3. Verify build passes with both installed
+4. THEN `npm uninstall @mui/material @mui/icons-material @emotion/react @emotion/styled`
 
-### Charting: visx (not Recharts, not Chart.js, not Nivo)
+MUI was NOT fully removed in this session because ChatInterface.tsx (688 lines of complex streaming code) still uses MUI. Deferred to Phase 3 chat restyle.
 
-**Research**: visx ~15KB bundle (vs Recharts 50-70KB, Nivo 150KB+). Native SVG filter support for neon glows via `<feGaussianBlur>` + `<feMerge>`. `buildChartTheme` API for consistent dark styling. No Emotion dependency. visx SVG elements accept standard props and inline styles.
+**Vite plugin-react pinning**:
+```bash
+npm install -D vite@^6 @vitejs/plugin-react@^4.7.0 tailwindcss@latest @tailwindcss/vite
+```
+`@vitejs/plugin-react@^4.7.0` supports Vite 4-7. The `@latest` tag (6.0.1) requires Vite 8.
 
-**Key differentiator**: Recharts wraps D3 in opinionated React components with fixed rendering patterns. To add a neon glow to a bar, you'd need to fork the Bar component. visx exposes raw SVG primitives -- a `<Bar>` is literally a `<rect>` with scale calculations. Adding `filter="url(#neon-glow)"` is a single prop.
-
-### UI Primitives: shadcn/ui with Radix backend (not Base UI)
-
-**Research**: shadcn/ui fully supports Tailwind v4. Copy-paste model = zero vendor lock-in. shadcn init offers Base UI (MUI team, v1.0 stable Dec 2025) as alternative backend to Radix -- useful fallback if Radix maintenance degrades (slowed post-WorkOS acquisition). Started with Radix (more examples/community).
-
-### Animation: CSS `@starting-style` + `transition-delay` (not Framer Motion)
-
-**Decision made during simplicity review**: Framer Motion is 32-40KB. CSS `@starting-style` + `transition-delay` handles Phase 1 animations (staggered card reveals). Page transitions deferred. This was a YAGNI cut that saved significant bundle size.
-
-### State Management: Zustand (new) + TanStack Query (kept)
-
-**TanStack Query**: Already in use for server state. `refetchIntervalInBackground: false` + `staleTime: 30_000` added to stop polling when tab hidden and prevent double-fetch on navigate-back.
-
-**Zustand**: New for client state (timer, session, UI). Timer store subscribes to Web Worker messages via `updateFromWorker()`. Store reacts to mutation SUCCESS not UI events to prevent client/server state drift on failed pause.
-
-### Fonts: @fontsource (not Google Fonts CDN)
-
-Self-hosted fonts: version-pinned, no Google CDN dependency, better GDPR, no extra DNS lookups. Three font families: Space Grotesk (display/headings), JetBrains Mono (data/numbers), Inter (body text).
-
-### Design Tool Pipeline: Stitch MCP only (Figma deferred)
-
-**Brainstorm evolution**: Initially planned Stitch + Figma from day 1. User pushed for full pipeline integration. Simplicity review found: DESIGN.md to Tailwind `@theme` is one hop; DESIGN.md to Figma Variables to CSS export to Tailwind is three hops with sync obligation. For a solo developer, Figma adds a conversation-with-yourself layer that adds no information.
-
-**Decision**: tokens-as-code (CSS custom properties to Tailwind @theme) is the timeless, tool-agnostic layer. Figma is an optional upstream that plugs in later (one session to add) if team grows or design complexity warrants it. Nothing built without Figma needs rebuilding to add it.
-
-### v0 (Vercel): Evaluated and superseded
-
-**Research found**: hellolucky/v0-mcp community MCP server exists with 4 tools (v0_generate_ui, v0_generate_from_image, v0_chat_complete, v0_setup_check). Official v0 Platform API (npm install v0-sdk) also exists. But: community MCP is not officially endorsed (individual developer, fragility risk), and with Figma's structured data path via `get_design_context`, v0's screenshot-inference approach is objectively less accurate. v0 SDK noted as available fallback.
-
-### Storybook/Chromatic: Skipped with research
-
-**Research-confirmed**: Storybook valuable at 50+ components or 3+ developers. Hot reload + direct inspection sufficient for 20-30 components. Chromatic $179-399/month. Playwright `toHaveScreenshot()` is free and sufficient for visual regression. Percy free tier as upgrade path.
-
-### Build Architecture: Interleaved backend+frontend per feature (not frontend-first)
-
-**Critical insight from brainstorm**: Designing a "time tracking dashboard" now and redesigning into a "mastery dashboard" later is building twice. Each phase ships a COMPLETE feature with real data. No fake metrics. Dashboard sections render conditionally:
-```tsx
-{concepts.length > 0 && <MasterySection concepts={concepts} />}
-{recommendations.length > 0 && <RecommendationList items={recommendations} />}
+**vite.config.ts additions**:
+```typescript
+import tailwindcss from '@tailwindcss/vite'
+export default defineConfig({
+  plugins: [react(), tailwindcss()],
+  worker: { format: 'es' },
+  // ...
+})
 ```
 
-### Mastery Definition: Research-grounded (SM-2 + MathAcademy model)
+### Solution 2: CSS Import Ordering with layer(base) for Fonts
 
-**Sources**: Quantelect MathAcademy-Research-Analysis.md (12K words), SM-2 algorithm literature, FSRS comparison (Anki 23.10+, ML-trained on 700M reviews), Khan Academy Missions failure analysis (2014-2020).
+**Symptom addressed**: S13 (fonts invisible)
 
-- Per-concept mastery based on spaced repetition count, not binary pass/fail
-- Mastered = `consecutive_correct >= 2` (MathAcademy gate)
-- Subject mastery % = `concepts_mastered / total_concepts_in_subject`
-- Mastery gates are recommendations not locks (Khan Missions lesson: rigid gates felt punitive, engagement dropped)
-- FSRS noted as potentially better than SM-2 for Phase 5 evaluation (20-30% fewer daily reviews)
-- FIRe implicit repetition deferred (complex, requires mature knowledge graph)
+CSS specification requires `@import` statements before all other at-rules. Tailwind v4's `@import "tailwindcss"` includes Preflight (CSS reset), which resets font stacks. @fontsource imports must come FIRST and use `layer(base)` to ensure they survive Tailwind's layer ordering.
 
----
+**Correct ordering** (from `frontend/src/index.css`):
+```css
+/* 1. @fontsource imports FIRST, in layer(base) */
+@import "@fontsource/space-grotesk/400.css" layer(base);
+@import "@fontsource/space-grotesk/700.css" layer(base);
+@import "@fontsource/jetbrains-mono/400.css" layer(base);
+@import "@fontsource/jetbrains-mono/500.css" layer(base);
+@import "@fontsource/jetbrains-mono/700.css" layer(base);
+@import "@fontsource/inter/400.css" layer(base);
+@import "@fontsource/inter/500.css" layer(base);
+@import "@fontsource/inter/600.css" layer(base);
 
-## Phase -1: Design Iteration
+/* 2. Tailwind import SECOND -- includes Preflight (CSS reset) */
+@import "tailwindcss";
 
-### Stitch MCP Prompt Engineering
+/* 3. Dark mode variant */
+@custom-variant dark (&:is(.dark *));
 
-Used `enhance-prompt` skill to structure Stitch prompts with DESIGN.md tokens. Key prompt structure:
+/* 4. Design tokens consumed from DESIGN.md */
+@theme {
+  --color-primary: #D4FF00;
+  --color-secondary: #00F2FE;
+  --color-tertiary: #FF2D7B;
+  --color-void: #050505;
+  --color-surface: #0a0a0a;
+  --color-raised: #121212;
+  --color-border: #1f1f1f;
+  --color-text-primary: #E0E0E0;
+  --color-text-muted: #888888;
+  --color-zen-primary: #4dffd2;
+  --color-zen-bg: #0D0D0D;
+  --font-display: 'Space Grotesk', sans-serif;
+  --font-body: 'Inter', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+}
+```
 
+Without `layer(base)`, the imports still work but are fragile to CSS engine differences. With it, font-face declarations are explicitly placed in the base layer where Tailwind expects foundational styles.
+
+### Solution 3: shadcn/ui Manual Initialization and Individual Component Add
+
+**Symptom addressed**: S3 (batch install silent failure)
+
+The batch `add` command silently fails. The fix is two-part:
+
+**Part 1**: Create `components.json` manually (or via `npx shadcn@latest init`):
+```json
+{
+  "$schema": "https://ui.shadcn.com/schema.json",
+  "style": "default",
+  "rsc": false,
+  "tsx": true,
+  "tailwind": {
+    "config": "",
+    "css": "src/index.css",
+    "baseColor": "zinc",
+    "cssVariables": true,
+    "prefix": ""
+  },
+  "aliases": {
+    "components": "@/components",
+    "utils": "@/lib/utils",
+    "ui": "@/components/ui",
+    "lib": "@/lib",
+    "hooks": "@/hooks"
+  },
+  "iconLibrary": "lucide"
+}
+```
+
+**Part 2**: Add components one at a time:
+```bash
+npx shadcn@latest add button
+npx shadcn@latest add card
+npx shadcn@latest add input
+# etc.
+```
+
+**Part 3**: Force-add gitignored files. The frontend `.gitignore` had blanket patterns matching `components.json` and `src/lib/`:
+```bash
+git add -f frontend/components.json frontend/src/lib/utils.ts
+```
+
+### Solution 4: Husky Monorepo Setup from Repo Root
+
+**Symptom addressed**: S4 (husky init failure)
+
+Husky requires `.git` in its working directory. In a monorepo with `frontend/` and `backend/` subdirectories, husky must be initialized from the repo root.
+
+**Create root `package.json`**:
+```json
+{
+  "private": true,
+  "scripts": { "prepare": "husky" },
+  "devDependencies": { "husky": "^9.1.7" }
+}
+```
+
+**Initialize from repo root**:
+```bash
+npm install   # from repo root
+npx husky init
+```
+
+**Pre-commit hook** (`.husky/pre-commit`):
+```bash
+cd frontend && npx lint-staged
+```
+
+### Solution 5: CSP worker-src Fix for Web Workers
+
+**Symptom addressed**: S5 (CSP blocks Web Worker in production)
+
+**Before** (`backend/app/core/security_headers.py`, production CSP):
+```python
+"worker-src": "'none'",
+"child-src": "'none'",
+```
+
+**After**:
+```python
+"worker-src": "'self' blob:",
+"child-src": "'self' blob:",
+```
+
+Development and staging already had `'self' blob:`. Only the production environment had `'none'`. The `blob:` source is required because Vite's worker bundling (with `worker: { format: 'es' }`) creates workers via blob URLs in production builds.
+
+This was caught by the security review agent during `/plan_review`, not by runtime testing. It would have been a production showstopper with no user-visible error -- the timer would simply never start.
+
+### Solution 6: StudySession Schema UUID Fix and Pydantic v2 Migration
+
+**Symptom addressed**: S6 (int/UUID mismatch)
+
+**Before**:
+```python
+class StudySessionResponse(BaseModel):
+    id: int
+    user_id: int
+    class Config:
+        from_attributes = True
+```
+
+**After** (`backend/app/schemas/study_session.py`):
+```python
+class StudySessionResponse(BaseModel):
+    id: uuid.UUID
+    user_id: uuid.UUID
+    subject_id: Optional[uuid.UUID] = None
+    accumulated_seconds: int = 0
+    status: Optional[str] = None
+    # ... other fields ...
+    model_config = ConfigDict(from_attributes=True)
+```
+
+Also added two new schemas:
+```python
+class StartSessionRequest(BaseModel):
+    subject_id: Optional[uuid.UUID] = None
+    study_mode: str = "practice"
+    title: Optional[str] = None
+
+class SessionStateResponse(BaseModel):
+    id: uuid.UUID
+    status: str
+    accumulated_seconds: int
+    duration_minutes: int
+    subject_id: Optional[uuid.UUID] = None
+    title: str
+    actual_start: Optional[datetime] = None
+    actual_end: Optional[datetime] = None
+    model_config = ConfigDict(from_attributes=True)
+```
+
+### Solution 7: Manual Alembic Migration for Partial Unique Index
+
+**Symptom addressed**: S7 (autogenerate failure), S11 (enum case sensitivity)
+
+Alembic `autogenerate` was not viable: (a) local PostgreSQL was off, (b) autogenerate does NOT detect partial unique indexes anyway. Migration written manually.
+
+**Key migration sections**:
+```python
+# Subjects table
+op.create_table('subjects',
+    sa.Column('id', UUID(as_uuid=True), primary_key=True),
+    sa.Column('user_id', UUID(as_uuid=True), sa.ForeignKey('users.id'), nullable=False),
+    sa.Column('name', sa.String(255), nullable=False),
+    sa.Column('color', sa.String(7), nullable=False, server_default='#D4FF00'),
+    sa.Column('weekly_goal_minutes', sa.Integer, nullable=False, server_default='300'),
+    sa.Column('is_active', sa.Boolean, nullable=False, server_default='true'),
+    sa.UniqueConstraint('user_id', 'name', name='uq_subject_user_name'),
+)
+
+# Session fields
+op.add_column('study_sessions', sa.Column('subject_id', UUID(as_uuid=True),
+    sa.ForeignKey('subjects.id'), nullable=True))
+op.add_column('study_sessions', sa.Column('accumulated_seconds', sa.Integer,
+    nullable=False, server_default='0'))
+op.add_column('study_sessions', sa.Column('last_resumed_at', sa.DateTime, nullable=True))
+
+# Partial unique index -- enum values MUST match stored case
+op.create_index(
+    'idx_one_active_session_per_user', 'study_sessions', ['user_id'],
+    unique=True,
+    postgresql_where=sa.text("status IN ('IN_PROGRESS', 'PAUSED')"))
+
+# Composite indexes for dashboard queries
+op.create_index('idx_study_sessions_user_status_start',
+    'study_sessions', ['user_id', 'status', sa.text('actual_start DESC')])
+op.create_index('idx_study_sessions_user_subject_start',
+    'study_sessions', ['user_id', 'subject_id', sa.text('actual_start DESC')])
+```
+
+**Starting local PostgreSQL** (Windows, from Git Bash without admin):
+```bash
+pg_ctl -D "C:/Program Files/PostgreSQL/17/data" start
+```
+Note: Windows PostgreSQL Service won't start from Bash tool, but `pg_ctl` works.
+
+### Solution 8: Semgrep Isolation via pipx
+
+**Symptom addressed**: S9 (semgrep clobbering deps)
+
+**Before** (`.github/workflows/deploy.yml`):
+```yaml
+- run: pip install semgrep
+- run: semgrep scan --config p/python-security backend/
+```
+
+**After**:
+```yaml
+- run: pipx install semgrep
+- run: semgrep scan --config auto --include "*.py" backend/
+```
+
+Two fixes: (1) `pipx` installs semgrep in an isolated environment that cannot touch the app's virtualenv. (2) `--config auto` replaces the defunct `p/python-security` registry path that returned HTTP 404 (S10 from the Semgrep config 404).
+
+### Solution 9: Dashboard 3-Query Pattern with Python Timezone Computation
+
+**Symptom addressed**: S10 (func.timezone crash), S2 (no dashboard API)
+
+**The wrong approach** (caused production 500):
+```python
+# DO NOT USE -- crashes on Neon PostgreSQL
+func.timezone(user_tz, StudySession.actual_start)
+```
+
+**The correct approach** (`backend/app/api/v1/dashboard.py`):
+
+Compute timezone boundaries in Python, pass UTC values to SQL WHERE clauses:
+```python
+user_tz = zoneinfo.ZoneInfo(current_user.timezone or "UTC")
+now_local = datetime.now(user_tz)
+today_start_local = now_local.replace(hour=0, minute=0, second=0, microsecond=0)
+
+# Convert to UTC for WHERE clauses (preserves index usage per P1)
+utc = zoneinfo.ZoneInfo("UTC")
+today_start_utc = today_start_local.astimezone(utc)
+```
+
+Three focused queries instead of one monolithic query:
+1. **28-day aggregation** grouped by `cast(actual_start, Date)` + `subject_id` -- covers today, week, heatmap, and subject breakdown in one scan
+2. **Active session check** via partial index (instant) -- `status IN ('IN_PROGRESS', 'PAUSED')`
+3. **Streak calculation** -- `distinct(cast(actual_start, Date))` ordered DESC, LIMIT 365
+
+Streak algorithm counts consecutive days backwards from today:
+```python
+streak = 0
+check_date = today_date
+study_date_set = {row[0] for row in study_dates}
+while check_date in study_date_set:
+    streak += 1
+    check_date -= timedelta(days=1)
+```
+
+### Solution 10: Stitch MCP Screen Editing with DESIGN.md Tokens
+
+**Symptom addressed**: S1 (visual identity), Phase -1 design iteration
+
+**Exact prompt structure used** (with `enhance-prompt` skill):
 ```
 DESIGN SYSTEM (REQUIRED):
 - Platform: Web, Desktop-first (1280-1440px max-width container)
@@ -142,460 +461,89 @@ REPLACE [section] with: [specific mastery metrics with exact layout]
 ADD [new element]: [detailed specification with color/typography/layout]
 ```
 
-### Screens Edited
-
-| Screen | Edit Level | Key Changes |
-|--------|-----------|-------------|
-| Dashboard | Heavy | Removed SysAdmin/XP/badges/ENGAGE. Added: TODAY'S FOCUS timer, MASTERY INDEX %, CURRENT STREAK, DUE FOR REVIEW count, RECOMMENDED NEXT concept cards, SUBJECT MASTERY bars, 28-DAY ACTIVITY heatmap, INITIATE FOCUS CTA |
-| Subject Detail | Medium | Generic subjects (not CS-specific). Color-coded mastery bars (chartreuse 80%+, cyan 50-80%, magenta <50%). DELTA (ACCURACY) column in telemetry log. "Atomic Learning Objectives" sublabel |
-| Active Focus | Medium | MCQ practice card with 4 options. "Show Answer" toggle. "Concepts Reviewed" replaces XP. SLIDE TO PAUSE track at bottom. Zen aesthetic (charcoal #0D0D0D, soft teal #4DFFD2) |
-| Weekly Analytics | None (copied from v2) | Already usable as-is |
-
-### Stitch MCP Usage Pattern
-
+**Stitch MCP API pattern**:
 ```
 list_screens(projectId) -> get screen IDs
-edit_screens(projectId, selectedScreenIds, deviceType: "DESKTOP", modelId: "GEMINI_3_PRO", prompt: "...")
+edit_screens(projectId, selectedScreenIds, deviceType: "DESKTOP",
+             modelId: "GEMINI_3_PRO", prompt: "...")
 get_screen(projectId, screenId) -> download screenshot + HTML
 ```
 
 Model ID: `GEMINI_3_PRO` (not GEMINI_3 or GEMINI_PRO -- exact Stitch model identifier).
 
----
+**Screens edited**: Dashboard (heavy -- removed SysAdmin/XP/badges, added mastery metrics), Subject Detail (medium -- generic subjects, color-coded mastery bars), Active Focus (medium -- MCQ card, Zen aesthetic), Weekly Analytics (none -- copied from v2).
 
-## Phase 0: Frontend Foundation
+### Solution 11: Web Worker Timer with visx Heatmap
 
-### Tailwind v4 Migration Ordering (CRITICAL)
+**Symptom addressed**: S5 (CSP for workers), dashboard visualization
 
-**Error**: Atomic MUI removal. MUI and Tailwind cannot coexist cleanly (Emotion peer dep conflicts, CSS `@layer` collisions).
+**Web Worker timer** (`frontend/src/workers/timer.worker.ts`):
 
-**Correct ordering discovered through deepening research**:
-1. Install Tailwind + shadcn + all new deps ALONGSIDE MUI (additive)
-2. Rewrite all MUI components to Tailwind (auth forms, layout, pages)
-3. Verify build passes with both installed
-4. THEN `npm uninstall @mui/material @mui/icons-material @emotion/react @emotion/styled`
-
-**Note**: MUI was NOT fully removed in this session because ChatInterface.tsx (688 lines of complex streaming code) and content components still use MUI. MUI removal deferred to Phase 3 chat restyle.
-
-### Vite 6 + @vitejs/plugin-react Version Compatibility
-
-**Error encountered**:
-```
-npm error ERESOLVE unable to resolve dependency tree
-npm error peer vite@"^8.0.0" from @vitejs/plugin-react@6.0.1
-```
-
-**Solution**: `@vitejs/plugin-react@latest` (6.0.1) requires Vite 8. Pin to `@vitejs/plugin-react@^4.7.0` which supports Vite 4-7:
-```bash
-npm install -D vite@^6 @vitejs/plugin-react@^4.7.0 tailwindcss@latest @tailwindcss/vite
-```
-
-### CSS Import Ordering (CRITICAL)
-
-**Error**: Fonts invisible or wrong if ordering is wrong.
-
-**Correct ordering** (discovered via deepening Tailwind v4 research):
-```css
-/* 1. @fontsource imports FIRST, in layer(base) -- browser spec requires @imports before other rules */
-@import "@fontsource/space-grotesk/400.css" layer(base);
-@import "@fontsource/space-grotesk/700.css" layer(base);
-@import "@fontsource/jetbrains-mono/400.css" layer(base);
-/* ... all font imports ... */
-
-/* 2. Tailwind import SECOND -- includes Preflight (CSS reset) */
-@import "tailwindcss";
-
-/* 3. Custom variant */
-@custom-variant dark (&:is(.dark *));
-
-/* 4. Design tokens */
-@theme {
-  --color-primary: #D4FF00;
-  /* ... */
-}
-```
-
-### shadcn/ui Initialization
-
-**Error**: `npx shadcn@latest add button card input dialog dropdown-menu tabs toast --yes` silently failed (created no files).
-
-**Fix**: Add components one at a time:
-```bash
-npx shadcn@latest add button
-npx shadcn@latest add card
-# etc.
-```
-
-**Error**: `components.json` and `src/lib/` were in `.gitignore` (frontend had blanket ignores).
-
-**Fix**: `git add -f frontend/components.json frontend/src/lib/utils.ts`
-
-### CSP Worker-src Fix (SHOWSTOPPER caught by security review)
-
-**Error**: `backend/app/core/security_headers.py` line 183 set `worker-src: 'none'` in production CSP. The focus timer Web Worker would be SILENTLY BLOCKED in production with no error visible to the user.
-
-**Fix**:
-```python
-# Before (production):
-"worker-src": "'none'",
-"child-src": "'none'",
-
-# After:
-"worker-src": "'self' blob:",
-"child-src": "'self' blob:",
-```
-
-Development and staging already had `'self' blob:`. Only production was wrong.
-
-### Husky Setup in Monorepo
-
-**Error**: `npx husky init` from `frontend/` directory: ".git can't be found" (git root is parent).
-
-**Fix**: Create minimal root `package.json` with husky, init from repo root:
-```json
-{
-  "private": true,
-  "scripts": { "prepare": "husky" },
-  "devDependencies": { "husky": "^9.1.7" }
-}
-```
-Pre-commit hook: `cd frontend && npx lint-staged`
-
----
-
-## Phase 1: Backend + Frontend Features
-
-### Subject Model
-
-```python
-class Subject(Base):
-    __tablename__ = "subjects"
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
-    name = Column(String(255), nullable=False)
-    color = Column(String(7), nullable=False, default="#D4FF00")
-    weekly_goal_minutes = Column(Integer, nullable=False, default=300)
-    is_active = Column(Boolean, nullable=False, default=True)
-    __table_args__ = (UniqueConstraint('user_id', 'name', name='uq_subject_user_name'),)
-```
-
-**Subject color auto-assignment palette** (8 colors, cycling):
-```python
-SUBJECT_COLORS = [
-    "#D4FF00", "#00F2FE", "#FF2D7B", "#FFD700",
-    "#B4A7FF", "#4dffd2", "#FF6B00", "#E0E0E0",
-]
-```
-
-**Constraints**: `name` unique per user (UNIQUE(user_id, name)). Max 50 subjects per user. `weekly_goal_minutes` defaults to 300 (5h). Unicode normalization (NFKC) and whitespace stripping on name input.
-
-### Session Lifecycle State Machine
-
-```
-PLANNED --start--> IN_PROGRESS --pause--> PAUSED
-                       |                    |
-                       |                 resume
-                       |                    |
-                       |              IN_PROGRESS
-                       |                    |
-                       +------stop----------+
-                       v                    v
-                   COMPLETED           COMPLETED
-```
-
-**Invalid transitions return 409 Conflict** with `{"error": "Invalid transition", "current_status": "..."}`.
-
-**Atomic state transitions** (Security finding C2 -- no check-then-update):
-```python
-result = db.execute(update(StudySession).where(
-    StudySession.id == session_id,
-    StudySession.user_id == user_id,
-    StudySession.status == SessionStatus.IN_PROGRESS
-).values(status=SessionStatus.PAUSED, accumulated_seconds=new_value))
-if result.rowcount == 0:
-    raise HTTPException(409)
-```
-
-**Concurrent session prevention** (Security finding C1):
-```sql
-CREATE UNIQUE INDEX idx_one_active_session_per_user
-ON study_sessions (user_id)
-WHERE status IN ('IN_PROGRESS', 'PAUSED');
-```
-Application catches `IntegrityError` and returns 409 with `{"active_session_id": "..."}`.
-
-**Pause tracking columns** added to StudySession:
-- `accumulated_seconds: Integer` (default 0) -- total study time excluding pauses
-- `last_resumed_at: DateTime` (nullable) -- set on start/resume, cleared on pause
-
-On pause: `accumulated_seconds += (utcnow() - last_resumed_at).total_seconds()`, clear `last_resumed_at`.
-On stop: final accumulation, `duration_minutes = accumulated_seconds // 60`. Sessions < 1 minute = CANCELLED.
-
-**Orphaned session resolution**:
-- `fetch({keepalive: true})` on `beforeunload` (NOT `sendBeacon` -- sendBeacon can't set Authorization or CSRF headers)
-- Dashboard endpoint: check for IN_PROGRESS sessions older than 12 hours, auto-complete
-
-### Dashboard Endpoint: 3 Focused Queries (NOT 1 Monolithic Query)
-
-**Performance finding P0**: "Single consolidated query" was wrong. The correct pattern:
-
-1. **28-day aggregation** grouped by date + subject (covers today, week, heatmap, subject breakdown in one scan)
-2. **Active session check** via partial index (instant)
-3. **Streak**: distinct study dates DESC LIMIT 365
-
-**Streak calculation rules**:
-- A "study day" = any COMPLETED session with `duration_minutes >= 1`
-- Day boundary uses user's `timezone` field (User model already has this, default "UTC")
-- Sessions created by chat (`study_mode=DISCUSSION`) also count toward streaks
-- Cache result in Redis with 1-hour TTL, keyed by `streak:{user_id}`
-
-**"Today" definition**: All "today" calculations use user's timezone. Backend is authoritative (frontend sends no timezone).
-
-**Timezone in SQL** (Performance finding P1 + Security finding H2):
-- NEVER interpolate `user.timezone` into raw SQL (injection risk)
-- NEVER use `AT TIME ZONE` in WHERE clause (prevents index usage)
-- Compute `today_start_utc` and `window_start_utc` in Python, filter on raw `actual_start` column
-- Validate timezone against `zoneinfo.available_timezones()` on user profile update
-
-### Composite Indexes (Performance finding P0 -- CRITICAL)
-
-```sql
-CREATE INDEX idx_study_sessions_user_status_start
-ON study_sessions (user_id, status, actual_start DESC);
-
-CREATE INDEX idx_study_sessions_user_subject_start
-ON study_sessions (user_id, subject_id, actual_start DESC);
-
-CREATE INDEX idx_one_active_session_per_user
-ON study_sessions (user_id) WHERE status IN ('in_progress', 'paused');
-```
-
-Without the first two, dashboard degrades to sequential scan at 500+ sessions per user.
-
-### Alembic Migration with Partial Unique Index
-
-```python
-op.create_index(
-    'idx_one_active_session_per_user', 'study_sessions', ['user_id'],
-    unique=True,
-    postgresql_where=sa.text("status IN ('in_progress', 'paused')"))
-```
-
-**Gotcha**: Alembic autogenerate does NOT detect partial unique indexes. Must be written manually.
-
-### StudySession Schema Int/UUID Mismatch Fix
-
-**Bug**: `StudySessionResponse` schema had `id: int` and `user_id: int` but the database model uses `UUID(as_uuid=True)`. All existing tests passed because they never exercised UUID serialization.
-
-**Fix**: Changed to `id: uuid.UUID` and `user_id: uuid.UUID`. Also added `subject_id: Optional[uuid.UUID]`, `accumulated_seconds: int`, `status: Optional[str]`. Replaced `class Config: from_attributes = True` with `model_config = ConfigDict(from_attributes=True)` (Pydantic v2 style).
-
-### Web Worker Timer
-
+Uses `Date.now()` delta tracking (not increment counter) for accuracy:
 ```typescript
-// timer.worker.ts
-let seconds = 0
-let running = false
+let startTime: number | null = null
+let isRunning = false
 
 function tick() {
-  if (!running) return
-  seconds++
-  postMessage({ type: 'tick', seconds })
+  if (!isRunning || startTime === null) return
+  const elapsed = Date.now() - startTime
+  self.postMessage({ type: 'tick', elapsed })
   setTimeout(tick, 1000)  // NOT setInterval -- avoids drift accumulation
 }
+```
 
-onmessage = (e) => {
-  if (e.data.type === 'start') { running = true; seconds = e.data.seconds || 0; tick() }
-  if (e.data.type === 'pause') { running = false }
-  if (e.data.type === 'resume') { running = true; tick() }
-  if (e.data.type === 'stop') { running = false; seconds = 0 }
+Key decisions:
+- `setTimeout` recursion, not `setInterval` (avoids drift accumulation)
+- 1000ms tick rate (displays HH:MM:SS, not milliseconds -- 10x fewer messages)
+- `Date.now()` delta tracking (not simple counter) for accuracy across pause/resume
+- `worker.terminate()` in `useEffect` cleanup
+
+**Vite worker import**: `new URL('../workers/timer.worker.ts', import.meta.url)` with `{ type: 'module' }`. Requires `worker: { format: 'es' }` in vite.config.ts.
+
+**Contribution heatmap** (`frontend/src/components/dashboard/ContributionHeatmap.tsx`):
+
+Pure SVG implementation (visx was planned but a simpler custom SVG solution was used):
+```typescript
+function getCellColor(minutes: number): string {
+  if (minutes === 0) return '#121212'
+  if (minutes < 30) return '#1a4d4f'
+  if (minutes < 60) return '#00a9b5'
+  if (minutes < 120) return '#00d9e8'
+  return '#00F2FE'
 }
 ```
 
-**Vite 6 Worker import**: `new URL('../workers/timer.worker.ts', import.meta.url)` with `{ type: 'module' }`. Add `worker: { format: 'es' }` to `vite.config.ts`.
-
-**Tick rate**: 1000ms (NOT 100ms). Timer displays HH:MM:SS, not milliseconds. Reduces Worker-to-main messages 10x.
-
-**Cleanup**: `worker.terminate()` in `useEffect` return.
-
-### Dashboard Frontend Components
-
-**HeroMetrics**: CSS `@starting-style` for staggered card reveal animation with `transition-delay` (200ms between cards). No Framer Motion needed.
-
-**ContributionHeatmap**: `@visx/heatmap` HeatmapRect. Color scale: `scaleLinear` from `#121212` (0min) to `#1a4d4f` (30min) to `#00a9b5` (60min) to `#00F2FE` (90min+). SVG glow filter (`feGaussianBlur` stdDeviation=1.5) applied ONLY to cells with 60+ minutes. `@visx/responsive` ParentSize for dynamic cell sizing.
-
-**Heatmap empty state**: Render all 28 squares in void color (anticipation, matches GitHub pattern).
-
-### Rate Limiter Registration
-
-**Bug**: Module exports `limiter`, NOT `shared_limiter`. Three new routers (subjects, sessions, dashboard) initially used wrong import name.
-
-**Error message**: `ImportError: cannot import name 'shared_limiter' from 'app.core.rate_limiter'`
-
-**Pattern**: All new routers must register with the rate limiter singleton:
-```python
-from app.core.rate_limiter import limiter
-
-@router.get("/")
-@limiter.limit("30/minute")
-async def list_items(request: Request, ...):
+SVG glow filter applied ONLY to cells with 60+ minutes (performance P2 finding):
+```tsx
+<defs>
+  <filter id="heatmap-glow">
+    <feGaussianBlur stdDeviation="1.5" result="blur" />
+    <feMerge>
+      <feMergeNode in="blur" />
+      <feMergeNode in="SourceGraphic" />
+    </feMerge>
+  </filter>
+</defs>
+<rect
+  filter={cell.minutes >= 60 ? 'url(#heatmap-glow)' : undefined}
+/>
 ```
 
-### CSRF Exempt List
-
-All new JWT-authenticated endpoints added to `app/core/csrf.py` `jwt_protected_paths`:
-```python
-"/api/v1/subjects/",
-"/api/v1/sessions/",
-"/api/v1/dashboard",
-```
+Empty state: all 28 squares rendered in void color (`#121212` at 0.15 opacity) -- shows anticipation, matches GitHub contribution graph pattern.
 
 ---
 
-## Bugs Encountered and Solutions
-
-### Bug 1: func.timezone() crash on Neon PostgreSQL (Production 500)
-
-**Symptom**: Dashboard endpoint returned 500 Internal Server Error on production after deploy. Worked locally.
-
-**Error**: SQLAlchemy's `func.timezone(user_tz, StudySession.actual_start)` caused a crash on Neon PostgreSQL.
-
-**Root cause**: The `func.timezone()` PostgreSQL function behaved differently on Neon than on local PostgreSQL. Possibly related to NULL `actual_start` values from sessions created by the chat system that never had `actual_start` set.
-
-**Fix**: Removed `func.timezone()` entirely. Plain `cast(Date)` sufficient for UTC users. Computed timezone boundaries in Python instead of SQL:
-```python
-from datetime import timezone as tz
-user_tz_info = ZoneInfo(user_tz) if user_tz else tz.utc
-now_local = datetime.now(user_tz_info)
-today_start_utc = now_local.replace(hour=0, minute=0, second=0).astimezone(tz.utc)
-```
-
-**Prevention**: Always test SQLAlchemy functions against the actual production DB driver (Neon/psycopg2), not just local PostgreSQL.
-
-### Bug 2: Semgrep pip install clobbered application dependencies
-
-**Symptom**: CI deploy workflow failed at test step after semgrep migration.
-
-**Error**:
-```
-Successfully uninstalled starlette-0.35.1
-Attempting uninstall: pydantic...
-```
-
-**Root cause**: `pip install semgrep` in the same virtualenv as the backend replaced pydantic, starlette, httpx with incompatible versions.
-
-**Fix**: `pipx install semgrep` (isolated environment).
-
-### Bug 3: Semgrep p/python-security config 404
-
-**Symptom**: Semgrep scan step failed with registry HTTP 404.
-
-**Error**: Config `p/python-security` no longer exists on the Semgrep registry (old config path).
-
-**Fix**: `semgrep scan --config auto --include "*.py" backend/` (auto-detects correct rules).
-
-### Bug 4: Enum case sensitivity in PostgreSQL partial index
-
-**Symptom**: Partial unique index `WHERE status IN ('in_progress', 'paused')` did not match database records.
-
-**Root cause**: Python `SessionStatus` enum values are stored as UPPERCASE in PostgreSQL (`'IN_PROGRESS'`, `'PAUSED'`). The partial index WHERE clause used lowercase.
-
-**Fix**: Matched the enum case in the index definition:
-```sql
-WHERE status IN ('IN_PROGRESS', 'PAUSED')
-```
-
-### Bug 5: Rate limiter import name
-
-**Symptom**: `ImportError: cannot import name 'shared_limiter' from 'app.core.rate_limiter'`
-
-**Root cause**: The rate limiter module exports `limiter`, not `shared_limiter`. Three new routers (subjects, sessions, dashboard) used the wrong name.
-
-**Fix**: Changed all imports to `from app.core.rate_limiter import limiter`.
-
-### Bug 6: @vitejs/plugin-react version incompatibility
-
-**Symptom**: `npm error ERESOLVE unable to resolve dependency tree`
-
-**Error**: `@vitejs/plugin-react@latest` (6.0.1) requires Vite 8, but we installed Vite 6.
-
-**Fix**: Pin to `@vitejs/plugin-react@^4.7.0` (supports Vite 4-7).
-
-### Bug 7: Alembic migration fails without database connection
-
-**Symptom**: `alembic revision --autogenerate` failed because local PostgreSQL was not running.
-
-**Fix**: Wrote migration manually instead of autogenerate. Verified with `alembic heads` and SQLAlchemy model inspection after starting PostgreSQL via:
-```bash
-pg_ctl -D "C:/Program Files/PostgreSQL/17/data" start
-```
-
-**Note**: `pg_ctl` works from Bash without admin, but Windows PostgreSQL Service won't start from Bash tool.
-
----
-
-## Review Findings
-
-### Security Review (3 Critical, 4 High, 5 Medium)
-
-| ID | Severity | Finding | Resolution |
-|----|----------|---------|------------|
-| C1 | Critical | Concurrent session race condition | Partial unique index at DB level |
-| C2 | Critical | State transitions must be atomic | Conditional UPDATE (not check-then-update) |
-| C3 | Critical | Missing `last_resumed_at` column | Added to StudySession model |
-| H2 | High | Timezone SQL injection risk | Parameterized queries, validate against `zoneinfo.available_timezones()` |
-| H4 | High | Orphan cleanup in GET endpoint | Move to background task (APScheduler hourly) |
-| M3 | Medium | sendBeacon can't set auth headers | Use `fetch({keepalive: true})` instead |
-| M4 | Medium | Production CSP blocks Web Workers | Fix `worker-src: 'self' blob:'` |
-
-### Performance Review (2 P0, 4 P1, 4 P2)
-
-| ID | Priority | Finding | Resolution |
-|----|----------|---------|------------|
-| P0 | Critical | Missing composite indexes | Added 3 indexes to migration |
-| P0 | Critical | Dashboard should be 3 queries, not 1 | Separated into aggregation + active check + streak |
-| P1 | High | TanStack Query needs staleTime | Added `refetchIntervalInBackground: false` + `staleTime: 30_000` |
-| P1 | High | Timezone in WHERE prevents index usage | Compute boundaries in Python, pass UTC to WHERE |
-| P1 | High | Worker tick rate 100ms too fast | Changed to 1000ms setTimeout |
-| P2 | Medium | Bundle: net JS reduction ~40-60KB | MUI removed: ~130KB, added: ~90KB |
-| P2 | Medium | Framer Motion is 32-40KB | Replaced with CSS @starting-style |
-| P2 | Medium | Glow filter on all heatmap cells | Only on active cells (60+ minutes) |
-| P2 | Medium | Zustand/TanStack sync | Store reacts to mutation SUCCESS, not UI events |
-
-### Simplicity Review (7 YAGNI items removed)
-
-| Item | Reason |
-|------|--------|
-| `metadata_` JSONB on Subject | Nothing reads/writes it in Phase 1 |
-| `pause_resume_history` JSON | `accumulated_seconds` + `last_resumed_at` is the actual algorithm |
-| `version_id` optimistic locking | Conditional UPDATE (C2) already provides atomicity |
-| `icon` on Subject | No UI renders it |
-| `framer-motion` dependency | CSS @starting-style handles Phase 1 animations (saves 32-40KB) |
-| Stub pages (SubjectDetailPage, AnalyticsPage) | Create when Phase 2/5 begins |
-| Heartbeat endpoint | 12-hour auto-complete sufficient at current scale |
-
-### Architecture Review (18 findings, key contradictions resolved)
-
-| Contradiction | Resolution |
-|---------------|-----------|
-| "Single query" vs "3 queries" for dashboard | 3-query pattern is correct (performance P0) |
-| MUI removal before rewrites | Install-first, remove-last (keeps codebase compilable) |
-| Worker 100ms setInterval vs 1000ms setTimeout | 1000ms setTimeout is correct |
-| sendBeacon vs fetch(keepalive) | fetch(keepalive) is correct (can set auth headers) |
-| SubjectDetailPage as "stub" but navigated to | Use shadcn Dialog/Drawer instead of separate page |
-| Auth dependency `get_current_active_user` | `get_current_user` (matches content.py, already checks `is_active`) |
-| husky init from frontend | husky init from repo root (monorepo) |
-
----
-
-## Mistakes Made and Corrections
+## Mistakes and Prevention
 
 ### Mistake 1: Prematurely declaring agents dead
 
-**What happened**: During /deepen-plan, checked task output files and found 0 bytes. Declared all 5 deepening agents "hit API rate limit" and "exhausted rate allowance."
+**What happened**: During `/deepen-plan`, checked task output files and found 0 bytes. Declared all 5 deepening agents "hit API rate limit" and "exhausted rate allowance."
 
 **Reality**: 3 agents were still running (completed minutes later with full results). Only 1 genuinely failed (Cloudflare 403). The 0-byte files were output-in-progress, not failed.
 
-**Correction**: Wait for task notification before declaring failure. Agents with 0 bytes may be in-progress, not failed.
+**Who caught it**: User ("you're being too trigger-happy with declaring failure")
+
+**Prevention**: Wait for task completion notification before declaring failure. Agents with 0 bytes may be in-progress, not failed. If you must check early, wait at least 3-5 minutes.
 
 **Rule created**: `~/.claude/projects/.../memory/feedback_agent_behavior.md`
 
@@ -603,25 +551,29 @@ pg_ctl -D "C:/Program Files/PostgreSQL/17/data" start
 
 **What happened**: Attributed agent failures to "exhausted rate allowance" -- a concept that doesn't exist for Anthropic API subagents. Cloudflare 403 is a transient bot-detection challenge, not a rate limit.
 
-**Correction**: Diagnose before explaining. "I don't know why" is better than a fabricated explanation.
+**Who caught it**: User (challenged the "rate allowance" concept)
+
+**Prevention**: Diagnose before explaining. "I don't know why" is better than a fabricated explanation. Distinguish between: (a) Cloudflare 403 = transient bot-detection, (b) HTTP 429 = actual rate limit, (c) 0-byte output = still running.
 
 ### Mistake 3: Not researching v0 MCP existence
 
 **What happened**: Said "No v0 MCP, skill, or plugin exists in our toolset" based only on checking installed tools. Didn't search the web.
 
-**User pushback**: "I meant even online, not just my config, why were you so myopic in your search?"
+**Who caught it**: User ("I meant even online, not just my config, why were you so myopic in your search?")
 
-**Correction**: Always search online for tools/MCPs before asserting they don't exist. A v0 MCP community server did exist (hellolucky/v0-mcp).
+**Prevention**: Always search online (WebSearch, GitHub, npm) for tools/MCPs before asserting they don't exist. Local toolset is not the universe. A v0 MCP community server did exist (hellolucky/v0-mcp with 4 tools).
 
 **Rule created**: `~/.claude/projects/.../memory/feedback_research_thoroughness.md`
 
 ### Mistake 4: Deferring Figma without justification
 
-**What happened**: Initially deferred Figma to "post-MVP" with generic "1-2 week setup" estimate from research. User pushed: "why not everything from the start if we eventually gonna upgrade later anyways?"
+**What happened**: Initially deferred Figma to "post-MVP" with generic "1-2 week setup" estimate from research. This was effort avoidance disguised as pragmatism.
 
-**Correction**: Re-evaluated. Actual setup for our situation was 4-7 hours (tokens already defined). "Post-MVP" was effort avoidance disguised as pragmatism.
+**Who caught it**: User ("why not everything from the start if we eventually gonna upgrade later anyways?")
 
-**Later correction**: Simplicity review made a valid counterargument for solo dev. Final decision was defer -- but the initial deferral reasoning was wrong.
+**Prevention**: Before deferring anything to "later" or "Phase 2," verify the deferral is justified by architecture (adding it NOW would make things worse), not by effort avoidance. Claude doesn't feel effort.
+
+**Outcome**: Re-evaluated. Actual setup for the project was 4-7 hours (tokens already defined). Simplicity review later made a valid counter-argument for solo dev. Final decision was defer, but the initial deferral reasoning was wrong.
 
 **Rule created**: `~/.claude/projects/.../memory/feedback_no_deferring_without_cause.md`
 
@@ -629,108 +581,144 @@ pg_ctl -D "C:/Program Files/PostgreSQL/17/data" start
 
 **What happened**: Brainstorm defined "mastery %" as `concepts_mastered / total_concepts` without researching how MathAcademy/Anki/Khan actually calculate mastery. Existing 12K+ words of MathAcademy research in the quantelect repo went unread.
 
-**Correction**: Read quantelect research files. Discovered SM-2 formulas, FIRe algorithm, MathAcademy's "2 consecutive correct" gate, Khan Missions failure analysis.
+**Who caught it**: User ("did you check the quantelect research?")
+
+**Prevention**: Always check existing project research (quantelect repo, memory files, prior session exports) before inventing product definitions. For learning algorithm design specifically: SM-2, FSRS, MathAcademy, Khan Missions all have published analyses.
 
 **Rule created**: `~/.claude/projects/.../memory/feedback_research_product_decisions.md`
 
 ### Mistake 6: Not applying reconciliation fixes inline
 
-**What happened**: Architecture review found 14 contradictions. Created a "Review Reconciliation" header section declaring which version was authoritative. But the task bodies still contained the wrong versions -- creating copy-paste traps.
+**What happened**: Architecture review found 14 contradictions between plan sections. Created a "Review Reconciliation" header section declaring which version was authoritative. But the task bodies still contained the wrong versions -- creating copy-paste traps.
 
-**Correction**: Applied fixes INLINE to task bodies (npm uninstall comment, framer-motion removal, migration ordering note). Header reconciliation section is insufficient alone.
+**Who caught it**: User (noticed task bodies still had wrong instructions during implementation)
+
+**Prevention**: Apply fixes INLINE to the task bodies that will be copy-pasted during implementation. A reconciliation header is useful as an index, but insufficient as the sole fix location. The implementer reads task bodies, not reconciliation headers.
+
+Specific contradictions that needed inline fixes: `sendBeacon` -> `fetch({keepalive})`, 100ms setInterval -> 1000ms setTimeout, framer-motion in npm install -> remove, single query dashboard -> 3-query pattern, `get_current_active_user` -> `get_current_user`.
 
 **Rule created**: `~/.claude/projects/.../memory/feedback_inline_fixes.md`
 
 ### Mistake 7: Cached model IDs from training data
 
-**What happened**: Used `claude-sonnet-4-20250514` model ID from training data. This was stale -- actual current model is different.
+**What happened**: Used `claude-sonnet-4-6-20250514` model ID from training data. This was stale -- actual current model ID is different.
 
-**Correction**: Never use values from training data for volatile identifiers. Always verify from official sources (navigate to provider's model docs page).
+**Who caught it**: User ("from Anthropic's official sources, not pulled outta your ass")
 
-**Global rule created**: `~/.claude/rules/verify-volatile-data.md`
+**Prevention**: NEVER use values from training data for volatile identifiers. Always verify from official sources (navigate to provider's model docs page). Store the verification instruction ("check this URL"), not the value.
+
+**Rule created**: `~/.claude/rules/verify-volatile-data.md` (global scope)
 
 ### Mistake 8: Skipping code review before deploy
 
-**What happened**: Pushed to production without running /workflows:review. The dashboard `func.timezone()` 500 was only caught by post-deploy Playwright UI testing.
+**What happened**: Pushed to production without running `/workflows:review`. The dashboard `func.timezone()` 500 was only caught by post-deploy Playwright UI testing.
 
-**Correction**: Always run review before deploy. Local tests and CI are insufficient -- they don't test against the production database driver.
+**Who caught it**: Production (500 error on deployed dashboard endpoint)
+
+**Prevention**: Always run `/workflows:review` before deploy. Local tests and CI are insufficient -- they don't test against the production database driver (Neon PostgreSQL behaves differently from local PostgreSQL for some SQLAlchemy functions).
+
+### Mistake 9: Premature "session complete" claims (6 occurrences)
+
+**What happened**: Declared work "ready to export" or "session complete" at least 6 times while actionable items remained:
+- After Phase 0 frontend foundation (backend not started)
+- After backend models (no router tests)
+- After CI fixes (deploy not verified)
+- After deploy (production 500 not tested)
+- After fixing production 500 (compound doc not written)
+- After compound doc (review findings not integrated)
+
+**Who caught it**: User (each time, by pointing out remaining work)
+
+**Prevention**: Before any "session complete" or "ready to export" claim:
+1. Re-read the task list -- are all tasks done?
+2. Re-read MEMORY.md entries edited this session -- do they match final state?
+3. Check: did you identify anything during the session that you haven't done yet?
+4. Claude doesn't feel fatigue. If work remains, keep working.
+
+### Mistake 10: Deleting memory file instead of updating
+
+**What happened**: When correcting outdated information in a memory file, deleted the entire file and recreated it instead of editing in place. This lost git history and made the change unauditable.
+
+**Who caught it**: User (noticed file deletion in git status)
+
+**Prevention**: Use Edit tool to update existing files. Only use Write for new files. Git history on edited files preserves the evolution of understanding. Deletion + recreation looks like a new file.
+
+### Mistake 11: Running compound skill too late
+
+**What happened**: The `/compound` skill (which produces this document) was run as an afterthought near session end, after context was already heavy from 6 hours of work. This meant the compound document was less thorough and required a second pass with dedicated agents.
+
+**Who caught it**: User (requested the 3-agent compound pass that produced this integrated version)
+
+**Prevention**: Run `/compound` or take notes for compound documentation DURING the session, not after. Key moments to capture: after each bug fix, after each review finding resolution, after each mistake correction. Accumulating raw material throughout is easier than reconstructing from degraded context.
+
+### Mistake 12: Insufficient verification of CSS import ordering
+
+**What happened**: Initial Tailwind setup had `@import "tailwindcss"` before `@fontsource` imports. Fonts appeared to work in dev (hot reload covers some ordering issues) but would fail in production builds.
+
+**Who caught it**: Discovered during deepening research on Tailwind v4 best practices (research agent, not user or runtime)
+
+**Prevention**: For any CSS framework migration, research the exact import ordering requirements FIRST. Tailwind v4 has specific requirements about `@import` ordering and `@layer` placement that differ from v3. Test with a production build (`npm run build && npm run preview`), not just dev server.
 
 ---
 
-## Code Patterns Implemented
+## Meta-Pattern Analysis
 
-### Tailwind Migration File Ordering
+### The User as Primary Quality Gate is Unsustainable
 
-1. `@fontsource` imports with `layer(base)` FIRST
-2. `@import "tailwindcss"` SECOND
-3. `@custom-variant dark` THIRD
-4. `@theme { ... }` design tokens FOURTH
-5. Utility classes (glow effects, focus styles) LAST
+Of the 12 mistakes documented above, the **user caught 9** of them:
 
-### Session State Machine Pattern
+| # | Mistake | Caught by |
+|---|---------|-----------|
+| 1 | Premature agent death declaration | User |
+| 2 | Inventing explanations | User |
+| 3 | Not researching v0 MCP | User |
+| 4 | Deferring Figma without cause | User |
+| 5 | Not researching product decisions | User |
+| 6 | Not applying reconciliation inline | User |
+| 7 | Cached model IDs | User |
+| 8 | Skipping code review | Production (500 error) |
+| 9 | Premature "session complete" (6x) | User |
+| 10 | Deleting memory file | User |
+| 11 | Compound skill too late | User |
+| 12 | CSS import ordering | Research agent |
 
-Conditional UPDATE for atomic transitions. Partial unique index for concurrent session prevention. `accumulated_seconds` + `last_resumed_at` for accurate pause/resume tracking. `fetch({keepalive: true})` for browser-close detection.
+Only 2 were caught by automated systems (production error, research agent). The remaining 1 was self-caught through research.
 
-### Dashboard 3-Query Pattern
+**This means**: The user is functioning as the primary quality gate for AI behavior. This is the inverse of what compound engineering promises. The human should be making creative and strategic decisions, not catching basic process failures.
 
-Query 1: 28-day aggregation (date + subject grouping, covers today/week/heatmap/subjects in one scan). Query 2: Active session check (partial index, instant). Query 3: Streak calculation (distinct study dates DESC LIMIT 365). Cache-aside pattern: 60s TTL per-user in Redis.
+**Categories of user-caught mistakes**:
+- **Effort avoidance** (4, 9, 11): Deferring work, declaring done prematurely, leaving documentation to the end
+- **Insufficient research** (3, 5, 7): Not searching broadly enough, not checking existing artifacts, using stale cached data
+- **Process shortcuts** (6, 8, 10): Skipping review steps, surface-level fixes, destructive operations
+- **Confabulation** (1, 2): Making up explanations, declaring states without evidence
 
-### Web Worker Timer Pattern
+**Structural fixes needed** (beyond per-mistake prevention):
+1. **Pre-completion checklist** enforced by the compound engineering workflow itself, not by user vigilance
+2. **Research-first gates** that block implementation until sources are verified (not just "remember to research")
+3. **Session progress tracking** with explicit "remaining work" visible at all times (task list is mandatory, not optional)
+4. **Compound documentation as continuous accumulation**, not end-of-session reconstruction
 
-`setTimeout(tick, 1000)` recursion (not setInterval). Worker-to-main messaging via `postMessage`/`onmessage`. Zustand store subscribes to worker messages. `worker.terminate()` in useEffect cleanup.
-
-### Stitch MCP Screen Editing Pattern
-
-1. `list_screens(projectId)` to get screen IDs
-2. Craft prompt with DESIGN.md tokens using enhance-prompt skill
-3. `edit_screens(projectId, selectedScreenIds, deviceType, modelId, prompt)`
-4. `get_screen(projectId, screenId)` to download
-5. Save to `design/stitch/v3-evolved/{screen}/` (screen.png + code.html)
-
-### Progressive Enhancement (Frontend)
-
-```tsx
-{concepts.length > 0 && <MasterySection concepts={concepts} />}
-```
-Sections render when their data is real. No fake data. No placeholder metrics.
-
----
-
-## Prevention Strategies
-
-| Issue | Prevention |
-|-------|-----------|
-| func.timezone crash | Test SQLAlchemy functions against actual production DB driver, not just local |
-| Semgrep dep clobbering | NEVER `pip install` scanning tools into app env -- use `pipx` for isolation |
-| CSP blocking Workers | Review security_headers.py for all environments before adding Web Workers |
-| Enum case mismatch | Verify enum string values against what PostgreSQL actually stores |
-| Agent premature death | Wait for task notification before declaring failure; 0 bytes may be in-progress |
-| Cached volatile data | Global rule: verify from official sources before using model IDs, action versions, API specs |
-| MUI removal ordering | Install new deps first, rewrite components, verify build, THEN remove old deps |
-| Reconciliation drift | Apply review fixes INLINE to task bodies, not just in header sections |
-| Product decisions from intuition | Always check existing research (quantelect repo, memory files) before inventing answers |
-| Missing composite indexes | Run EXPLAIN on dashboard-critical queries before deploy; degrade gracefully at 500+ records |
-| Post-deploy 500s | Always do authenticated Playwright click-through on production after deploy |
+The meta-lesson: creating rules for each mistake is necessary but insufficient. The rules themselves need enforcement mechanisms that don't rely on the user remembering to check. The session discipline rules in `~/.claude/rules/session-discipline.md` exist because of exactly this session, but rules only work if the agent follows them proactively.
 
 ---
 
 ## Files Changed
 
 ### Backend (new)
-- `backend/app/models/subject.py` -- Subject model with UUID, color auto-assignment, Unicode normalization
-- `backend/app/schemas/subject.py` -- Pydantic schemas with field validators
-- `backend/app/api/v1/subjects.py` -- CRUD router with rate limiting, ownership verification
-- `backend/app/api/v1/study_sessions.py` -- Session lifecycle router (start/pause/resume/stop) with atomic transitions
-- `backend/app/api/v1/dashboard.py` -- 3-query dashboard summary endpoint
-- `backend/alembic/versions/942421c3cadb_add_subjects_table_and_session_fields.py` -- Migration with partial unique index + composite indexes
+- `backend/app/models/subject.py` -- Subject model with UUID, color auto-assignment (8-color palette), UniqueConstraint(user_id, name)
+- `backend/app/schemas/subject.py` -- Pydantic schemas with field validators, Unicode normalization (NFKC)
+- `backend/app/api/v1/subjects.py` -- CRUD router with rate limiting, ownership verification, max 50 subjects per user
+- `backend/app/api/v1/study_sessions.py` -- Session lifecycle router (start/pause/resume/stop/active/history) with 409 on invalid transitions
+- `backend/app/api/v1/dashboard.py` -- 3-query dashboard summary endpoint with Python timezone computation
+- `backend/alembic/versions/942421c3cadb_add_subjects_table_and_session_fields.py` -- Manual migration with partial unique index + 2 composite indexes
 
 ### Backend (modified)
 - `backend/app/models/user.py` -- Added `subjects` relationship
 - `backend/app/models/study_session.py` -- Added `subject_id`, `accumulated_seconds`, `last_resumed_at`, `subject` relationship
-- `backend/app/schemas/study_session.py` -- Fixed int/UUID mismatch, added `StartSessionRequest`, `SessionStateResponse`
+- `backend/app/schemas/study_session.py` -- Fixed int/UUID mismatch, added `StartSessionRequest`, `SessionStateResponse`, Pydantic v2 `model_config`
 - `backend/app/api/v1/api.py` -- Registered subjects, sessions, dashboard routers
-- `backend/app/core/csrf.py` -- Added new JWT endpoints to exempt list
-- `backend/app/core/security_headers.py` -- Fixed `worker-src: 'self' blob:'` (was `'none'`)
+- `backend/app/core/csrf.py` -- Added `/api/v1/subjects/`, `/api/v1/sessions/`, `/api/v1/dashboard` to JWT exempt list
+- `backend/app/core/security_headers.py` -- Fixed `worker-src: 'self' blob:'` (was `'none'` in production)
 - `backend/alembic/env.py` -- Added Subject model import
 
 ### Frontend (new)
@@ -740,14 +728,14 @@ Sections render when their data is real. No fake data. No placeholder metrics.
 - `frontend/src/pages/StudyPage.tsx` -- Study/chat page wrapper
 - `frontend/src/pages/ContentPage.tsx` -- Content management wrapper
 - `frontend/src/pages/FocusPage.tsx` -- Zen-aesthetic focus session with timer
-- `frontend/src/components/dashboard/HeroMetrics.tsx` -- 4 metric cards with staggered reveal
-- `frontend/src/components/dashboard/SubjectList.tsx` -- Subject progress bars
-- `frontend/src/components/dashboard/ContributionHeatmap.tsx` -- visx 28-day heatmap with glow filters
+- `frontend/src/components/dashboard/HeroMetrics.tsx` -- 4 metric cards with CSS `@starting-style` staggered reveal
+- `frontend/src/components/dashboard/SubjectList.tsx` -- Subject progress bars with color-coded fills
+- `frontend/src/components/dashboard/ContributionHeatmap.tsx` -- SVG 28-day heatmap with glow filters on 60+ min cells
 - `frontend/src/components/dashboard/StartFocusCTA.tsx` -- Full-width chartreuse CTA
-- `frontend/src/hooks/useTimer.ts` -- Web Worker timer hook
-- `frontend/src/workers/timer.worker.ts` -- Accurate background timer
-- `frontend/src/lib/utils.ts` -- shadcn cn() utility
-- `frontend/src/index.css` -- Complete Tailwind v4 @theme with all design tokens
+- `frontend/src/hooks/useTimer.ts` -- Web Worker timer hook with Zustand integration
+- `frontend/src/workers/timer.worker.ts` -- Date.now()-based background timer with setTimeout recursion
+- `frontend/src/lib/utils.ts` -- shadcn `cn()` utility (clsx + tailwind-merge)
+- `frontend/src/index.css` -- Complete Tailwind v4 `@theme` with all design tokens from DESIGN.md
 - `frontend/components.json` -- shadcn/ui configuration
 - `frontend/prettier.config.js` -- Prettier with tailwindcss plugin
 
@@ -756,7 +744,7 @@ Sections render when their data is real. No fake data. No placeholder metrics.
 - `frontend/src/components/auth/LoginForm.tsx` -- MUI to Tailwind+shadcn
 - `frontend/src/components/auth/RegisterForm.tsx` -- MUI to Tailwind+shadcn
 - `frontend/src/components/auth/ProtectedRoute.tsx` -- MUI to Tailwind
-- `frontend/vite.config.ts` -- Added @tailwindcss/vite, worker format
+- `frontend/vite.config.ts` -- Added `@tailwindcss/vite`, `worker: { format: 'es' }`, pinned `@vitejs/plugin-react@^4.7.0`
 - `frontend/package.json` -- New deps, lint-staged config
 
 ### Design
@@ -767,8 +755,8 @@ Sections render when their data is real. No fake data. No placeholder metrics.
 - `design/stitch/v3-evolved/README.md` -- What changed from v2
 
 ### CI
-- `.github/workflows/deploy.yml` -- Updated: checkout@v6, setup-python@v6, setup-node@v6, Node 18 to 20, semgrep to pipx
-- `.github/workflows/staging.yml` -- Updated: checkout@v6, setup-python@v6, setup-node@v6
+- `.github/workflows/deploy.yml` -- checkout@v6, setup-python@v6, setup-node@v6, Node 18->20, semgrep to pipx
+- `.github/workflows/staging.yml` -- checkout@v6, setup-python@v6, setup-node@v6, Node 18->20
 
 ### Project Configuration
 - `.claude/rules/stitch-implementation.md` -- Stitch to React implementation workflow
@@ -777,27 +765,32 @@ Sections render when their data is real. No fake data. No placeholder metrics.
 
 ---
 
-## Compound Engineering Workflow
+## Related Documents
 
-### Full Execution Sequence
+- **Brainstorm**: `docs/brainstorms/2026-03-13-mvp-frontend-brainstorm.md` (486 lines)
+- **Plan**: `docs/plans/2026-03-14-001-feat-full-product-build-phases-neg1-0-1-plan.md` (1129 lines)
+- **SM-2 Research**: `~/.claude/projects/.../memory/sm2-fire-mastery-research.md`
+- **CI Fixes**: `~/.claude/projects/.../memory/session8-ci-and-deploy-fixes.md`
+- **Agent Behavior Feedback**: `~/.claude/projects/.../memory/feedback_agent_behavior.md`
+- **Research Thoroughness Feedback**: `~/.claude/projects/.../memory/feedback_research_thoroughness.md`
+- **No Deferring Feedback**: `~/.claude/projects/.../memory/feedback_no_deferring_without_cause.md`
+- **Product Research Feedback**: `~/.claude/projects/.../memory/feedback_research_product_decisions.md`
+- **Inline Fixes Feedback**: `~/.claude/projects/.../memory/feedback_inline_fixes.md`
+- **Official Sources Feedback**: `~/.claude/projects/.../memory/feedback_official_sources_only.md`
+- **Session Export**: `~/.claude/exports/ai-study-architect/2026-03-14-session8-full-product-build-phases-neg1-0-1.txt` (12,579 lines)
+- **Design System**: `design/DESIGN.md`
+- **PRD**: `design/PRD.md`
+
+### Compound Engineering Workflow Used
 
 ```
 /brainstorming (8m) -> /workflows:plan (5m) -> /deepen-plan (6 agents, 15m)
 -> /plan_review (3 agents, 10m) -> /workflows:work (~3h)
--> Production UI test (Playwright) -> CI fix iteration -> /compound
+-> Production UI test (Playwright) -> CI fix iteration
+-> /compound (initial) -> 3-agent compound pass (this document)
 ```
 
-### Key Learnings About the Workflow
-
-1. **Don't skip /deepen-plan**: Caught CSP worker-src showstopper, composite index need, session state machine design, migration ordering constraint, timezone injection risk
-2. **Don't skip code review before deploy**: Dashboard 500 was only caught by post-deploy UI testing
-3. **UI test on DEPLOYED version**: Localhost testing is insufficient; production environment differences (Neon vs local PostgreSQL, CF Container CSP) cause bugs that local tests miss
-4. **Never cache volatile external data**: Model IDs, GitHub Action versions, library API specs change between releases. Always verify from official docs.
-5. **Agent reliability**: Cloudflare 403 on subagents is transient, not fatal. Wait for task notification. 0-byte output may be in-progress, not failed.
-6. **Reconciliation sections are insufficient alone**: Apply review overrides INLINE to the actual copy-paste-ready task bodies. Header-only reconciliation creates dangerous copy-paste traps.
-7. **Research existing project artifacts before inventing answers**: 12K words of MathAcademy research existed in the quantelect repo. Reading it before brainstorming would have saved 3 rounds of correction.
-
-### Research Consumed This Session
+### Research Consumed
 
 - 12+ background research agents (Tailwind v4, visx, headless UI, Stitch vs Figma, Storybook/v0/Chromatic, SM-2/FIRe, GitHub Actions, semgrep)
 - 2 Context7 MCP queries (visx docs, shadcn/ui docs)
@@ -805,11 +798,4 @@ Sections render when their data is real. No fake data. No placeholder metrics.
 - 4 Stitch screen renders analyzed
 - 2 quantelect research files read (24K+ words MathAcademy analysis)
 - Playwright MCP production UI testing (8+ page navigations)
-
-### Related Files
-
-- Brainstorm: `docs/brainstorms/2026-03-13-mvp-frontend-brainstorm.md` (486 lines)
-- Plan: `docs/plans/2026-03-14-001-feat-full-product-build-phases-neg1-0-1-plan.md` (1129 lines)
-- SM-2 Research: `~/.claude/projects/.../memory/sm2-fire-mastery-research.md`
-- CI Fixes: `~/.claude/projects/.../memory/session8-ci-and-deploy-fixes.md`
-- Session Export: `~/.claude/exports/ai-study-architect/2026-03-14-session8-full-product-build-phases-neg1-0-1.txt` (12,579 lines)
+- 3 compound analysis agents (context analyzer, solution extractor, prevention strategist)
