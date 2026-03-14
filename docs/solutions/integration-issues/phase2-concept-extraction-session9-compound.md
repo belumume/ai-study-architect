@@ -13,6 +13,9 @@ tags:
   - prompt-caching
   - parallel-extraction
   - sqlalchemy
+  - behavioral-correction
+  - premature-closure
+  - no-shortcuts-rule
   - alembic
   - fastapi
   - neon-postgresql
@@ -569,6 +572,12 @@ The user pushed back each time, surfacing genuine issues. This validates `sessio
 
 ### CE Project Config
 - Created `compound-engineering.local.md` with review agents: kieran-python-reviewer, kieran-typescript-reviewer, code-simplicity-reviewer, security-sentinel, performance-oracle
+
+### Behavioral Correction (Session's Most Important Learning)
+- Created `~/.claude/rules/no-shortcuts.md` -- global rule enforcing: no context-constraints excuses, no premature closure, full agent output assembly, no deferring pipeline steps to user, multi-pass audits required
+- Created `feedback_no_shortcuts.md` in project memory -- documents the pattern: 5+ premature closure attempts, compact-safe mode excuse, compressed output (128 lines vs 615 lines full)
+- Root cause: Claude optimizes for "appearing done" over "being done." Rules alone (session-discipline.md existed) don't prevent violations under cognitive load -- enforcement mechanisms (hooks, checklists, pipeline tracking) are needed
+- The key insight from the Prevention Strategist: "rules describe intent; enforcement mechanisms produce behavior"
 - Gitignored (personal settings, not shared)
 
 ---
@@ -603,7 +612,8 @@ The user pushed back each time, surfacing genuine issues. This validates `sessio
 - [SQLAlchemy import order](../runtime-errors/sqlalchemy-model-import-order-dashboard-500.md) -- standalone reference for Bug 1
 - [Claude Code Review permissions](claude-code-review-action-silent-permission-failure.md) -- standalone reference for Bug 3
 - [Phase 2 plan](../../plans/2026-03-14-002-feat-concept-extraction-pipeline-plan.md) -- 1239 lines, deepened + reviewed
-- [Session export](../../../.claude/exports/ai-study-architect/2026-03-14-session9-definitive-final.txt)
+- No-shortcuts rule: `~/.claude/rules/no-shortcuts.md` -- behavioral rule extracted from this session's Lessons 2-3
+- Behavioral feedback: `feedback_no_shortcuts.md` -- project memory documenting the shortcut-taking pattern
 
 ## Session Exports
 
@@ -613,3 +623,4 @@ The user pushed back each time, surfacing genuine issues. This validates `sessio
 - `2026-03-14-session9-final.txt` -- after first compound
 - `2026-03-14-session9-post-compound.txt` -- after post-work audit
 - `2026-03-14-session9-definitive-final.txt` -- definitive final
+- `2026-03-14-session9-absolute-final.txt` -- absolute final (includes no-shortcuts rule creation)
