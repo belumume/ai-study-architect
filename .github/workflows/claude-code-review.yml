@@ -26,19 +26,8 @@ jobs:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
 
           direct_prompt: |
-            Review this pull request thoroughly. Focus on:
-            - Code quality, patterns, and best practices
-            - Potential bugs, race conditions, or logic errors
-            - Performance considerations and scalability
-            - Security concerns (injection, auth, data leakage)
-            - Test coverage gaps
-
-            IMPORTANT: Read the actual code before flagging issues. Verify that:
-            - Pydantic validators/Field patterns exist before claiming "missing validation"
-            - Timer/math logic is correct before claiming "drift" or "accuracy issues"
-            - Query patterns match before claiming "N+1"
-            - Alembic DDL sa.text() in index WHERE clauses is standard, not SQL injection
-
+            Review this pull request. Focus on bugs, security vulnerabilities,
+            and logic errors. Read the actual code before flagging anything.
             Be precise and actionable. False positives waste developer time.
 
           use_sticky_comment: true
