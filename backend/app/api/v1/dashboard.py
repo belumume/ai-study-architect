@@ -14,7 +14,7 @@ from sqlalchemy.orm import Session
 import uuid
 
 from app.api.dependencies import get_current_user, get_db
-from app.core.rate_limiter import shared_limiter as limiter
+from app.core.rate_limiter import limiter
 from app.models.study_session import StudySession, SessionStatus
 from app.models.subject import Subject
 from app.models.user import User

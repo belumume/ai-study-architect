@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 
 from app.api.dependencies import get_current_user, get_db
-from app.core.rate_limiter import shared_limiter as limiter
+from app.core.rate_limiter import limiter
 from app.models.subject import Subject, SUBJECT_COLORS
 from app.models.user import User
 from app.schemas.subject import SubjectCreate, SubjectResponse, SubjectUpdate
