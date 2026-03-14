@@ -1,23 +1,73 @@
-/* Global styles for AI Study Architect */
+/* Study Architect — Design System Tokens */
 
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
+/* 1. Font imports FIRST, in layer(base) — browser CSS spec requires @imports before other rules */
+@import "@fontsource/space-grotesk/400.css" layer(base);
+@import "@fontsource/space-grotesk/700.css" layer(base);
+@import "@fontsource/jetbrains-mono/400.css" layer(base);
+@import "@fontsource/jetbrains-mono/500.css" layer(base);
+@import "@fontsource/jetbrains-mono/700.css" layer(base);
+@import "@fontsource/inter/400.css" layer(base);
+@import "@fontsource/inter/500.css" layer(base);
+@import "@fontsource/inter/600.css" layer(base);
+
+/* 2. Tailwind import SECOND — includes Preflight (CSS reset) */
+@import "tailwindcss";
+
+/* 3. Dark mode variant */
+@custom-variant dark (&:is(.dark *));
+
+/* 4. Design tokens consumed from DESIGN.md */
+@theme {
+  /* Core palette */
+  --color-primary: #D4FF00;
+  --color-secondary: #00F2FE;
+  --color-tertiary: #FF2D7B;
+  --color-accent: #FF00FF;
+  --color-gold: #FFD700;
+  --color-danger: #FF0055;
+
+  /* Surfaces */
+  --color-void: #050505;
+  --color-surface: #0a0a0a;
+  --color-raised: #121212;
+  --color-border: #1f1f1f;
+
+  /* Text */
+  --color-text-primary: #E0E0E0;
+  --color-text-muted: #888888;
+
+  /* Zen palette (focus session) */
+  --color-zen-primary: #4dffd2;
+  --color-zen-secondary: #B4A7FF;
+  --color-zen-bg: #0D0D0D;
+
+  /* Typography */
+  --font-display: 'Space Grotesk', sans-serif;
+  --font-body: 'Inter', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
 }
 
-body {
-  margin: 0;
-  font-family: 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+/* Neon glow utilities */
+.glow-primary {
+  text-shadow: 0 0 8px rgba(212, 255, 0, 0.4);
 }
 
-code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
-    monospace;
+.glow-secondary {
+  text-shadow: 0 0 8px rgba(0, 242, 254, 0.4);
+}
+
+.glow-tertiary {
+  text-shadow: 0 0 8px rgba(255, 45, 123, 0.4);
+}
+
+.glow-gold {
+  filter: drop-shadow(0 0 8px rgba(255, 215, 0, 0.5));
+}
+
+/* Focus styles for accessibility (dark theme) */
+:focus-visible {
+  outline: 2px solid var(--color-secondary);
+  outline-offset: 2px;
 }
 
 /* Ensure full viewport height */
@@ -30,24 +80,4 @@ code {
 /* Smooth scrolling */
 html {
   scroll-behavior: smooth;
-}
-
-/* Focus styles for accessibility */
-:focus-visible {
-  outline: 2px solid #1976d2;
-  outline-offset: 2px;
-}
-
-/* Loading spinner animation */
-@keyframes spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-.spinner {
-  animation: spin 1s linear infinite;
 }
