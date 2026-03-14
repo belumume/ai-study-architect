@@ -1,7 +1,7 @@
 ---
 title: "feat: Full Product Build — Phases -1, 0, and 1"
 type: feat
-status: active
+status: completed
 date: 2026-03-14
 origin: docs/brainstorms/2026-03-13-mvp-frontend-brainstorm.md
 deepened: 2026-03-14
