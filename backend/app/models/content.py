@@ -105,8 +105,18 @@ class Content(Base):
     embeddings_generated = Column(Integer, default=0, nullable=False)  # Boolean as integer
 
     # Organization
-    subject = Column(String(100), nullable=True)
+    subject = Column(String(100), nullable=True)  # Legacy text field (pre-Phase 2)
+    subject_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("subjects.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
     tags = Column(JSON, nullable=True)  # List of tags
+
+    # Concept extraction lifecycle (separate from processing_status)
+    extraction_status = Column(String(20), nullable=True)  # extracting|completed|failed|partial
+    extraction_error = Column(Text, nullable=True)
 
     # Analytics
     view_count = Column(Integer, default=0, nullable=False)
@@ -119,6 +129,7 @@ class Content(Base):
 
     # Relationships
     user = relationship("User", back_populates="content_items")
+    subject_ref = relationship("Subject")
     study_sessions = relationship(
         "StudySession", secondary="study_session_content", back_populates="content_items"
     )
