@@ -26,9 +26,19 @@ export interface ConceptWithMastery extends ConceptResponse {
   mastery: MasteryData | null
 }
 
+export interface ContentItem {
+  id: string
+  title: string
+  content_type: string
+  processing_status: string
+  extraction_status: string | null
+  concept_count: number
+}
+
 export interface SubjectDetailData {
   subject: { id: string; name: string; color: string }
   concepts: ConceptWithMastery[]
+  content_items: ContentItem[]
   mastery_summary: {
     total_concepts: number
     mastered_count: number

@@ -172,6 +172,29 @@ async def get_subject_detail(
     mastered = status_counts["mastered"]
     mastery_pct = (mastered / total * 100) if total > 0 else 0.0
 
+    # Query content items linked to this subject
+    content_items = (
+        db.query(Content)
+        .filter(
+            Content.user_id == current_user.id,
+            Content.subject_id == subject_id,
+        )
+        .order_by(Content.created_at.desc())
+        .all()
+    )
+
+    content_list = [
+        {
+            "id": str(c.id),
+            "title": c.title,
+            "content_type": c.content_type,
+            "processing_status": c.processing_status,
+            "extraction_status": c.extraction_status,
+            "concept_count": sum(1 for concept in concepts if concept["content_id"] == str(c.id)),
+        }
+        for c in content_items
+    ]
+
     return {
         "subject": {
             "id": str(subject.id),
@@ -179,6 +202,7 @@ async def get_subject_detail(
             "color": subject.color,
         },
         "concepts": concepts,
+        "content_items": content_list,
         "mastery_summary": {
             "total_concepts": total,
             "mastered_count": mastered,

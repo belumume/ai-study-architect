@@ -59,25 +59,53 @@ export default function SubjectDetailPage() {
       {/* Mastery Overview */}
       <SubjectMasteryOverview summary={data.mastery_summary} />
 
+      {/* Content Items */}
+      {data.content_items.length > 0 && (
+        <div className="space-y-3">
+          <h2 className="font-display text-sm font-bold uppercase tracking-wider text-text-muted">
+            Content ({data.content_items.length})
+          </h2>
+          <div className="space-y-2">
+            {data.content_items.map((content) => (
+              <div
+                key={content.id}
+                className="flex items-center justify-between rounded-lg border border-border bg-surface p-3"
+              >
+                <div>
+                  <p className="font-body text-sm text-text-primary">{content.title}</p>
+                  <p className="font-mono text-[10px] text-text-muted">
+                    {content.concept_count > 0
+                      ? `${content.concept_count} concepts`
+                      : content.processing_status === 'completed'
+                        ? 'Ready to extract'
+                        : content.processing_status}
+                  </p>
+                </div>
+                {content.processing_status === 'completed' && (
+                  <ExtractionTrigger
+                    contentId={content.id}
+                    subjectId={id}
+                    hasExistingConcepts={content.concept_count > 0}
+                  />
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Concepts List */}
       <div className="space-y-3">
-        <div className="flex items-center justify-between">
-          <h2 className="font-display text-sm font-bold uppercase tracking-wider text-text-muted">
-            Concepts ({data.mastery_summary.total_concepts})
-          </h2>
-          {/* Extraction trigger — shows if there's content to extract from */}
-          <ExtractionTrigger
-            contentId=""
-            subjectId={id}
-            hasExistingConcepts={data.mastery_summary.total_concepts > 0}
-          />
-        </div>
+        <h2 className="font-display text-sm font-bold uppercase tracking-wider text-text-muted">
+          Concepts ({data.mastery_summary.total_concepts})
+        </h2>
 
         {data.concepts.length === 0 ? (
           <div className="rounded-xl border border-border/50 bg-surface p-8 text-center">
             <p className="font-body text-sm text-text-muted">
-              No concepts extracted yet. Upload study materials and extract concepts to begin
-              tracking mastery.
+              {data.content_items.length === 0
+                ? 'Upload study materials and link them to this subject to begin.'
+                : 'Click "Extract Concepts" on a content item above to begin.'}
             </p>
           </div>
         ) : (
