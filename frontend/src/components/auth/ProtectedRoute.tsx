@@ -1,60 +1,31 @@
 import React from 'react'
 import { Navigate, useLocation } from 'react-router-dom'
-import { Box, CircularProgress } from '@mui/material'
-import { useAuth } from '../../contexts/AuthContext'
+import { useAuth } from '@/contexts/AuthContext'
+import { Loader2 } from 'lucide-react'
 
 interface ProtectedRouteProps {
   children: React.ReactNode
 }
 
+function LoadingScreen() {
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-void">
+      <Loader2 className="h-8 w-8 animate-spin text-primary" />
+    </div>
+  )
+}
+
 export const GuestRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   const { user, loading } = useAuth()
-
-  if (loading) {
-    return (
-      <Box
-        sx={{
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          minHeight: '100vh',
-        }}
-      >
-        <CircularProgress />
-      </Box>
-    )
-  }
-
-  if (user) {
-    return <Navigate to="/" replace />
-  }
-
+  if (loading) return <LoadingScreen />
+  if (user) return <Navigate to="/" replace />
   return <>{children}</>
 }
 
 export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   const { user, loading } = useAuth()
   const location = useLocation()
-
-  if (loading) {
-    return (
-      <Box
-        sx={{
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          minHeight: '100vh',
-        }}
-      >
-        <CircularProgress />
-      </Box>
-    )
-  }
-
-  if (!user) {
-    // Redirect to login page but save the attempted location
-    return <Navigate to="/login" state={{ from: location }} replace />
-  }
-
+  if (loading) return <LoadingScreen />
+  if (!user) return <Navigate to="/login" state={{ from: location }} replace />
   return <>{children}</>
 }
