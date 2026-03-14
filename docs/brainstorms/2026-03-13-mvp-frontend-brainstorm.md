@@ -468,7 +468,7 @@ Phase 1 = minimum shippable (subjects, time tracking, dashboard, basic focus tim
 
 ## Remaining Open Questions
 
-1. **Authentication UI restyle** — Login/Register forms need the dark treatment. Part of the complete experience but can be done alongside any phase.
+1. ~~Authentication UI restyle~~ — DONE in Phase 0.4 (session 8).
 
 2. **Content management restyle** — Upload/list/selector need dark treatment. Can reuse component patterns from dashboard.
 
