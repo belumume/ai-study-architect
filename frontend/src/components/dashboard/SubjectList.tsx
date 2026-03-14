@@ -20,24 +20,22 @@ export function SubjectList({ subjects }: SubjectListProps) {
 
   return (
     <div className="space-y-2">
-      <h2 className="font-display text-sm font-bold uppercase tracking-wider">
-        Subject Mastery
-      </h2>
+      <h2 className="font-display text-sm font-bold uppercase tracking-wider">Subject Mastery</h2>
       <div className="space-y-3">
         {subjects.map((subject) => {
-          const progress = subject.weeklyGoalMinutes > 0
-            ? Math.min(100, (subject.weekMinutes / subject.weeklyGoalMinutes) * 100)
-            : 0
+          const progress =
+            subject.weeklyGoalMinutes > 0
+              ? Math.min(100, (subject.weekMinutes / subject.weeklyGoalMinutes) * 100)
+              : 0
 
           return (
-            <div
+            <a
+              href={`/subjects/${subject.id}`}
               key={subject.id}
-              className="rounded-lg border border-border bg-surface p-3 transition-colors hover:border-secondary/50"
+              className="block rounded-lg border border-border bg-surface p-3 transition-colors hover:border-secondary/50"
             >
               <div className="flex items-center justify-between">
-                <span className="font-body text-sm text-text-primary">
-                  {subject.name}
-                </span>
+                <span className="font-body text-sm text-text-primary">{subject.name}</span>
                 <span className="font-mono text-xs text-text-muted">
                   {formatHours(subject.weekMinutes)}/{formatHours(subject.weeklyGoalMinutes)}h
                 </span>
@@ -52,7 +50,7 @@ export function SubjectList({ subjects }: SubjectListProps) {
                   }}
                 />
               </div>
-            </div>
+            </a>
           )
         })}
       </div>
