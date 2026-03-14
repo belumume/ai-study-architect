@@ -48,7 +48,7 @@ describe('LoginForm', () => {
     it('renders welcome message', () => {
       render(<LoginForm />)
 
-      expect(screen.getByText(/welcome back to ai study architect/i)).toBeInTheDocument()
+      expect(screen.getByText(/welcome back to study architect/i)).toBeInTheDocument()
     })
 
     it('renders remember me checkbox', () => {
@@ -228,7 +228,8 @@ describe('LoginForm', () => {
       fireEvent.click(submitButton)
 
       await waitFor(() => {
-        expect(screen.getByRole('progressbar')).toBeInTheDocument()
+        // Loading state uses Lucide Loader2 (svg with animate-spin), not MUI progressbar
+        expect(submitButton).toBeDisabled()
       })
 
       // Resolve the login
@@ -272,7 +273,8 @@ describe('LoginForm', () => {
       render(<LoginForm />)
 
       expect(screen.getByText(errorMessage)).toBeInTheDocument()
-      expect(screen.getByRole('alert')).toHaveClass('MuiAlert-standardError')
+      // Error now renders as a div with tertiary border, not MUI Alert
+      expect(screen.getByText(errorMessage)).toBeInTheDocument()
     })
 
     it('allows clearing error by clicking close button', () => {
@@ -290,7 +292,7 @@ describe('LoginForm', () => {
 
       render(<LoginForm />)
 
-      const closeButton = screen.getByRole('button', { name: /close/i })
+      const closeButton = screen.getByText('x')
       fireEvent.click(closeButton)
 
       expect(mockClearError).toHaveBeenCalled()

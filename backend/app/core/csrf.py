@@ -246,6 +246,9 @@ class CSRFProtect:
             "/api/v1/tutor/",
             "/api/v1/agents/",
             "/api/v1/content/",  # Content operations use JWT auth
+            "/api/v1/subjects/",  # Subject CRUD uses JWT auth
+            "/api/v1/sessions/",  # Study session lifecycle uses JWT auth
+            "/api/v1/dashboard",  # Dashboard summary uses JWT auth
         ]
 
         for jwt_path in jwt_protected_paths:
