@@ -3,22 +3,21 @@ Dashboard summary endpoint — aggregated study data
 Uses 3 focused queries (not single monolithic query) per performance P0.
 """
 
-from datetime import datetime, timedelta
-from typing import List, Optional
+import uuid
 import zoneinfo
+from datetime import datetime, timedelta
 
 from fastapi import APIRouter, Depends, Request
 from pydantic import BaseModel, ConfigDict
-from sqlalchemy import func, distinct, cast, Date
+from sqlalchemy import Date, cast, distinct, func
 from sqlalchemy.orm import Session
-import uuid
 
 from app.api.dependencies import get_current_user, get_db
 from app.core.rate_limiter import limiter
-from app.models.study_session import StudySession, SessionStatus
+from app.models.study_session import SessionStatus, StudySession
 from app.models.subject import Subject
 from app.models.user import User
-
+from app.models.user_concept_mastery import UserConceptMastery
 
 router = APIRouter(prefix="/dashboard")
 
@@ -43,9 +42,12 @@ class DashboardSummary(BaseModel):
     today_minutes: int
     week_minutes: int
     current_streak: int
-    active_session_id: Optional[uuid.UUID] = None
-    subjects: List[SubjectWithProgress]
-    heatmap: List[HeatmapDay]
+    active_session_id: uuid.UUID | None = None
+    subjects: list[SubjectWithProgress]
+    heatmap: list[HeatmapDay]
+    mastery_index: float | None = None
+    total_concepts: int = 0
+    mastered_concepts: int = 0
 
 
 @router.get("/", response_model=DashboardSummary)
@@ -94,8 +96,8 @@ async def get_dashboard(
 
     today_minutes = 0
     week_minutes = 0
-    subject_week: dict[Optional[uuid.UUID], int] = {}
-    subject_today: dict[Optional[uuid.UUID], int] = {}
+    subject_week: dict[uuid.UUID | None, int] = {}
+    subject_today: dict[uuid.UUID | None, int] = {}
     daily_totals: dict[str, int] = {}
 
     for row in raw_data:
@@ -141,9 +143,7 @@ async def get_dashboard(
     # Query 3: Streak — distinct study dates descending
     try:
         study_dates = (
-            db.query(
-                distinct(cast(StudySession.actual_start, Date))
-            )
+            db.query(distinct(cast(StudySession.actual_start, Date)))
             .filter(
                 StudySession.user_id == current_user.id,
                 StudySession.status == SessionStatus.COMPLETED,
@@ -185,6 +185,26 @@ async def get_dashboard(
             )
         )
 
+    # Query 4: Concept mastery summary
+    try:
+        mastery_stats = (
+            db.query(
+                func.count(UserConceptMastery.id).label("total"),
+                func.count(func.nullif(UserConceptMastery.status != "mastered", True)).label(
+                    "mastered"
+                ),
+            )
+            .filter(UserConceptMastery.user_id == current_user.id)
+            .first()
+        )
+        total_concepts = mastery_stats.total if mastery_stats else 0
+        mastered_concepts = mastery_stats.mastered if mastery_stats else 0
+    except Exception:
+        total_concepts = 0
+        mastered_concepts = 0
+
+    mastery_index = (mastered_concepts / total_concepts * 100) if total_concepts > 0 else None
+
     return DashboardSummary(
         today_minutes=today_minutes,
         week_minutes=week_minutes,
@@ -192,4 +212,7 @@ async def get_dashboard(
         active_session_id=active_session[0] if active_session else None,
         subjects=subjects,
         heatmap=heatmap,
+        mastery_index=mastery_index,
+        total_concepts=total_concepts,
+        mastered_concepts=mastered_concepts,
     )
