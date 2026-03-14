@@ -5,12 +5,14 @@ Tests pure functions (normalization, validation) directly.
 Tests service logic with mocked Claude API responses.
 """
 
-import json
 import uuid
 from unittest.mock import AsyncMock, patch
 
 import pytest
 
+from app.models.content import Content
+from app.models.subject import Subject
+from app.models.user import User
 from app.services.concept_extraction import (
     ConceptExtractionService,
     ExtractionError,
@@ -94,7 +96,6 @@ class TestValidateConcepts:
             "concepts": [
                 {
                     "name": "Test concept",
-                    # missing description
                     "concept_type": "definition",
                     "difficulty": "beginner",
                     "estimated_minutes": 15,
@@ -124,7 +125,7 @@ class TestValidateConcepts:
                     "examples": ["Q1"],
                 },
                 {
-                    "name": "",  # Empty name (min_length=1 violation)
+                    "name": "",
                     "description": "Invalid.",
                     "concept_type": "definition",
                     "difficulty": "beginner",
@@ -140,14 +141,14 @@ class TestValidateConcepts:
 
 
 # ============================================================================
-# Service tests — mock Claude API
+# Service tests — mock at _call_claude level (not HTTP transport)
 # ============================================================================
 
 VALID_CLAUDE_RESPONSE = {
     "concepts": [
         {
             "name": "Define binary search algorithm",
-            "description": "A search algorithm that finds elements in sorted arrays by repeatedly dividing the search interval in half.",
+            "description": "A search algorithm that finds elements in sorted arrays.",
             "concept_type": "definition",
             "difficulty": "beginner",
             "estimated_minutes": 15,
@@ -156,22 +157,15 @@ VALID_CLAUDE_RESPONSE = {
         },
         {
             "name": "Implement binary search on sorted array",
-            "description": "Write code to perform binary search with O(log n) time complexity.",
+            "description": "Write code to perform binary search with O(log n) complexity.",
             "concept_type": "procedure",
             "difficulty": "intermediate",
             "estimated_minutes": 25,
             "keywords": ["implementation", "binary search", "O(log n)"],
-            "examples": ["Implement binary_search(arr, target) that returns the index"],
+            "examples": ["Implement binary_search(arr, target) returning the index"],
         },
     ],
-    "dependencies": [
-        {
-            "prerequisite_name": "Define binary search algorithm",
-            "dependent_name": "Implement binary search on sorted array",
-            "strength": 1.0,
-            "reason": "Must understand the algorithm before implementing it",
-        }
-    ],
+    "dependencies": [],
     "metadata": {
         "total_extracted": 2,
         "extraction_confidence": 0.9,
@@ -180,13 +174,41 @@ VALID_CLAUDE_RESPONSE = {
 }
 
 
-def _mock_claude_response(response_data: dict):
-    """Create a mock httpx response matching Claude API shape."""
-    return AsyncMock(
-        status_code=200,
-        json=lambda: {"content": [{"text": json.dumps(response_data)}]},
-        raise_for_status=lambda: None,
+@pytest.fixture
+def test_data(db_session):
+    """Create user, subject, content for FK-valid extraction tests."""
+    from app.core.security import get_password_hash
+
+    uid = uuid.uuid4().hex[:8]
+    user = User(
+        email=f"extract_{uid}@test.com",
+        username=f"extract_{uid}",
+        hashed_password=get_password_hash("test123"),
+        full_name="Test",
+        is_active=True,
+        is_verified=True,
     )
+    db_session.add(user)
+    db_session.flush()
+
+    subject = Subject(user_id=user.id, name=f"Test Subject {uid}", color="#D4FF00")
+    db_session.add(subject)
+    db_session.flush()
+
+    content = Content(
+        user_id=user.id,
+        title="Test Content",
+        content_type="document",
+        processing_status="completed",
+        extracted_text="Binary search is an efficient algorithm. " * 20,
+    )
+    db_session.add(content)
+    db_session.commit()
+    db_session.refresh(user)
+    db_session.refresh(subject)
+    db_session.refresh(content)
+
+    return {"user": user, "subject": subject, "content": content}
 
 
 class TestExtractionService:
@@ -194,23 +216,20 @@ class TestExtractionService:
         self.service = ConceptExtractionService()
 
     @pytest.mark.asyncio
-    async def test_extract_concepts_happy_path(self, db_session):
-        content_id = uuid.uuid4()
-        subject_id = uuid.uuid4()
-        user_id = uuid.uuid4()
-        text = "Binary search is an efficient algorithm for finding items in sorted arrays. " * 20
+    async def test_extract_concepts_happy_path(self, db_session, test_data):
+        mock_call = AsyncMock(return_value=VALID_CLAUDE_RESPONSE)
 
-        mock_response = _mock_claude_response(VALID_CLAUDE_RESPONSE)
-
-        with patch("app.services.concept_extraction.httpx.AsyncClient") as mock_client_cls:
-            mock_client = AsyncMock()
-            mock_client.__aenter__ = AsyncMock(return_value=mock_client)
-            mock_client.__aexit__ = AsyncMock(return_value=False)
-            mock_client.post = mock_response
-            mock_client_cls.return_value = mock_client
-
+        with (
+            patch.object(self.service, "_call_claude", mock_call),
+            patch("app.services.concept_extraction.claude_service") as mock_cs,
+        ):
+            mock_cs.api_key = "test-key"
             result = await self.service.extract_concepts(
-                content_id, subject_id, text, user_id, db_session
+                test_data["content"].id,
+                test_data["subject"].id,
+                test_data["content"].extracted_text,
+                test_data["user"].id,
+                db_session,
             )
 
         assert result.created_concepts == 2
@@ -218,81 +237,82 @@ class TestExtractionService:
         assert result.chunks_failed == 0
 
     @pytest.mark.asyncio
-    async def test_deduplication_across_chunks(self, db_session):
+    async def test_deduplication_across_chunks(self, db_session, test_data):
         """Same concept name in multiple chunks should be deduplicated."""
-        content_id = uuid.uuid4()
-        subject_id = uuid.uuid4()
-        user_id = uuid.uuid4()
+        long_text = "Binary search algorithm explanation. " * 200
+        mock_call = AsyncMock(return_value=VALID_CLAUDE_RESPONSE)
 
-        # Create text long enough for 2 chunks
-        text = "Binary search algorithm explanation. " * 50 + "More content here. " * 50
-
-        mock_response = _mock_claude_response(VALID_CLAUDE_RESPONSE)
-
-        with patch("app.services.concept_extraction.httpx.AsyncClient") as mock_client_cls:
-            mock_client = AsyncMock()
-            mock_client.__aenter__ = AsyncMock(return_value=mock_client)
-            mock_client.__aexit__ = AsyncMock(return_value=False)
-            mock_client.post = mock_response
-            mock_client_cls.return_value = mock_client
-
+        with (
+            patch.object(self.service, "_call_claude", mock_call),
+            patch("app.services.concept_extraction.claude_service") as mock_cs,
+        ):
+            mock_cs.api_key = "test-key"
             result = await self.service.extract_concepts(
-                content_id, subject_id, text, user_id, db_session
+                test_data["content"].id,
+                test_data["subject"].id,
+                long_text,
+                test_data["user"].id,
+                db_session,
             )
 
-        # Even though Claude returns 2 concepts per chunk, dedup should prevent duplicates
+        # Even with multiple chunks returning same concepts, dedup prevents duplicates
         assert result.created_concepts == 2
 
     @pytest.mark.asyncio
-    async def test_empty_text_raises_error(self, db_session):
-        with pytest.raises(ExtractionError, match="No text chunks"):
-            await self.service.extract_concepts(
-                uuid.uuid4(), uuid.uuid4(), "", uuid.uuid4(), db_session
-            )
-
-    @pytest.mark.asyncio
-    async def test_all_chunks_fail_raises_error(self, db_session):
-        text = "Some content to extract from. " * 20
-
-        with patch("app.services.concept_extraction.httpx.AsyncClient") as mock_client_cls:
-            mock_client = AsyncMock()
-            mock_client.__aenter__ = AsyncMock(return_value=mock_client)
-            mock_client.__aexit__ = AsyncMock(return_value=False)
-            mock_client.post = AsyncMock(side_effect=Exception("API error"))
-            mock_client_cls.return_value = mock_client
-
-            with pytest.raises(ExtractionError, match="All .* chunks failed"):
+    async def test_empty_text_raises_error(self, db_session, test_data):
+        with patch("app.services.concept_extraction.claude_service") as mock_cs:
+            mock_cs.api_key = "test-key"
+            with pytest.raises(ExtractionError, match="No text chunks"):
                 await self.service.extract_concepts(
-                    uuid.uuid4(), uuid.uuid4(), text, uuid.uuid4(), db_session
+                    test_data["content"].id,
+                    test_data["subject"].id,
+                    "",
+                    test_data["user"].id,
+                    db_session,
                 )
 
     @pytest.mark.asyncio
-    async def test_partial_failure_returns_results(self, db_session):
-        """If some chunks fail, the successful ones should still produce concepts."""
-        content_id = uuid.uuid4()
-        subject_id = uuid.uuid4()
-        user_id = uuid.uuid4()
-        # Long text for multiple chunks
-        text = "Content for extraction. " * 200
+    async def test_all_chunks_fail_raises_error(self, db_session, test_data):
+        mock_call = AsyncMock(side_effect=Exception("API error"))
 
+        with (
+            patch.object(self.service, "_call_claude", mock_call),
+            patch("app.services.concept_extraction.claude_service") as mock_cs,
+        ):
+            mock_cs.api_key = "test-key"
+            with pytest.raises(ExtractionError, match="All .* chunks failed"):
+                await self.service.extract_concepts(
+                    test_data["content"].id,
+                    test_data["subject"].id,
+                    "Some content to extract from. " * 20,
+                    test_data["user"].id,
+                    db_session,
+                )
+
+    @pytest.mark.asyncio
+    async def test_partial_failure_returns_results(self, db_session, test_data):
+        """If some chunks fail, the successful ones should still produce concepts."""
+        long_text = "Content for extraction. " * 200
         call_count = 0
 
-        async def alternating_response(*_args, **_kwargs):
+        async def alternating(*_args, **_kwargs):
             nonlocal call_count
             call_count += 1
             if call_count % 2 == 0:
                 raise Exception("Simulated failure")
-            return _mock_claude_response(VALID_CLAUDE_RESPONSE)
+            return VALID_CLAUDE_RESPONSE
 
-        with patch("app.services.concept_extraction.httpx.AsyncClient") as mock_client_cls:
-            mock_client = AsyncMock()
-            mock_client.__aenter__ = AsyncMock(return_value=mock_client)
-            mock_client.__aexit__ = AsyncMock(return_value=False)
-            mock_client.post = alternating_response
-            mock_client_cls.return_value = mock_client
-
+        with (
+            patch.object(self.service, "_call_claude", side_effect=alternating),
+            patch("app.services.concept_extraction.claude_service") as mock_cs,
+        ):
+            mock_cs.api_key = "test-key"
             result = await self.service.extract_concepts(
-                content_id, subject_id, text, user_id, db_session
+                test_data["content"].id,
+                test_data["subject"].id,
+                long_text,
+                test_data["user"].id,
+                db_session,
             )
 
         assert result.created_concepts > 0
@@ -300,23 +320,35 @@ class TestExtractionService:
         assert result.chunks_succeeded > 0
 
     @pytest.mark.asyncio
-    async def test_text_length_cap(self, db_session):
-        """Text exceeding MAX_TEXT_LENGTH should be truncated."""
-        service = ConceptExtractionService()
-        long_text = "x" * 200_000  # 2x the cap
+    async def test_no_api_key_raises_error(self, db_session, test_data):
+        with patch("app.services.concept_extraction.claude_service") as mock_cs:
+            mock_cs.api_key = None
+            with pytest.raises(ExtractionError, match="API key not configured"):
+                await self.service.extract_concepts(
+                    test_data["content"].id,
+                    test_data["subject"].id,
+                    "Some text",
+                    test_data["user"].id,
+                    db_session,
+                )
 
-        mock_response = _mock_claude_response(VALID_CLAUDE_RESPONSE)
+    @pytest.mark.asyncio
+    async def test_text_length_cap(self, db_session, test_data):
+        """Text exceeding MAX_TEXT_LENGTH should be truncated, not rejected."""
+        long_text = "x" * 200_000
+        mock_call = AsyncMock(return_value=VALID_CLAUDE_RESPONSE)
 
-        with patch("app.services.concept_extraction.httpx.AsyncClient") as mock_client_cls:
-            mock_client = AsyncMock()
-            mock_client.__aenter__ = AsyncMock(return_value=mock_client)
-            mock_client.__aexit__ = AsyncMock(return_value=False)
-            mock_client.post = mock_response
-            mock_client_cls.return_value = mock_client
-
-            result = await service.extract_concepts(
-                uuid.uuid4(), uuid.uuid4(), long_text, uuid.uuid4(), db_session
+        with (
+            patch.object(self.service, "_call_claude", mock_call),
+            patch("app.services.concept_extraction.claude_service") as mock_cs,
+        ):
+            mock_cs.api_key = "test-key"
+            result = await self.service.extract_concepts(
+                test_data["content"].id,
+                test_data["subject"].id,
+                long_text,
+                test_data["user"].id,
+                db_session,
             )
 
-        # Should succeed (text was truncated, not rejected)
         assert result.created_concepts >= 0
