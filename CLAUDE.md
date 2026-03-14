@@ -529,6 +529,7 @@ grep -A 10 "security_headers" backend/app/main.py && echo "[OK] Security headers
 ## Best Practices for AI Assistants
 
 ### Before Starting Work
+1. Check `docs/solutions/` for documented patterns and past mistakes before implementing anything similar
 1. Read [docs/README.md](docs/README.md) for documentation overview
 2. Review recent commits to understand latest changes
 3. Check [docs/technical/IMPLEMENTATION_STATUS.md](docs/technical/IMPLEMENTATION_STATUS.md) for current state
