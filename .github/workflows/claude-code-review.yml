@@ -1,33 +1,8 @@
 name: Claude Code Review
-
 on:
   pull_request:
     types: [opened, synchronize]
-
 jobs:
   claude-review:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      pull-requests: write
-      issues: read
-      id-token: write
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 1
-
-      - name: Run Claude Code Review
-        id: claude-review
-        uses: anthropics/claude-code-action@beta
-        with:
-          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-
-          direct_prompt: |
-            Review this pull request. Focus on bugs, security vulnerabilities,
-            and logic errors. Read the actual code before flagging anything.
-            Be precise and actionable. False positives waste developer time.
-
-          use_sticky_comment: true
+    uses: belumume/.github/.github/workflows/claude-review-shared.yml@main
+    secrets: inherit
