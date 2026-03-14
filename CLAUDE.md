@@ -9,7 +9,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 **Live**: https://aistudyarchitect.com
 **Core Philosophy**: "Build cognitive strength, not cognitive debt"
 **Strategic Direction**: See [docs/direction/NEW_DIRECTION_2025.md](docs/direction/NEW_DIRECTION_2025.md)
-**Design Direction**: Analytics Pro "cyberpunk telemetry" aesthetic — see [design/PRD.md](design/PRD.md)
+**Design Direction**: Analytics Pro "cyberpunk telemetry" aesthetic — see [design/PRD.md](design/PRD.md) and [design/DESIGN.md](design/DESIGN.md)
 **Related Repos**: `quantelect/` (company/pitch), `cs50/` (course history)
 
 ## Important Development Rules
@@ -67,8 +67,14 @@ npm run typecheck                             # Check TypeScript types
 npm run lint                                  # Lint code with ESLint
 
 # Production build
-npm run build                                 # Build for production
+npm run build                                 # Build for production (tsc && vite build)
 npm run preview                               # Preview production build
+
+# Tailwind / styling
+# Tailwind v4 uses @tailwindcss/vite plugin — no tailwind.config needed
+# Design tokens defined in src/index.css @theme block
+# Class sorting: prettier-plugin-tailwindcss (auto on save/commit)
+# shadcn/ui components: npx shadcn@latest add <component>
 ```
 
 ### E2E Testing
@@ -143,7 +149,6 @@ cd frontend
 node -e "
 try {
   require('react');
-  require('@mui/material');
   require('axios');
   console.log('[OK] Core frontend dependencies installed');
 } catch (e) {
@@ -181,20 +186,20 @@ for var in optional:
 ## High-Level Architecture
 
 ### Mastery-Based Learning System
-**Current Implementation** (as of November 2025):
+**Current Implementation** (as of March 2026):
 - Lead Tutor Agent - Provides Socratic questioning and explanations [IMPLEMENTED]
 - File upload and content processing [IMPLEMENTED]
 - Chat interface with streaming responses [IMPLEMENTED]
 - Multi-provider AI integration (Claude primary, OpenAI fallback) [IMPLEMENTED]
 - User authentication with JWT (RS256) [IMPLEMENTED]
 - PostgreSQL database with session management [IMPLEMENTED]
+- Subject CRUD with color assignment [IMPLEMENTED]
+- Study session lifecycle (start/pause/resume/stop) [IMPLEMENTED]
+- Dashboard summary with hero metrics, subject breakdown, heatmap data [IMPLEMENTED]
+- Analytics Pro dashboard UI with Tailwind v4 + shadcn/ui [IMPLEMENTED]
+- Focus timer with Web Worker [IMPLEMENTED]
 
-**MVP Scope** (current focus):
-- Analytics dashboard with study time tracking (Stitch design in `design/`)
-- Subject progress visualization
-- Basic analytics and learning velocity
-
-**Phase 2** (not in MVP scope — see [docs/direction/NEW_DIRECTION_2025.md](docs/direction/NEW_DIRECTION_2025.md)):
+**Phase 2** (next — see [docs/direction/NEW_DIRECTION_2025.md](docs/direction/NEW_DIRECTION_2025.md)):
 1. **Knowledge Graph Extractor** - Extract atomic concepts and dependencies
 2. **Practice Problem Generator** - Auto-graded programming exercises
 3. **Mastery Tracker** - 90%+ gates before concept unlock
@@ -211,11 +216,18 @@ backend/
 │   ├── api/
 │   │   ├── dependencies.py        # Shared dependency injection
 │   │   └── v1/
+│   │       ├── api.py            # Main router — includes all sub-routers
 │   │       ├── auth.py           # Authentication endpoints
 │   │       ├── chat.py           # Chat/conversation endpoints
 │   │       ├── tutor.py          # Tutor agent endpoints
 │   │       ├── csrf.py           # CSRF token endpoints
 │   │       ├── admin.py          # Admin endpoints
+│   │       ├── admin_security.py # Security admin endpoints
+│   │       ├── agents.py         # Agent management endpoints
+│   │       ├── content.py        # Content upload/management endpoints
+│   │       ├── subjects.py       # Subject CRUD endpoints
+│   │       ├── study_sessions.py # Session lifecycle (start/pause/resume/stop)
+│   │       ├── dashboard.py      # Dashboard summary endpoint
 │   │       ├── websocket.py      # WebSocket support
 │   │       └── endpoints/
 │   │           └── backup.py     # Backup management
@@ -236,15 +248,20 @@ backend/
 │   ├── models/
 │   │   ├── user.py             # User accounts [IMPLEMENTED]
 │   │   ├── content.py          # Uploaded materials [IMPLEMENTED]
-│   │   ├── study_session.py    # Learning sessions [IMPLEMENTED]
-│   │   └── practice.py         # Practice problems [IMPLEMENTED]
+│   │   ├── study_session.py    # Learning sessions with lifecycle [IMPLEMENTED]
+│   │   ├── subject.py          # Study subjects with color [IMPLEMENTED]
+│   │   ├── practice.py         # Practice problems [IMPLEMENTED]
+│   │   ├── chat_message.py     # Chat messages (schema exists)
+│   │   └── concept.py          # Concepts (schema exists, Phase 2)
 │   ├── schemas/
 │   │   ├── user.py             # User Pydantic schemas
 │   │   ├── content.py          # Content schemas
-│   │   ├── study_session.py    # Session schemas
+│   │   ├── study_session.py    # Session schemas (with lifecycle states)
+│   │   ├── subject.py          # Subject schemas
+│   │   ├── concept.py          # Concept schemas (Phase 2)
 │   │   └── agents.py           # Agent request/response schemas
 │   └── services/
-│       ├── ai_service_manager.py      # AI service selection (Claude → OpenAI) [IMPLEMENTED]
+│       ├── ai_service_manager.py      # AI service selection (Claude -> OpenAI) [IMPLEMENTED]
 │       ├── claude_service.py          # Anthropic Claude integration [IMPLEMENTED]
 │       ├── openai_fallback.py         # OpenAI fallback service [IMPLEMENTED]
 │       ├── content_processor.py       # File processing pipeline [IMPLEMENTED]
@@ -261,13 +278,14 @@ backend/
 
 **Core Components:**
 - `app/main.py` - FastAPI application with comprehensive middleware stack
+- `app/api/v1/api.py` - Main router aggregating all sub-routers (11 routers)
 - `app/agents/` - Agent implementations with Redis caching for state management
 - `app/services/claude_service.py` - Claude API integration with streaming support
 - `app/services/ai_service_manager.py` - Intelligent AI service selection and fallback
 - `app/core/security.py` - JWT authentication with RS256 algorithm
 - `app/core/csrf.py` - CSRF protection with strategic exemptions
 - `app/core/cache.py` - Upstash Redis caching with _NoOpCache fallback
-- `app/models/` - SQLAlchemy models for users, content, sessions, and practice
+- `app/models/` - SQLAlchemy models for users, content, sessions, subjects, and practice
 
 **Key Design Patterns:**
 - Dependency injection for database sessions and authentication
@@ -276,55 +294,117 @@ backend/
 - Middleware pipeline for cross-cutting concerns
 - Streaming responses for real-time AI interactions
 - Automatic fallback strategy for AI services
+- Session state machine (in_progress/paused/completed/abandoned) with atomic transitions
 
-### Frontend Architecture (React + TypeScript)
+### Frontend Architecture (React + TypeScript + Tailwind v4)
 
 **Directory Structure:**
 ```
 frontend/
 ├── src/
+│   ├── app/
+│   │   └── layout/
+│   │       ├── AppShell.tsx       # Main layout (TopNav + Outlet + footer)
+│   │       ├── TopNav.tsx         # Navigation bar
+│   │       └── index.ts          # Layout barrel export
 │   ├── components/
 │   │   ├── auth/
-│   │   │   ├── LoginForm.tsx      # Login component
-│   │   │   ├── RegisterForm.tsx   # Registration component
-│   │   │   └── ProtectedRoute.tsx # Route protection
+│   │   │   ├── LoginForm.tsx      # Login component (MUI — Phase 3 restyle)
+│   │   │   ├── RegisterForm.tsx   # Registration component (MUI — Phase 3 restyle)
+│   │   │   ├── ProtectedRoute.tsx # Route protection + GuestRoute
+│   │   │   └── index.ts
 │   │   ├── chat/
-│   │   │   └── ChatInterface.tsx  # Real-time chat with streaming
-│   │   └── content/
-│   │       ├── ContentUpload.tsx  # File upload with drag-and-drop
-│   │       ├── ContentList.tsx    # Display uploaded content
-│   │       └── ContentSelector.tsx # Content selection UI
+│   │   │   ├── ChatInterface.tsx  # Real-time chat with streaming (MUI — Phase 3 restyle)
+│   │   │   └── index.ts
+│   │   ├── content/
+│   │   │   ├── ContentUpload.tsx  # File upload with drag-and-drop (MUI — Phase 3 restyle)
+│   │   │   ├── ContentList.tsx    # Display uploaded content (MUI — Phase 3 restyle)
+│   │   │   ├── ContentSelector.tsx # Content selection UI (MUI — Phase 3 restyle)
+│   │   │   └── index.ts
+│   │   ├── dashboard/
+│   │   │   ├── HeroMetrics.tsx    # Today's time, mastery index, streak, subjects
+│   │   │   ├── SubjectList.tsx    # Subject cards with progress
+│   │   │   ├── ContributionHeatmap.tsx # 28-day study heatmap (visx)
+│   │   │   ├── StartFocusCTA.tsx  # "Initiate Focus" call-to-action
+│   │   │   └── index.ts
+│   │   ├── ui/                    # shadcn/ui primitives (Radix-based)
+│   │   │   ├── button.tsx
+│   │   │   ├── card.tsx
+│   │   │   ├── dialog.tsx
+│   │   │   ├── dropdown-menu.tsx
+│   │   │   ├── input.tsx
+│   │   │   ├── sonner.tsx         # Toast notifications
+│   │   │   └── tabs.tsx
+│   │   └── ErrorBoundary.tsx      # Global error boundary
+│   ├── config/
+│   │   └── sentry.ts             # Sentry error tracking config
 │   ├── contexts/
 │   │   └── AuthContext.tsx        # Global authentication state
+│   ├── hooks/
+│   │   └── useTimer.ts           # Focus timer hook (Web Worker)
+│   ├── lib/
+│   │   └── utils.ts              # cn() utility (clsx + tailwind-merge)
+│   ├── pages/
+│   │   ├── DashboardPage.tsx     # Dashboard route (/ )
+│   │   ├── StudyPage.tsx         # Study/chat route (/study)
+│   │   ├── FocusPage.tsx         # Focus timer route (/focus)
+│   │   ├── ContentPage.tsx       # Content management route (/content)
+│   │   └── index.ts             # Page barrel export
 │   ├── services/
 │   │   ├── api.ts                 # Axios client with interceptors
 │   │   ├── auth.service.ts        # Authentication service
 │   │   └── tokenStorage.ts        # Token management
-│   ├── App.tsx                    # Main application component
-│   └── main.tsx                   # Application entry point
+│   ├── test/
+│   │   ├── setup.ts              # Test setup (Vitest)
+│   │   ├── mocks.ts              # Mock utilities
+│   │   └── test-utils.tsx        # Custom render with providers
+│   ├── utils/
+│   │   └── errorUtils.ts         # Error formatting utilities
+│   ├── workers/
+│   │   └── timer.worker.ts       # Web Worker for focus timer (1s ticks)
+│   ├── App.tsx                    # Root routes (auth, app shell, pages)
+│   ├── main.tsx                   # Application entry point
+│   └── index.css                  # Design tokens (@theme), Tailwind import, glow utilities
+├── components.json                # shadcn/ui configuration (Radix, Lucide icons)
+├── tsconfig.json                  # TypeScript config with path aliases (@/*)
+├── vite.config.ts                 # Vite 6 + React + @tailwindcss/vite plugin
 ├── public/                        # Static assets
 ├── tests/                         # Frontend tests
 │   └── e2e/                      # Playwright E2E tests
 └── dist/                          # Build output (gitignored)
 ```
 
-**Component Structure:**
-- `src/components/auth/` - Authentication forms with JWT handling
-- `src/components/chat/` - Real-time chat interface with streaming
-- `src/components/content/` - File upload with drag-and-drop support
-- `src/contexts/AuthContext.tsx` - Global authentication state
-- `src/services/api.ts` - Axios client with interceptors for auth/CSRF
+**Routing:**
+- `/login`, `/register` — Auth pages (GuestRoute, no shell)
+- `/` — Dashboard (ProtectedRoute, AppShell)
+- `/study` — Study/chat page (ProtectedRoute, AppShell)
+- `/focus` — Focus timer page (ProtectedRoute, AppShell)
+- `/content` — Content management (ProtectedRoute, AppShell)
+- `*` — Redirects to `/`
+
+**UI Framework (Dual System — Migration In Progress):**
+- **New components (dashboard, layout, focus, ui/)**: Tailwind v4 + shadcn/ui (Radix primitives) + Lucide icons
+- **Legacy components (chat, content, auth forms)**: MUI + Emotion — Phase 3 removal pending
+- `src/index.css` — Design tokens in `@theme` block (void black, chartreuse, cyan, zen palette)
+- `src/lib/utils.ts` — `cn()` helper (clsx + tailwind-merge) for conditional classes
+- `components.json` — shadcn/ui config (aliases, icon library, CSS variables)
+- Path aliases: `@/` -> `src/`, `@components/`, `@hooks/`, `@services/`, `@types/`, `@utils/`
 
 **State Management:**
 - React Query (@tanstack/react-query) for server state and caching
+- Zustand for client state (timer, focus session, UI state)
 - Context API for global auth state
 - Local state for component-specific data
 
-**UI Framework:**
-- Material-UI (@mui/material) for component library
-- Emotion for CSS-in-JS styling
-- React Hook Form for form management
-- React Dropzone for file uploads
+**Charts & Visualization:**
+- visx (@visx/heatmap, @visx/scale, @visx/responsive, etc.) for all data visualization
+- SVG-based with neon glow filters (feGaussianBlur + feMerge)
+- Custom color scales matching design tokens
+
+**Typography (self-hosted via @fontsource):**
+- Display/headings: Space Grotesk (font-display)
+- Body text: Inter (font-body)
+- Data/numbers/code: JetBrains Mono (font-mono)
 
 ### Database Architecture
 
@@ -333,12 +413,13 @@ frontend/
 **Current Tables:**
 - `users` - Authentication and profiles
 - `content` - Uploaded study materials with extracted text
-- `study_sessions` - Learning sessions and progress tracking
+- `study_sessions` - Learning sessions with lifecycle states (in_progress/paused/completed/abandoned), accumulated_seconds, last_resumed_at
+- `subjects` - Study subjects with color assignment and user ownership
 - `practice_problems` - Generated exercises with difficulty levels
 - `chat_messages` - Conversation history with context (schema exists, full implementation pending)
+- `concepts` - Atomic learning concepts (schema exists, Phase 2)
 
 **Phase 2 (not in MVP scope):**
-- `concepts` - Atomic learning concepts extracted from materials
 - `concept_dependencies` - Prerequisite relationships between concepts
 - `user_attempts` - Student problem-solving attempts
 - `mastery_status` - Per-concept mastery tracking
@@ -361,11 +442,11 @@ frontend/
 
 **Service Manager Flow:**
 ```
-Request → AI Service Manager
-         ↓
+Request -> AI Service Manager
+         |
     Claude Available?
-         ├─ Yes → Claude Service → Stream Response
-         └─ No → OpenAI Service → Stream Response
+         |-- Yes -> Claude Service -> Stream Response
+         +-- No -> OpenAI Service -> Stream Response
 ```
 
 ### Security Verification
@@ -441,6 +522,7 @@ grep -A 10 "security_headers" backend/app/main.py && echo "[OK] Security headers
 - **Daily dev sessions** - See docs/planning/DAILY_DEV_PLAN.md for incremental progress
 - **Strategic direction** - See docs/direction/NEW_DIRECTION_2025.md for current focus
 - **Documentation** - See docs/README.md for organized doc navigation
+- **Build plan** - See docs/plans/2026-03-14-001-feat-full-product-build-phases-neg1-0-1-plan.md for implementation plan
 
 ### Database & Backend
 - **Neon for migrations** - Use direct (non-pooled) connection for `alembic upgrade head`
@@ -454,12 +536,14 @@ grep -A 10 "security_headers" backend/app/main.py && echo "[OK] Security headers
 - **RS256 JWT with HS256 fallback** - Keys in backend/keys/ (gitignored)
 - **48 endpoints secured** - 6 public, 42 protected (verified Aug 25, 2025)
 - **CSRF protection** - Double-submit cookie pattern with strategic exemptions
+- **CSP blocks Web Workers** - `security_headers.py` sets `worker-src: 'none'`. Must update to `worker-src: 'self' blob:` for focus timer Worker to function in production.
 
 ### Frontend & Deployment
 - **Frontend on Vercel** - SPA routing via CF Worker proxy (no vercel.json needed when accessed through aistudyarchitect.com)
 - **Cloudflare Worker routing** - MUST NOT strip /api prefix, backend expects full paths
 - **API docs blocked** - Worker returns 404 for /api/docs, /api/openapi.json, /api/redoc
 - **Browser caching** - Chrome aggressively caches ES modules, use cache-busting strategies
+- **MUI still installed** - Used by chat, content, and auth form components. Phase 3 removal pending. MUI + Emotion bundled as `mui-vendor` chunk in vite.config.ts rollupOptions.
 
 ## Quick Troubleshooting
 
@@ -473,6 +557,9 @@ grep -A 10 "security_headers" backend/app/main.py && echo "[OK] Security headers
 | Frontend 404 on direct route | CF Worker proxies all non-API to Vercel (SPA routing). Direct Vercel access (`*.vercel.app`) may need vercel.json if ever exposed. |
 | File upload fails on Windows | Uncomment `python-magic-bin` in requirements.txt |
 | Streaming responses not working | Check SSE implementation in AI service manager |
+| Tailwind classes not applying | Ensure `@import "tailwindcss"` in index.css, `@tailwindcss/vite` in vite.config.ts |
+| shadcn component not found | Run `npx shadcn@latest add <component>`, check components.json aliases |
+| Focus timer blocked in production | Update `worker-src` in security_headers.py from `'none'` to `'self' blob:` |
 
 ## Key Technologies & Dependencies
 
@@ -487,16 +574,33 @@ grep -A 10 "security_headers" backend/app/main.py && echo "[OK] Security headers
 - **Testing**: pytest 7.4.4, pytest-asyncio, pytest-cov
 - **Code Quality**: ruff 0.1.11, mypy 1.8.0
 
-### Frontend (Node.js 18+)
-- **Framework**: React 18 with TypeScript 5.3.3
-- **Build Tool**: Vite 5.0.11
-- **UI Library**: Material-UI 5.15.3
-- **State Management**: @tanstack/react-query 5.17.9
+### Frontend (Node.js 20+)
+- **Framework**: React 18 with TypeScript 5.3.3 (strict mode)
+- **Build Tool**: Vite 6.4.1 with @tailwindcss/vite plugin
+- **Styling**: Tailwind CSS v4.2.1 (CSS-first @theme config, no tailwind.config.js)
+- **UI Primitives**: shadcn/ui (Radix-based: dialog, dropdown-menu, tabs, slot) + CVA (class-variance-authority)
+- **UI Legacy**: Material-UI 5.15.3 + Emotion (chat, content, auth forms — Phase 3 removal)
+- **Icons**: Lucide React (new components), MUI Icons (legacy components)
+- **Charts**: visx (heatmap, scale, responsive, shape, axis, group, tooltip, xychart)
+- **State Management**: @tanstack/react-query 5.17.9, Zustand 5.0.11
 - **HTTP Client**: Axios 1.6.5
-- **Forms**: react-hook-form 7.48.2
+- **Forms**: react-hook-form 7.48.2 + Zod 4.3.6 + @hookform/resolvers 5.2.2
 - **Routing**: react-router-dom 6.21.1
+- **Markdown**: react-markdown 10.1.0, rehype-highlight, remark-gfm
+- **Fonts**: @fontsource (Space Grotesk, JetBrains Mono, Inter) — self-hosted, no CDN
+- **Notifications**: sonner 2.0.7
 - **File Upload**: react-dropzone 14.2.3
-- **Testing**: Vitest 1.2.0, Playwright 1.55.0, @testing-library/react 14.1.2
+- **Date**: date-fns 3.2.0
+- **Error Tracking**: @sentry/react + @sentry/vite-plugin
+- **Testing**: Vitest 1.2.0, Playwright 1.55.0, @testing-library/react 14.1.2, happy-dom, jest-axe
+- **Code Quality**: ESLint 8 (React + TypeScript), prettier-plugin-tailwindcss, husky + lint-staged
+
+### CI/CD
+- **GitHub Actions**: Node 20, Python 3.11
+- **Staging** (staging.yml): test on push to develop/staging, PR to main. PostgreSQL 17 service container.
+- **Deploy** (deploy.yml): security scan (semgrep via pipx), migrations, CF Worker deploy
+- **Claude Review** (claude-code-review.yml): AI-powered PR review with Claude Sonnet 4.6
+- **Backup** (backup.yml): automated database backups
 
 ## Documentation Index
 
@@ -516,10 +620,21 @@ grep -A 10 "security_headers" backend/app/main.py && echo "[OK] Security headers
 
 **Planning:**
 - [docs/planning/DAILY_DEV_PLAN.md](docs/planning/DAILY_DEV_PLAN.md) — Daily dev sessions
+- [docs/plans/2026-03-14-001-feat-full-product-build-phases-neg1-0-1-plan.md](docs/plans/2026-03-14-001-feat-full-product-build-phases-neg1-0-1-plan.md) — Full build plan (deepened, reviewed)
 
 **Design:**
 - [design/README.md](design/README.md) — Stitch design pipeline
-- [design/PRD.md](design/PRD.md) — Analytics Pro PRD
+- [design/DESIGN.md](design/DESIGN.md) — Canonical design system (tokens, typography, components, glow recipes)
+- [design/PRD.md](design/PRD.md) — Analytics Pro PRD (4 screens)
+- `design/stitch/v1-analytics-pro/` — 4 mobile screens (original)
+- `design/stitch/v2-mixed/` — 4 desktop screens (mixed aesthetic)
+- `design/stitch/v3-evolved/` — 4 desktop screens (evolved IA: mastery metrics replace gamification)
+
+**Brainstorms:**
+- [docs/brainstorms/2026-03-13-mvp-frontend-brainstorm.md](docs/brainstorms/2026-03-13-mvp-frontend-brainstorm.md) — Stack decisions, tool audit, research findings
+
+**Solutions:**
+- [docs/solutions/](docs/solutions/) — Documented patterns, bug fixes, and past mistakes
 
 **Vision:**
 - [docs/vision/](docs/vision/) — Product DNA (Karpathy, PG, genesis, philosophy)
@@ -541,12 +656,16 @@ grep -A 10 "security_headers" backend/app/main.py && echo "[OK] Security headers
 3. Write clear, descriptive commit messages
 4. Update IMPLEMENTATION_STATUS.md when completing features
 5. Test on Windows and Linux if possible
+6. New UI components: use Tailwind + shadcn/ui (not MUI)
+7. Use design tokens from `@theme` in `src/index.css` — never hardcode hex colors
+8. Use `cn()` from `@/lib/utils` for conditional class merging
 
 ### Code Style
 1. Backend: Follow PEP 8, use type hints, document with docstrings
 2. Frontend: Follow React/TypeScript best practices, use functional components
 3. Use ruff for Python linting, ESLint for TypeScript
-4. Run tests before committing
+4. Tailwind class order: sorted by prettier-plugin-tailwindcss
+5. Run tests before committing
 
 ### Git Workflow
 1. Create feature branches from main
@@ -561,35 +680,69 @@ grep -A 10 "security_headers" backend/app/main.py && echo "[OK] Security headers
 - Backend config: `backend/app/core/config.py`
 - Environment template: `.env.example`
 - Database migrations: `backend/alembic/versions/`
-- Frontend config: `frontend/vite.config.ts`
+- Frontend Vite config: `frontend/vite.config.ts`
+- Frontend TypeScript config: `frontend/tsconfig.json`
+- shadcn/ui config: `frontend/components.json`
+- Design tokens: `frontend/src/index.css` (@theme block)
+- Design system: `design/DESIGN.md`
 
 **API Endpoints:**
+- Main router: `backend/app/api/v1/api.py`
 - Auth: `backend/app/api/v1/auth.py`
 - Chat: `backend/app/api/v1/chat.py`
 - Tutor: `backend/app/api/v1/tutor.py`
 - Admin: `backend/app/api/v1/admin.py`
+- Subjects: `backend/app/api/v1/subjects.py`
+- Sessions: `backend/app/api/v1/study_sessions.py`
+- Dashboard: `backend/app/api/v1/dashboard.py`
 
 **AI Services:**
 - Service manager: `backend/app/services/ai_service_manager.py`
 - Claude integration: `backend/app/services/claude_service.py`
 - OpenAI fallback: `backend/app/services/openai_fallback.py`
 
-**Frontend Components:**
-- Auth: `frontend/src/components/auth/`
-- Chat: `frontend/src/components/chat/`
-- Content: `frontend/src/components/content/`
+**Frontend — Pages:**
+- Dashboard: `frontend/src/pages/DashboardPage.tsx`
+- Study/Chat: `frontend/src/pages/StudyPage.tsx`
+- Focus Timer: `frontend/src/pages/FocusPage.tsx`
+- Content: `frontend/src/pages/ContentPage.tsx`
+
+**Frontend — Layout:**
+- App shell: `frontend/src/app/layout/AppShell.tsx`
+- Navigation: `frontend/src/app/layout/TopNav.tsx`
+
+**Frontend — Components:**
+- Auth: `frontend/src/components/auth/` (MUI — legacy)
+- Chat: `frontend/src/components/chat/` (MUI — legacy)
+- Content: `frontend/src/components/content/` (MUI — legacy)
+- Dashboard: `frontend/src/components/dashboard/` (Tailwind + visx)
+- UI primitives: `frontend/src/components/ui/` (shadcn/ui)
+
+**Frontend — Infrastructure:**
+- Utility: `frontend/src/lib/utils.ts` (cn helper)
+- Timer hook: `frontend/src/hooks/useTimer.ts`
+- Timer worker: `frontend/src/workers/timer.worker.ts`
+- Sentry config: `frontend/src/config/sentry.ts`
+- Test setup: `frontend/src/test/setup.ts`
 
 ## Current Development Focus
 
-**MVP scope**: FastAPI backend + React frontend + Analytics Pro dashboard (Stitch design), subject time tracking, basic analytics.
+**Phase 1 complete**: Tailwind v4 foundation, dashboard UI (HeroMetrics, SubjectList, ContributionHeatmap, StartFocusCTA), backend APIs (subjects, sessions, dashboard summary), focus timer with Web Worker.
 
 **Implementation Status:**
 - Lead Tutor Agent with Socratic questioning: COMPLETE
 - Multi-provider AI integration: COMPLETE
 - File upload and processing: COMPLETE
 - Chat interface with streaming: COMPLETE
-- Analytics dashboard: DESIGNED (Stitch mockups in design/)
-- Subject time tracking: PLANNED (MVP)
+- Analytics dashboard UI (Tailwind + shadcn): COMPLETE (Phase 1)
+- Subject CRUD backend: COMPLETE
+- Session lifecycle backend (start/pause/resume/stop): COMPLETE
+- Dashboard summary API (3-query pattern): COMPLETE
+- Focus timer with Web Worker: COMPLETE
+- Stitch v3 evolved designs (mastery metrics, no gamification): COMPLETE
+- MUI removal from legacy components: Phase 3 (pending)
+- Subject Detail page: Phase 2
+- Weekly Analytics page: Phase 2/5
 - Knowledge Graph extraction: Phase 2
 - Practice generation: Phase 2
 - Mastery gates: Phase 2
