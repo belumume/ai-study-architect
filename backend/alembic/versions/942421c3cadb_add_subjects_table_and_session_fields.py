@@ -75,7 +75,7 @@ def upgrade() -> None:
         "study_sessions",
         ["user_id"],
         unique=True,
-        postgresql_where=sa.text("status IN ('in_progress', 'paused')"),
+        postgresql_where=sa.text("status IN ('IN_PROGRESS', 'PAUSED')"),
     )
 
 
