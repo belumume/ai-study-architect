@@ -11,7 +11,8 @@
     "test": "vitest",
     "test:ui": "vitest --ui",
     "test:coverage": "vitest --coverage",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "prepare": "husky"
   },
   "dependencies": {
     "@emotion/react": "^11.11.3",
@@ -83,5 +84,9 @@
     "typescript": "^5.3.3",
     "vite": "^6.4.1",
     "vitest": "^1.2.0"
+  },
+  "lint-staged": {
+    "*.{ts,tsx}": ["eslint --fix", "prettier --write"],
+    "*.css": ["prettier --write"]
   }
 }
