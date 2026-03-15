@@ -3,15 +3,15 @@
 ---
 Document Level: 4
 Created: August 2025
-Last Updated: March 2026
+Last Updated: March 2026 (Session 10)
 Supersedes: None
-Status: Active
+Status: Active — see CLAUDE.md for canonical status
 Purpose: Single source of truth for implementation progress
 ---
 
-> **Last Updated: March 2026.** Infrastructure migrated from Render to Cloudflare in March 2026. Backend runs in CF Container (Docker) behind a CF Worker. See CLAUDE.md for full architecture details.
+> **WARNING**: This file was last comprehensively updated before Phase 2. For current status, see `CLAUDE.md` Implementation Status section, which is maintained per-session. Key updates since this file was written: Phase 2 COMPLETE (concept extraction, subject detail, dashboard mastery), 421 backend tests (53.9% coverage), security hardening (session 10), GitHub Actions shared workflow hub.
 
-## Last Updated: March 2026
+## Last Updated: March 2026 (Session 10)
 
 This document tracks the current implementation status of AI Study Architect. For the vision and architecture, see the vision documents. This is about what exists today.
 
