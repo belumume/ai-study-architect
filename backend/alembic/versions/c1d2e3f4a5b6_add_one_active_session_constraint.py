@@ -61,11 +61,25 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     op.drop_index("ix_one_active_session", table_name="study_sessions")
-    # Restore the original (potentially broken) index
-    op.create_index(
-        "idx_one_active_session_per_user",
-        "study_sessions",
-        ["user_id"],
-        unique=True,
-        postgresql_where=sa.text("status IN ('IN_PROGRESS', 'PAUSED')"),
+    # Restore original index name with portable type detection
+    conn = op.get_bind()
+    result = conn.execute(
+        sa.text(
+            "SELECT data_type FROM information_schema.columns "
+            "WHERE table_schema = current_schema() "
+            "AND table_name = 'study_sessions' AND column_name = 'status'"
+        )
     )
+    data_type = result.scalar()
+    if data_type == "USER-DEFINED":
+        op.execute(
+            "CREATE UNIQUE INDEX idx_one_active_session_per_user "
+            "ON study_sessions (user_id) "
+            "WHERE status::text IN ('IN_PROGRESS', 'PAUSED')"
+        )
+    else:
+        op.execute(
+            "CREATE UNIQUE INDEX idx_one_active_session_per_user "
+            "ON study_sessions (user_id) "
+            "WHERE status IN ('in_progress', 'paused')"
+        )
