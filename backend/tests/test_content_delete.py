@@ -109,6 +109,10 @@ class TestConfirmDeleteCascade:
         response = await client.delete(f"/api/v1/content/{content_id}?confirm_delete=true")
         assert response.status_code == 204
 
+        # Verify content row itself is deleted
+        content_exists = db_session.query(Content).filter(Content.id == content_id).count()
+        assert content_exists == 0
+
         # Verify concepts are deleted (CASCADE from content FK)
         remaining = db_session.query(Concept).filter(Concept.content_id == content_id).count()
         assert remaining == 0

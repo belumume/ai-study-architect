@@ -1,11 +1,13 @@
 """Pydantic schemas for study sessions and learning plans"""
 
 import uuid
-from datetime import UTC, datetime
+from datetime import datetime
 from enum import Enum
 from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
+
+from app.core.utils import utcnow
 
 
 class DifficultyLevel(str, Enum):
@@ -33,8 +35,8 @@ class StudyPlan(BaseModel):
     objectives: list[LearningObjective]
     total_hours: float
     created_by: str
-    created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
-    updated_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
+    created_at: datetime = Field(default_factory=utcnow)
+    updated_at: datetime = Field(default_factory=utcnow)
     metadata: dict[str, Any] = Field(default_factory=dict)
 
 

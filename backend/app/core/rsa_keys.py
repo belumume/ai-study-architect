@@ -112,11 +112,22 @@ class RSAKeyManager:
 
     def rotate_keys(self) -> tuple[str, str]:
         """
-        Rotate RSA keys by generating new ones and archiving old ones
+        Rotate RSA keys by generating new ones and archiving old ones.
+
+        WARNING: When keys are loaded from environment variables (production),
+        rotation is in-memory only. On restart, env var keys take priority again.
+        For durable rotation, update RSA_PRIVATE_KEY/RSA_PUBLIC_KEY CF Worker secrets.
 
         Returns:
             Tuple of new (private_key_pem, public_key_pem)
         """
+        from app.core.config import settings
+
+        if settings.RSA_PRIVATE_KEY:
+            logger.warning(
+                "RSA keys loaded from env vars — rotation is in-memory only. "
+                "Update RSA_PRIVATE_KEY/RSA_PUBLIC_KEY CF Worker secrets for durable rotation."
+            )
         # Archive existing keys if they exist
         if self.private_key_path.exists():
             import time

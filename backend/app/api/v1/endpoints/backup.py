@@ -7,10 +7,12 @@ import logging
 import os
 import subprocess
 import time
-from datetime import UTC, datetime
+from datetime import datetime
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Request
 from pydantic import BaseModel
+
+from app.core.utils import utcnow
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -62,7 +64,7 @@ def _check_trigger_rate_limit(request: Request | None = None):
     current_time = time.time()
     if last_backup_time and (current_time - last_backup_time) < MIN_BACKUP_INTERVAL:
         remaining_seconds = MIN_BACKUP_INTERVAL - (current_time - last_backup_time)
-        client_ip = request.client.host if request else "unknown"
+        client_ip = request.client.host if request and request.client else "unknown"
         logger.warning(f"Rate limit hit from IP: {client_ip}. Wait {remaining_seconds:.0f}s")
         raise HTTPException(
             status_code=429,
@@ -163,14 +165,14 @@ async def trigger_backup(
                 else ("success" if success_count == len(results) else "failed"),
                 "message": f"Backup completed: {success_count}/{len(results)} successful",
                 "details": results,
-                "timestamp": datetime.now(UTC).isoformat(),
+                "timestamp": utcnow().isoformat(),
             }
         else:
             last_backup_time = time.time()
             return {
                 "status": "success",
                 "message": f"{provider.upper()} backup completed",
-                "timestamp": datetime.now(UTC).isoformat(),
+                "timestamp": utcnow().isoformat(),
             }
     except subprocess.TimeoutExpired:
         logger.error("Backup operation timed out")

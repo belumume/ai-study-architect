@@ -3,7 +3,6 @@
 import hashlib
 import logging
 import uuid
-from datetime import UTC, datetime
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile, status
@@ -22,6 +21,7 @@ from app.core.exceptions import (
     ValidationError,
 )
 from app.core.rate_limiter import limiter
+from app.core.utils import utcnow
 from app.models.concept import Concept
 from app.models.content import Content
 from app.models.user import User
@@ -254,8 +254,8 @@ async def upload_content(
             original_filename=sanitized_filename,
             tags=tag_list,
             processing_status="pending",
-            created_at=datetime.now(UTC),
-            updated_at=datetime.now(UTC),
+            created_at=utcnow(),
+            updated_at=utcnow(),
         )
 
         db.add(content)
@@ -580,7 +580,7 @@ def get_content(
         raise ContentNotFoundError()
 
     # Update last accessed timestamp for analytics (optional)
-    content.last_accessed_at = datetime.now(UTC)
+    content.last_accessed_at = utcnow()
     content.view_count += 1
 
     # Commit the analytics update without affecting the response
@@ -645,7 +645,7 @@ def update_content(
             setattr(content, field, value)
 
     # Always update the timestamp
-    content.updated_at = datetime.now(UTC)
+    content.updated_at = utcnow()
 
     try:
         db.commit()

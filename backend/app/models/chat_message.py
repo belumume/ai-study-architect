@@ -3,13 +3,12 @@ Chat Message model for persistent chat history
 """
 
 import uuid
-from datetime import UTC, datetime
-
 from sqlalchemy import JSON, CheckConstraint, Column, DateTime, ForeignKey, String, Text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 
 from app.core.database import Base
+from app.core.utils import utcnow
 
 
 class ChatMessage(Base):
@@ -32,7 +31,7 @@ class ChatMessage(Base):
     content_ids = Column(JSON, nullable=True)  # List of content IDs referenced
 
     # Timestamps
-    created_at = Column(DateTime, default=lambda: datetime.now(UTC), nullable=False)
+    created_at = Column(DateTime, default=utcnow, nullable=False)
 
     # Relationships
     user = relationship("User", back_populates="chat_messages")

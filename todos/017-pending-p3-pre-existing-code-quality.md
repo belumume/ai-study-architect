@@ -20,7 +20,7 @@ dependencies: []
 
 5. **`except (JWTError, Exception):` redundant** (dependencies.py:175) — Fixed: simplified to `except Exception:`, removed unused `JWTError` import.
 
-6. **`datetime.utcnow()` deprecated** — Fixed across all files: `datetime.now(UTC)` with `from datetime import UTC`. Files updated: user_concept_mastery.py, agents/base.py, content.py, backup.py.
+6. **`datetime.utcnow()` deprecated** — Fixed across all affected files: centralized `utcnow()` utility in `app.core.utils` returning naive UTC datetime for compatibility with `DateTime` columns. 19 files updated.
 
 ## Acceptance Criteria
 

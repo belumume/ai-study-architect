@@ -3,13 +3,12 @@ Subject model for organizing study materials by topic
 """
 
 import uuid
-from datetime import UTC, datetime
-
 from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, String, UniqueConstraint
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 
 from app.core.database import Base
+from app.core.utils import utcnow
 
 SUBJECT_COLORS = [
     "#D4FF00",
@@ -32,10 +31,8 @@ class Subject(Base):
     color = Column(String(7), nullable=False, default="#D4FF00")
     weekly_goal_minutes = Column(Integer, default=300, nullable=False)
     is_active = Column(Boolean, default=True, nullable=False)
-    created_at = Column(DateTime, default=lambda: datetime.now(UTC), nullable=False)
-    updated_at = Column(
-        DateTime, default=lambda: datetime.now(UTC), onupdate=lambda: datetime.now(UTC)
-    )
+    created_at = Column(DateTime, default=utcnow, nullable=False)
+    updated_at = Column(DateTime, default=utcnow, onupdate=utcnow)
 
     __table_args__ = (UniqueConstraint("user_id", "name", name="uq_subject_user_name"),)
 

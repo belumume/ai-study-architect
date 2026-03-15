@@ -4,8 +4,6 @@ Content model for user-uploaded study materials
 
 import enum
 import uuid
-from datetime import UTC, datetime
-
 from sqlalchemy import (
     JSON,
     CheckConstraint,
@@ -21,6 +19,7 @@ from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 
 from app.core.database import Base
+from app.core.utils import utcnow
 
 
 class ContentType(str, enum.Enum):
@@ -124,11 +123,11 @@ class Content(Base):
     study_time_minutes = Column(Float, default=0.0, nullable=False)
 
     # Timestamps
-    created_at = Column(DateTime, default=lambda: datetime.now(UTC), nullable=False)
+    created_at = Column(DateTime, default=utcnow, nullable=False)
     updated_at = Column(
         DateTime,
-        default=lambda: datetime.now(UTC),
-        onupdate=lambda: datetime.now(UTC),
+        default=utcnow,
+        onupdate=utcnow,
         nullable=False,
     )
     last_accessed_at = Column(DateTime, nullable=True)

@@ -12,7 +12,7 @@ import logging
 import os
 import re
 import uuid
-from datetime import UTC, datetime
+from app.core.utils import utcnow
 
 import httpx
 from sqlalchemy import insert
@@ -335,8 +335,8 @@ class ConceptExtractionService:
                 "keywords": c.get("keywords"),
                 "examples": c.get("examples"),
                 "extraction_confidence": None,
-                "created_at": datetime.now(UTC),
-                "updated_at": datetime.now(UTC),
+                "created_at": utcnow(),
+                "updated_at": utcnow(),
             }
             for c in concepts_data
         ]
@@ -353,8 +353,8 @@ class ConceptExtractionService:
                 "concept_id": cid,
                 "status": "not_started",
                 "mastery_level": 0.0,
-                "created_at": datetime.now(UTC),
-                "updated_at": datetime.now(UTC),
+                "created_at": utcnow(),
+                "updated_at": utcnow(),
             }
             for cid in concept_ids.values()
         ]

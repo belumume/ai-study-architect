@@ -4,12 +4,13 @@ Agent Manager with Redis-backed storage for persistent agent instances
 
 import logging
 import threading
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta
 from typing import Any
 
 from app.agents.base import BaseAgent
 from app.agents.lead_tutor import LeadTutorAgent
 from app.core.cache import redis_cache
+from app.core.utils import utcnow
 
 logger = logging.getLogger(__name__)
 
@@ -236,7 +237,7 @@ class AgentManager:
             keys = redis_cache._get_client().keys(pattern)
 
             expired_count = 0
-            cutoff_time = datetime.now(UTC) - self.default_agent_ttl
+            cutoff_time = utcnow() - self.default_agent_ttl
 
             for key in keys:
                 last_activity = self._get_agent_last_activity(key)
@@ -309,8 +310,8 @@ class AgentManager:
                 "temperature": agent.temperature,
                 "memory": [msg.dict() for msg in agent.memory],
                 "state": agent.get_state(),
-                "created_at": datetime.now(UTC).isoformat(),
-                "last_activity": datetime.now(UTC).isoformat(),
+                "created_at": utcnow().isoformat(),
+                "last_activity": utcnow().isoformat(),
             }
 
             # Special handling for LeadTutorAgent state
@@ -390,7 +391,7 @@ class AgentManager:
 
     def _update_agent_activity(self, agent: BaseAgent) -> None:
         """Update agent's last activity timestamp"""
-        agent.update_state(last_activity=datetime.now(UTC))
+        agent.update_state(last_activity=utcnow())
 
     def _get_agent_last_activity(self, redis_key: str) -> datetime | None:
         """Get agent's last activity from Redis"""

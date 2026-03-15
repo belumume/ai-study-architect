@@ -2,7 +2,6 @@
 Study session lifecycle endpoints (start/pause/resume/stop)
 """
 
-from datetime import UTC, datetime
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
@@ -10,6 +9,7 @@ from sqlalchemy.orm import Session
 
 from app.api.dependencies import get_current_user, get_db
 from app.core.rate_limiter import limiter
+from app.core.utils import utcnow
 from app.models.study_session import SessionStatus, StudyMode, StudySession
 from app.models.subject import Subject
 from app.models.user import User
@@ -56,11 +56,9 @@ async def start_session(
         )
         if not subject:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Subject not found")
-        title = (
-            session_data.title or f"{subject.name} - {datetime.now(UTC).strftime('%b %d %H:%M')}"
-        )
+        title = session_data.title or f"{subject.name} - {utcnow().strftime('%b %d %H:%M')}"
     else:
-        title = session_data.title or f"General Study - {datetime.now(UTC).strftime('%b %d %H:%M')}"
+        title = session_data.title or f"General Study - {utcnow().strftime('%b %d %H:%M')}"
 
     session = StudySession(
         user_id=current_user.id,
@@ -68,8 +66,8 @@ async def start_session(
         title=title,
         study_mode=StudyMode(session_data.study_mode),
         status=SessionStatus.IN_PROGRESS,
-        actual_start=datetime.now(UTC),
-        last_resumed_at=datetime.now(UTC),
+        actual_start=utcnow(),
+        last_resumed_at=utcnow(),
     )
     db.add(session)
     db.commit()
@@ -85,7 +83,7 @@ async def pause_session(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    now = datetime.now(UTC)
+    now = utcnow()
 
     session = (
         db.query(StudySession)
@@ -140,8 +138,8 @@ async def resume_session(
         )
 
     session.status = SessionStatus.IN_PROGRESS
-    session.last_resumed_at = datetime.now(UTC)
-    session.updated_at = datetime.now(UTC)
+    session.last_resumed_at = utcnow()
+    session.updated_at = utcnow()
     db.commit()
     db.refresh(session)
     return session
@@ -171,7 +169,7 @@ async def stop_session(
             detail={"error": "Invalid transition", "current_status": session.status.value},
         )
 
-    now = datetime.now(UTC)
+    now = utcnow()
 
     # Accumulate remaining time if still in progress
     if session.status == SessionStatus.IN_PROGRESS and session.last_resumed_at:

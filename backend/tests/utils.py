@@ -1,6 +1,5 @@
 """Test utilities and helper functions"""
 
-from datetime import UTC, datetime
 from typing import Dict
 from uuid import uuid4
 from sqlalchemy.orm import Session
@@ -8,6 +7,7 @@ from fastapi.testclient import TestClient
 
 from app.models.user import User
 from app.core.security import get_password_hash
+from app.core.utils import utcnow
 
 
 def create_test_user(
@@ -32,8 +32,8 @@ def create_test_user(
         hashed_password=get_password_hash(password),
         is_active=is_active,
         is_verified=is_verified,
-        created_at=datetime.now(UTC),
-        updated_at=datetime.now(UTC),
+        created_at=utcnow(),
+        updated_at=utcnow(),
     )
     db.add(user)
     db.commit()

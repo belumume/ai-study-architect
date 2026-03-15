@@ -9,9 +9,9 @@ Usage:
     python scripts/export_rsa_keys_b64.py           # Use existing or generate
     python scripts/export_rsa_keys_b64.py --generate # Force generate new keys
 
-Then store in CF Worker secrets:
-    echo "<RSA_PRIVATE_KEY_VALUE>" | npx wrangler secret put RSA_PRIVATE_KEY
-    echo "<RSA_PUBLIC_KEY_VALUE>" | npx wrangler secret put RSA_PUBLIC_KEY
+Then store in CF Worker secrets (interactive — avoids shell history leak):
+    npx wrangler secret put RSA_PRIVATE_KEY   # paste value when prompted
+    npx wrangler secret put RSA_PUBLIC_KEY     # paste value when prompted
 """
 
 import argparse
@@ -40,9 +40,11 @@ def main():
     print("=== RSA_PUBLIC_KEY (base64) ===")
     print(public_b64)
     print()
-    print("Store these with:")
-    print(f'  echo "{private_b64}" | npx wrangler secret put RSA_PRIVATE_KEY')
-    print(f'  echo "{public_b64}" | npx wrangler secret put RSA_PUBLIC_KEY')
+    print("Store these with (interactive — paste value when prompted):")
+    print("  npx wrangler secret put RSA_PRIVATE_KEY")
+    print("  npx wrangler secret put RSA_PUBLIC_KEY")
+    print()
+    print("[WARN] Do not paste keys into shell commands — they leak into shell history.")
 
 
 if __name__ == "__main__":

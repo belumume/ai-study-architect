@@ -11,8 +11,6 @@ This is part of the Knowledge Graph Foundation (Week 1 of mastery-based pivot)
 
 import enum
 import uuid
-from datetime import UTC, datetime
-
 from sqlalchemy import (
     JSON,
     CheckConstraint,
@@ -29,6 +27,7 @@ from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 
 from app.core.database import Base
+from app.core.utils import utcnow
 
 
 class DifficultyLevel(str, enum.Enum):
@@ -116,11 +115,11 @@ class Concept(Base):
     extraction_metadata = Column(JSON, nullable=True)  # Additional AI extraction info
 
     # Timestamps
-    created_at = Column(DateTime, default=lambda: datetime.now(UTC), nullable=False)
+    created_at = Column(DateTime, default=utcnow, nullable=False)
     updated_at = Column(
         DateTime,
-        default=lambda: datetime.now(UTC),
-        onupdate=lambda: datetime.now(UTC),
+        default=utcnow,
+        onupdate=utcnow,
         nullable=False,
     )
 
@@ -202,7 +201,7 @@ class ConceptDependency(Base):
     reason = Column(Text, nullable=True)  # Why this dependency exists
 
     # Timestamps
-    created_at = Column(DateTime, default=lambda: datetime.now(UTC), nullable=False)
+    created_at = Column(DateTime, default=utcnow, nullable=False)
 
     # Relationships
     prerequisite_concept = relationship(

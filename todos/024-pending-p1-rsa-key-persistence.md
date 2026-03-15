@@ -38,4 +38,4 @@ Changes:
 
 - [x] Users remain logged in after deploy (keys loaded from env vars, not regenerated)
 - [x] RSA keys persist across container rebuilds (stored in CF Worker secrets)
-- [x] Key rotation still possible (rotate_keys() still works, just regenerates in-memory)
+- [x] Key rotation: `rotate_keys()` works in-memory only when env vars are source of truth. Durable rotation requires updating RSA_PRIVATE_KEY/RSA_PUBLIC_KEY CF Worker secrets. Warning logged when rotation attempted with env var keys.

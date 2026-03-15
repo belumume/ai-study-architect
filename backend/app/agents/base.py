@@ -4,10 +4,12 @@ import asyncio
 import logging
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from datetime import UTC, datetime
+from datetime import datetime
 from typing import Any
 
 from pydantic import BaseModel, Field
+
+from app.core.utils import utcnow
 
 
 @dataclass
@@ -43,8 +45,8 @@ class AgentState(BaseModel):
     agent_id: str
     user_id: str | None = None
     session_id: str | None = None
-    created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
-    updated_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
+    created_at: datetime = Field(default_factory=utcnow)
+    updated_at: datetime = Field(default_factory=utcnow)
     metadata: dict[str, Any] = Field(default_factory=dict)
 
 
@@ -338,7 +340,7 @@ class BaseAgent(ABC):
         for key, value in kwargs.items():
             if hasattr(self.state, key):
                 setattr(self.state, key, value)
-        self.state.updated_at = datetime.now(UTC)
+        self.state.updated_at = utcnow()
 
     def get_state(self) -> dict[str, Any]:
         """Get the current agent state as a dictionary"""
