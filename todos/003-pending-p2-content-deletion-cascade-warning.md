@@ -1,5 +1,5 @@
 ---
-status: pending
+status: complete
 priority: p2
 issue_id: "003"
 tags: [code-review, plan-review, ux, data-integrity]
@@ -39,6 +39,6 @@ Currently this happens silently. A user who deletes a content item loses all ass
 
 ## Acceptance Criteria
 
-- [ ] User cannot accidentally delete content with extracted concepts without confirmation
-- [ ] Frontend shows count of concepts + mastery records that will be deleted
-- [ ] API requires explicit confirmation parameter for destructive delete
+- [x] User cannot accidentally delete content with extracted concepts without confirmation
+- [ ] Frontend shows count of concepts + mastery records that will be deleted (content page uses MUI — Phase 3)
+- [x] API requires explicit confirmation parameter for destructive delete

@@ -70,7 +70,12 @@ class TestSanitizeFilename:
         assert sanitize_filename("a.b-c_d") == "a.b-c_d"
 
     def test_empty_after_sanitization(self):
-        assert sanitize_filename("!!!") == ""
+        assert sanitize_filename("!!!") == "unnamed_file"
+
+    def test_traversal_after_sanitization(self):
+        assert sanitize_filename("..") == "unnamed_file"
+        assert sanitize_filename(".....") == "unnamed_file"
+        assert sanitize_filename(".") == "unnamed_file"
 
     def test_unicode_stripped(self):
         result = sanitize_filename("resume\u0301.pdf")

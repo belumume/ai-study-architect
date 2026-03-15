@@ -36,10 +36,16 @@ export function ExtractionTrigger({
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['subject-detail', subjectId] })
       queryClient.invalidateQueries({ queryKey: ['dashboard'] })
-      const msg = data.chunks_failed
-        ? `Extracted ${data.created_concepts} concepts from ${data.chunks_succeeded}/${data.chunks_total} sections.`
-        : `Extracted ${data.created_concepts} concepts successfully.`
-      toast.success(msg)
+      if (data.created_concepts === 0) {
+        toast.warning(
+          data.message ?? 'No concepts found. Try uploading more detailed study materials.',
+        )
+      } else {
+        const msg = data.chunks_failed
+          ? `Extracted ${data.created_concepts} concepts from ${data.chunks_succeeded}/${data.chunks_total} sections.`
+          : `Extracted ${data.created_concepts} concepts successfully.`
+        toast.success(msg)
+      }
     },
     onError: (err) => {
       toast.error(err.response?.data?.detail ?? 'Extraction failed. Please try again.')
