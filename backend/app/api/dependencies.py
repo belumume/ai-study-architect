@@ -3,10 +3,8 @@ Common dependencies for API endpoints - Sync version
 Supports both Bearer tokens and httpOnly cookies for authentication
 """
 
-
 from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from jose import JWTError
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
@@ -172,5 +170,5 @@ async def get_current_user_ws(token: str, db: Session) -> User | None:
             return None
 
         return user
-    except (JWTError, Exception):
+    except Exception:
         return None

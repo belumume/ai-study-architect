@@ -3,7 +3,6 @@
 import hashlib
 import logging
 import uuid
-from datetime import datetime
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile, status
@@ -22,6 +21,7 @@ from app.core.exceptions import (
     ValidationError,
 )
 from app.core.rate_limiter import limiter
+from app.core.utils import utcnow
 from app.models.concept import Concept
 from app.models.content import Content
 from app.models.user import User
@@ -254,8 +254,8 @@ async def upload_content(
             original_filename=sanitized_filename,
             tags=tag_list,
             processing_status="pending",
-            created_at=datetime.utcnow(),
-            updated_at=datetime.utcnow(),
+            created_at=utcnow(),
+            updated_at=utcnow(),
         )
 
         db.add(content)
@@ -503,6 +503,59 @@ def get_content_stats(
     return stats
 
 
+@router.get("/search", response_model=list[ContentResponse])
+@limiter.limit("20/minute")
+def search_content(
+    request: Request,
+    q: str,  # Search query
+    skip: int = 0,
+    limit: int = 10,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Search user's content by title, description, or extracted text
+
+    Optimized full-text search using database indexes and efficient queries.
+    """
+    if len(q.strip()) < 2:
+        raise ValidationError("Search query must be at least 2 characters")
+
+    search_term = f"%{q.lower()}%"
+
+    # Use efficient search with proper indexing
+    # This query should have indexes on title, description, and extracted_text
+    content_items = (
+        db.query(Content)
+        .filter(
+            and_(
+                Content.user_id == current_user.id,
+                (
+                    func.lower(Content.title).like(search_term)
+                    | func.lower(Content.description).like(search_term)
+                    | func.lower(Content.extracted_text).like(search_term)
+                ),
+            )
+        )
+        .order_by(
+            # Relevance scoring: title matches first, then description, then content
+            func.case(
+                (func.lower(Content.title).like(search_term), 1),
+                (func.lower(Content.description).like(search_term), 2),
+                else_=3,
+            ),
+            Content.created_at.desc(),
+        )
+        .offset(skip)
+        .limit(limit)
+        .all()
+    )
+
+    logger.info(f"User {current_user.id} searched for '{q}' - found {len(content_items)} results")
+
+    return content_items
+
+
 @router.get("/{content_id}", response_model=ContentResponse)
 @limiter.limit("30/minute")
 def get_content(
@@ -527,7 +580,7 @@ def get_content(
         raise ContentNotFoundError()
 
     # Update last accessed timestamp for analytics (optional)
-    content.last_accessed_at = datetime.utcnow()
+    content.last_accessed_at = utcnow()
     content.view_count += 1
 
     # Commit the analytics update without affecting the response
@@ -592,7 +645,7 @@ def update_content(
             setattr(content, field, value)
 
     # Always update the timestamp
-    content.updated_at = datetime.utcnow()
+    content.updated_at = utcnow()
 
     try:
         db.commit()
@@ -821,56 +874,3 @@ def download_content(
     logger.info(f"User {current_user.id} downloading content {content_id}")
 
     return RedirectResponse(url=url)
-
-
-@router.get("/search", response_model=list[ContentResponse])
-@limiter.limit("20/minute")
-def search_content(
-    request: Request,
-    q: str,  # Search query
-    skip: int = 0,
-    limit: int = 10,
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
-):
-    """
-    Search user's content by title, description, or extracted text
-
-    Optimized full-text search using database indexes and efficient queries.
-    """
-    if len(q.strip()) < 2:
-        raise ValidationError("Search query must be at least 2 characters")
-
-    search_term = f"%{q.lower()}%"
-
-    # Use efficient search with proper indexing
-    # This query should have indexes on title, description, and extracted_text
-    content_items = (
-        db.query(Content)
-        .filter(
-            and_(
-                Content.user_id == current_user.id,
-                (
-                    func.lower(Content.title).like(search_term)
-                    | func.lower(Content.description).like(search_term)
-                    | func.lower(Content.extracted_text).like(search_term)
-                ),
-            )
-        )
-        .order_by(
-            # Relevance scoring: title matches first, then description, then content
-            func.case(
-                (func.lower(Content.title).like(search_term), 1),
-                (func.lower(Content.description).like(search_term), 2),
-                else_=3,
-            ),
-            Content.created_at.desc(),
-        )
-        .offset(skip)
-        .limit(limit)
-        .all()
-    )
-
-    logger.info(f"User {current_user.id} searched for '{q}' - found {len(content_items)} results")
-
-    return content_items

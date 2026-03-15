@@ -28,7 +28,9 @@ export function FocusPage() {
   const { elapsed, start, pause, stop } = useTimer()
   const [sessionId, setSessionId] = useState<string | null>(null)
   const [selectedSubjectId, setSelectedSubjectId] = useState<string | null>(null)
-  const [sessionStatus, setSessionStatus] = useState<'idle' | 'active' | 'paused' | 'stopped'>('idle')
+  const [sessionStatus, setSessionStatus] = useState<'idle' | 'active' | 'paused' | 'stopped'>(
+    'idle',
+  )
 
   const { data: subjects } = useQuery<Subject[]>({
     queryKey: ['subjects'],
@@ -147,10 +149,7 @@ export function FocusPage() {
                   }`}
                 >
                   <span className="flex items-center gap-2">
-                    <span
-                      className="h-3 w-3 rounded-full"
-                      style={{ backgroundColor: s.color }}
-                    />
+                    <span className="h-3 w-3 rounded-full" style={{ backgroundColor: s.color }} />
                     <span className="font-body text-sm text-text-primary">{s.name}</span>
                   </span>
                 </button>
@@ -167,11 +166,7 @@ export function FocusPage() {
             disabled={startMutation.isPending}
             className="mt-6 w-full bg-zen-primary text-void hover:bg-zen-primary/90"
           >
-            {startMutation.isPending ? (
-              <Loader2 className="h-5 w-5 animate-spin" />
-            ) : (
-              'Begin Focus'
-            )}
+            {startMutation.isPending ? <Loader2 className="h-5 w-5 animate-spin" /> : 'Begin Focus'}
           </Button>
         </Card>
       </div>
@@ -191,7 +186,9 @@ export function FocusPage() {
             {formatTime(elapsed)}
           </p>
           <p className="mt-2 font-mono text-sm text-text-muted">
-            {totalMinutes < 1 ? 'Session cancelled (< 1 min)' : `${totalMinutes} minutes of focused study`}
+            {totalMinutes < 1
+              ? 'Session cancelled (< 1 min)'
+              : `${totalMinutes} minutes of focused study`}
           </p>
           <Button
             onClick={() => navigate('/')}
@@ -226,15 +223,8 @@ export function FocusPage() {
       {/* Timer */}
       <div className="relative">
         {/* Velocity ring */}
-        <svg width="280" height="280" className="absolute -left-10 -top-10">
-          <circle
-            cx="140"
-            cy="140"
-            r="130"
-            fill="none"
-            stroke="#1f1f1f"
-            strokeWidth="2"
-          />
+        <svg width="280" height="280" className="pointer-events-none absolute -left-10 -top-10">
+          <circle cx="140" cy="140" r="130" fill="none" stroke="#1f1f1f" strokeWidth="2" />
           <circle
             cx="140"
             cy="140"

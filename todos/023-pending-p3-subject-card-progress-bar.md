@@ -1,5 +1,5 @@
 ---
-status: pending
+status: complete
 priority: p3
 issue_id: "023"
 tags: [ui-bug, dashboard, production]
@@ -8,17 +8,15 @@ dependencies: []
 
 # Subject card progress bar appears full when 0 minutes logged
 
-## Problem Statement
+## Solution Implemented
 
-On the dashboard, the "Data Structures 0.0/5.0h" subject card shows what appears to be a full-width cyan progress bar even though 0 minutes have been logged against the 5-hour weekly goal. The bar should show 0% width.
+Conditionally render the inner progress bar div only when `progress > 0`.
+At 0%, a `width: "0%"` div with `rounded-full` can still produce a small visible artifact.
+By not rendering the element at all, the track shows as empty.
 
-## Reproduction
-
-1. Create a subject with default weekly goal (300 min / 5h)
-2. Don't log any time against it
-3. Observe progress bar — appears to render at full width or has a minimum visual width
+File: `frontend/src/components/dashboard/SubjectList.tsx`
 
 ## Acceptance Criteria
 
-- [ ] Progress bar shows 0% width when 0 minutes logged
-- [ ] Progress bar scales linearly with minutes/goal ratio
+- [x] Progress bar shows 0% width when 0 minutes logged (bar not rendered)
+- [x] Progress bar scales linearly with minutes/goal ratio (unchanged logic)

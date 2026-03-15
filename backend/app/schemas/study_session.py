@@ -7,6 +7,8 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from app.core.utils import utcnow
+
 
 class DifficultyLevel(str, Enum):
     beginner = "beginner"
@@ -33,8 +35,8 @@ class StudyPlan(BaseModel):
     objectives: list[LearningObjective]
     total_hours: float
     created_by: str
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=utcnow)
+    updated_at: datetime = Field(default_factory=utcnow)
     metadata: dict[str, Any] = Field(default_factory=dict)
 
 

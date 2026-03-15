@@ -1,5 +1,5 @@
 ---
-status: pending
+status: complete
 priority: p3
 issue_id: "017"
 tags: [code-review, code-quality, pre-existing]
@@ -8,20 +8,20 @@ dependencies: []
 
 # Pre-existing code quality issues from CE review
 
-## Items
+## Items Resolved
 
-1. **`_current_keys: dict[str, str]`** (security.py:24) — stores float timestamps, type annotation too narrow. Fix: `dict[str, str | float]`
+1. **`_current_keys: dict[str, str | float]`** (security.py:24) — Fixed: type annotation now includes float for timestamps.
 
-2. **`request.client` could be None** (backup.py:40) — `request.client.host` crashes if client is None (test clients, reverse proxies). Fix: `request.client.host if request and request.client else "unknown"`
+2. **`request.client` could be None** (backup.py) — Fixed: `request.client.host if request and request.client else "unknown"`.
 
-3. **CSRF logs user IDs at INFO** (csrf.py:53,56,60) — security monitoring logs include user IDs at INFO level. Consider DEBUG for privacy, or keep as intentional security audit trail.
+3. **CSRF logs user IDs at INFO** (csrf.py) — Kept as-is: intentional security audit trail.
 
-4. **`DATABASE_URL` property uses `os.getenv` not `self`** (config.py:120) — Pydantic Settings loads .env into self, but property checks os.environ. Could diverge. Fix: use `self.DATABASE_URL`.
+4. **`DATABASE_URL` property uses `os.getenv`** (config.py) — Kept as-is: correct for CF container runtime injection architecture.
 
-5. **`except (JWTError, Exception):` redundant** (dependencies.py:175) — Exception already covers JWTError. Fix: just `except Exception:`.
+5. **`except (JWTError, Exception):` redundant** (dependencies.py:175) — Fixed: simplified to `except Exception:`, removed unused `JWTError` import.
 
-6. **`datetime.utcnow()` deprecated** (multiple files) — Deprecated in Python 3.12+. Fix: `datetime.now(UTC)`. Affects models, services, endpoints.
+6. **`datetime.utcnow()` deprecated** — Fixed across all affected files: centralized `utcnow()` utility in `app.core.utils` returning naive UTC datetime for compatibility with `DateTime` columns. 19 files updated.
 
 ## Acceptance Criteria
 
-- [ ] All 6 items fixed or explicitly deferred with rationale
+- [x] All 6 items fixed or explicitly deferred with rationale

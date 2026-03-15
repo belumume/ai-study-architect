@@ -240,6 +240,78 @@ class TestJWTKeyRotation:
         assert verified_user_id == user_id
 
 
+class TestRSAKeyEnvLoading:
+    """Test RSA key loading from environment variables"""
+
+    def test_load_keys_from_env(self, monkeypatch):
+        """Keys from env vars (base64-encoded PEM) should load successfully"""
+        import base64
+        from app.core.rsa_keys import RSAKeyManager
+
+        mgr = RSAKeyManager()
+        private_pem, public_pem = mgr.generate_key_pair()
+
+        private_b64 = base64.b64encode(private_pem.encode()).decode()
+        public_b64 = base64.b64encode(public_pem.encode()).decode()
+
+        monkeypatch.setattr("app.core.config.settings.RSA_PRIVATE_KEY", private_b64)
+        monkeypatch.setattr("app.core.config.settings.RSA_PUBLIC_KEY", public_b64)
+
+        result = mgr._load_keys_from_env()
+        assert result is not None
+        loaded_private, loaded_public = result
+        assert loaded_private == private_pem
+        assert loaded_public == public_pem
+
+    def test_env_keys_missing_returns_none(self, monkeypatch):
+        """Missing env vars should return None (falls through to file-based)"""
+        from app.core.rsa_keys import RSAKeyManager
+
+        monkeypatch.setattr("app.core.config.settings.RSA_PRIVATE_KEY", None)
+        monkeypatch.setattr("app.core.config.settings.RSA_PUBLIC_KEY", None)
+
+        mgr = RSAKeyManager()
+        assert mgr._load_keys_from_env() is None
+
+    def test_env_keys_invalid_base64_returns_none(self, monkeypatch):
+        """Invalid base64 should return None (falls through to file-based)"""
+        from app.core.rsa_keys import RSAKeyManager
+
+        monkeypatch.setattr("app.core.config.settings.RSA_PRIVATE_KEY", "not-valid-base64!!!")
+        monkeypatch.setattr("app.core.config.settings.RSA_PUBLIC_KEY", "not-valid-base64!!!")
+
+        mgr = RSAKeyManager()
+        assert mgr._load_keys_from_env() is None
+
+    def test_env_keys_jwt_create_and_verify_roundtrip(self, monkeypatch):
+        """Full JWT roundtrip: create token with env-loaded keys, verify it"""
+        import base64
+
+        from jose import jwt as jose_jwt
+
+        from app.core.rsa_keys import RSAKeyManager
+
+        mgr = RSAKeyManager()
+        private_pem, public_pem = mgr.generate_key_pair()
+
+        private_b64 = base64.b64encode(private_pem.encode()).decode()
+        public_b64 = base64.b64encode(public_pem.encode()).decode()
+
+        monkeypatch.setattr("app.core.config.settings.RSA_PRIVATE_KEY", private_b64)
+        monkeypatch.setattr("app.core.config.settings.RSA_PUBLIC_KEY", public_b64)
+
+        loaded_private, loaded_public = mgr._load_keys_from_env()
+
+        # Create a JWT with the env-loaded private key
+        payload = {"sub": "test-user-123", "type": "access"}
+        token = jose_jwt.encode(payload, loaded_private, algorithm="RS256")
+
+        # Verify with the env-loaded public key
+        decoded = jose_jwt.decode(token, loaded_public, algorithms=["RS256"])
+        assert decoded["sub"] == "test-user-123"
+        assert decoded["type"] == "access"
+
+
 class TestSecurityEdgeCases:
     """Test security edge cases and potential vulnerabilities"""
 

@@ -38,6 +38,10 @@ class Settings(BaseSettings):
         default=30, description="Refresh token expiration time in days"
     )
 
+    # RSA Keys (base64-encoded PEM, persisted via CF Worker secrets)
+    RSA_PRIVATE_KEY: str | None = None
+    RSA_PUBLIC_KEY: str | None = None
+
     # Database
     POSTGRES_USER: str | None = None
     POSTGRES_PASSWORD: str | None = None

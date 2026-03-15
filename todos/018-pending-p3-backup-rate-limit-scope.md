@@ -1,5 +1,5 @@
 ---
-status: pending
+status: complete
 priority: p3
 issue_id: "018"
 tags: [code-review, pre-existing]
@@ -8,15 +8,15 @@ dependencies: []
 
 # Scope backup rate limiting to /trigger endpoint only
 
-## Problem Statement
+## Solution Implemented
 
-`verify_backup_token` applies rate limiting to all backup endpoints (/status, /test, /debug, /trigger). A successful backup blocks read-only status checks for 1 hour.
+Extracted rate limiting from `verify_backup_token` (shared dependency for all backup endpoints) into `_check_trigger_rate_limit()` called only from the `/trigger` endpoint handler.
 
-## Proposed Solution
-
-Move rate limiting logic inside the `/trigger` endpoint handler, not in the shared dependency.
+- `verify_backup_token`: Now only handles authentication (token validation + logging)
+- `_check_trigger_rate_limit`: Handles the 1-per-hour rate limit, called at start of `/trigger`
+- `/status`, `/test`, `/debug`: No longer affected by rate limit cooldown
 
 ## Acceptance Criteria
 
-- [ ] /status, /test, /debug accessible without rate limit cooldown
-- [ ] /trigger still rate-limited to 1 per hour
+- [x] /status, /test, /debug accessible without rate limit cooldown
+- [x] /trigger still rate-limited to 1 per hour
