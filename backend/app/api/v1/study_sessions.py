@@ -8,6 +8,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.orm import Session
 
 from app.api.dependencies import get_current_user, get_db
+from app.core.cache import redis_cache
 from app.core.rate_limiter import limiter
 from app.core.utils import utcnow
 from app.models.study_session import SessionStatus, StudyMode, StudySession
@@ -71,6 +72,7 @@ async def start_session(
     )
     db.add(session)
     db.commit()
+    redis_cache.delete(f"dashboard:{current_user.id}")
     db.refresh(session)
     return session
 
@@ -109,6 +111,7 @@ async def pause_session(
     session.last_resumed_at = None
     session.updated_at = now
     db.commit()
+    redis_cache.delete(f"dashboard:{current_user.id}")
     db.refresh(session)
     return session
 
@@ -141,6 +144,7 @@ async def resume_session(
     session.last_resumed_at = utcnow()
     session.updated_at = utcnow()
     db.commit()
+    redis_cache.delete(f"dashboard:{current_user.id}")
     db.refresh(session)
     return session
 
@@ -188,6 +192,7 @@ async def stop_session(
         session.status = SessionStatus.COMPLETED
 
     db.commit()
+    redis_cache.delete(f"dashboard:{current_user.id}")
     db.refresh(session)
     return session
 
