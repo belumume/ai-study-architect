@@ -4,7 +4,7 @@ Study Session model for tracking learning sessions
 
 import enum
 import uuid
-from datetime import datetime
+from datetime import UTC, datetime
 
 from sqlalchemy import (
     JSON,
@@ -54,7 +54,7 @@ study_session_content = Table(
         "study_session_id", UUID(as_uuid=True), ForeignKey("study_sessions.id"), primary_key=True
     ),
     Column("content_id", UUID(as_uuid=True), ForeignKey("content.id"), primary_key=True),
-    Column("added_at", DateTime, default=datetime.utcnow),
+    Column("added_at", DateTime, default=lambda: datetime.now(UTC)),
     Column("time_spent_minutes", Float, default=0.0),
 )
 
@@ -106,8 +106,13 @@ class StudySession(Base):
     collaborator_ids = Column(JSON, nullable=True)  # List of collaborator user IDs
 
     # Timestamps
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(UTC), nullable=False)
+    updated_at = Column(
+        DateTime,
+        default=lambda: datetime.now(UTC),
+        onupdate=lambda: datetime.now(UTC),
+        nullable=False,
+    )
 
     # Relationships
     user = relationship("User", back_populates="study_sessions")

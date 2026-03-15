@@ -21,7 +21,7 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 # Global key storage with thread safety
 _key_lock = threading.RLock()
-_current_keys: dict[str, str] = {}
+_current_keys: dict[str, str | float] = {}
 _archived_keys: list[dict[str, Any]] = []
 
 # Initialize RSA keys for JWT
@@ -115,29 +115,30 @@ def create_access_token(subject: str | Any, expires_delta: timedelta | None = No
     if expires_delta:
         expire = datetime.now(UTC) + expires_delta
     else:
-        expire = datetime.now(UTC) + timedelta(
-            minutes=settings.JWT_ACCESS_TOKEN_EXPIRE_MINUTES
-        )
+        expire = datetime.now(UTC) + timedelta(minutes=settings.JWT_ACCESS_TOKEN_EXPIRE_MINUTES)
 
     current_keys = get_current_keys()
+    kid = current_keys.get("key_id", "fallback")
     to_encode = {
         "exp": expire,
         "sub": str(subject),
         "type": "access",
-        "kid": current_keys.get("key_id", "fallback"),  # Key ID for rotation support
     }
 
     # Use RS256 if RSA keys are available, otherwise fallback to HS256
+    # kid goes in the JWT header per RFC 7515, not the payload
     if current_keys.get("private"):
-        encoded_jwt = jwt.encode(to_encode, current_keys["private"], algorithm="RS256")
+        encoded_jwt = jwt.encode(
+            to_encode, current_keys["private"], algorithm="RS256", headers={"kid": kid}
+        )
     else:
-        encoded_jwt = jwt.encode(to_encode, settings.JWT_SECRET_KEY, algorithm="HS256")
+        encoded_jwt = jwt.encode(
+            to_encode, settings.JWT_SECRET_KEY, algorithm="HS256", headers={"kid": kid}
+        )
     return encoded_jwt
 
 
-def create_refresh_token(
-    subject: str | Any, expires_delta: timedelta | None = None
-) -> str:
+def create_refresh_token(subject: str | Any, expires_delta: timedelta | None = None) -> str:
     """
     Create a JWT refresh token.
 
@@ -154,18 +155,23 @@ def create_refresh_token(
         expire = datetime.now(UTC) + timedelta(days=settings.JWT_REFRESH_TOKEN_EXPIRE_DAYS)
 
     current_keys = get_current_keys()
+    kid = current_keys.get("key_id", "fallback")
     to_encode = {
         "exp": expire,
         "sub": str(subject),
         "type": "refresh",
-        "kid": current_keys.get("key_id", "fallback"),  # Key ID for rotation support
     }
 
     # Use RS256 if RSA keys are available, otherwise fallback to HS256
+    # kid goes in the JWT header per RFC 7515, not the payload
     if current_keys.get("private"):
-        encoded_jwt = jwt.encode(to_encode, current_keys["private"], algorithm="RS256")
+        encoded_jwt = jwt.encode(
+            to_encode, current_keys["private"], algorithm="RS256", headers={"kid": kid}
+        )
     else:
-        encoded_jwt = jwt.encode(to_encode, settings.JWT_SECRET_KEY, algorithm="HS256")
+        encoded_jwt = jwt.encode(
+            to_encode, settings.JWT_SECRET_KEY, algorithm="HS256", headers={"kid": kid}
+        )
     return encoded_jwt
 
 
@@ -175,9 +181,12 @@ def _find_key_for_token(token: str) -> str | None:
     Tries current key first, then archived keys for graceful rotation.
     """
     try:
-        # Decode without verification to get the key ID
-        unverified_payload = jwt.get_unverified_claims(token)
-        token_kid = unverified_payload.get("kid")
+        # Read kid from JWT header per RFC 7515 (falls back to claims for old tokens)
+        unverified_header = jwt.get_unverified_header(token)
+        token_kid = unverified_header.get("kid")
+        if not token_kid:
+            unverified_payload = jwt.get_unverified_claims(token)
+            token_kid = unverified_payload.get("kid")
 
         with _key_lock:
             # Try current key first

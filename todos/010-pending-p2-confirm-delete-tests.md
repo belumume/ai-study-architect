@@ -1,5 +1,5 @@
 ---
-status: pending
+status: complete
 priority: p2
 issue_id: "010"
 tags: [code-review, testing]
@@ -8,19 +8,16 @@ dependencies: []
 
 # Write tests for confirm_delete cascade behavior
 
-## Problem Statement
+## Solution Implemented
 
-The `confirm_delete` parameter on DELETE /content/{id} is a significant behavioral change to a destructive endpoint but has no dedicated tests.
-
-## Needed Tests
-
-1. DELETE content with concepts -> returns 409 with impact counts
-2. DELETE content with `?confirm_delete=true` -> cascades successfully
-3. DELETE content with no concepts -> succeeds without confirmation
-4. 409 response includes correct concept_count and mastery_records numbers
+Created `tests/test_content_delete.py` with 4 test cases:
+1. `test_delete_with_concepts_returns_409` — verifies 409 with impact counts
+2. `test_delete_with_confirm_cascades` — verifies cascade deletes concepts + mastery
+3. `test_delete_without_concepts_succeeds` — verifies simple delete without confirmation
+4. `test_409_response_structure` — verifies response has message, concepts_count, mastery_records
 
 ## Acceptance Criteria
 
-- [ ] 4 test cases covering all confirm_delete paths
-- [ ] Tests verify 409 response structure (message, concepts_count, mastery_records)
-- [ ] Tests verify cascade actually deletes concepts + mastery records
+- [x] 4 test cases covering all confirm_delete paths
+- [x] Tests verify 409 response structure (message, concepts_count, mastery_records)
+- [x] Tests verify cascade actually deletes concepts + mastery records

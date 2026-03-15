@@ -12,6 +12,7 @@ import { User, LogOut } from 'lucide-react'
 const NAV_LINKS = [
   { path: '/', label: 'Dashboard' },
   { path: '/study', label: 'Study' },
+  { path: '/focus', label: 'Focus' },
   { path: '/content', label: 'Content' },
 ] as const
 
@@ -60,10 +61,7 @@ export function TopNav() {
                 <User className="h-5 w-5" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent
-              align="end"
-              className="border-border bg-surface text-text-primary"
-            >
+            <DropdownMenuContent align="end" className="border-border bg-surface text-text-primary">
               <DropdownMenuItem disabled className="text-text-muted">
                 {user.username}
               </DropdownMenuItem>

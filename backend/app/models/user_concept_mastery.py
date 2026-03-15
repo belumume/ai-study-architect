@@ -8,7 +8,7 @@ Phase 5 will add: ease_factor, repetition_number, interval_days, next_review_dat
 
 import enum
 import uuid
-from datetime import datetime
+from datetime import UTC, datetime
 
 from sqlalchemy import (
     CheckConstraint,
@@ -62,8 +62,13 @@ class UserConceptMastery(Base):
     status = Column(String(20), nullable=False, default=MasteryStatus.NOT_STARTED)
     mastery_level = Column(Float, nullable=False, default=0.0)
 
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(UTC), nullable=False)
+    updated_at = Column(
+        DateTime,
+        default=lambda: datetime.now(UTC),
+        onupdate=lambda: datetime.now(UTC),
+        nullable=False,
+    )
 
     user = relationship("User", back_populates="concept_mastery")
     concept = relationship("Concept", back_populates="mastery_records")

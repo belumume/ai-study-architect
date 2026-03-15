@@ -3,7 +3,7 @@ Admin API endpoints for system management
 """
 
 import logging
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Request
@@ -567,7 +567,7 @@ def cleanup_expired_agents(request: Request, admin_user: User = Depends(verify_a
         return {
             "message": "Agent cleanup completed successfully",
             "cleaned_agents": cleaned_count,
-            "cleanup_time": str(datetime.utcnow()),
+            "cleanup_time": str(datetime.now(UTC)),
         }
 
     except Exception as e:

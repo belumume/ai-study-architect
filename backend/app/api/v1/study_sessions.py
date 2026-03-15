@@ -2,7 +2,7 @@
 Study session lifecycle endpoints (start/pause/resume/stop)
 """
 
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
@@ -57,10 +57,10 @@ async def start_session(
         if not subject:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Subject not found")
         title = (
-            session_data.title or f"{subject.name} - {datetime.utcnow().strftime('%b %d %H:%M')}"
+            session_data.title or f"{subject.name} - {datetime.now(UTC).strftime('%b %d %H:%M')}"
         )
     else:
-        title = session_data.title or f"General Study - {datetime.utcnow().strftime('%b %d %H:%M')}"
+        title = session_data.title or f"General Study - {datetime.now(UTC).strftime('%b %d %H:%M')}"
 
     session = StudySession(
         user_id=current_user.id,
@@ -68,8 +68,8 @@ async def start_session(
         title=title,
         study_mode=StudyMode(session_data.study_mode),
         status=SessionStatus.IN_PROGRESS,
-        actual_start=datetime.utcnow(),
-        last_resumed_at=datetime.utcnow(),
+        actual_start=datetime.now(UTC),
+        last_resumed_at=datetime.now(UTC),
     )
     db.add(session)
     db.commit()
@@ -85,7 +85,7 @@ async def pause_session(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    now = datetime.utcnow()
+    now = datetime.now(UTC)
 
     session = (
         db.query(StudySession)
@@ -140,8 +140,8 @@ async def resume_session(
         )
 
     session.status = SessionStatus.IN_PROGRESS
-    session.last_resumed_at = datetime.utcnow()
-    session.updated_at = datetime.utcnow()
+    session.last_resumed_at = datetime.now(UTC)
+    session.updated_at = datetime.now(UTC)
     db.commit()
     db.refresh(session)
     return session
@@ -171,7 +171,7 @@ async def stop_session(
             detail={"error": "Invalid transition", "current_status": session.status.value},
         )
 
-    now = datetime.utcnow()
+    now = datetime.now(UTC)
 
     # Accumulate remaining time if still in progress
     if session.status == SessionStatus.IN_PROGRESS and session.last_resumed_at:

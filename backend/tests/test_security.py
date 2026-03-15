@@ -240,6 +240,69 @@ class TestJWTKeyRotation:
         assert verified_user_id == user_id
 
 
+class TestRSAKeyEnvLoading:
+    """Test RSA key loading from environment variables"""
+
+    def test_load_keys_from_env(self, monkeypatch):
+        """Keys from env vars (base64-encoded PEM) should load successfully"""
+        import base64
+        from app.core.rsa_keys import RSAKeyManager
+
+        mgr = RSAKeyManager()
+        private_pem, public_pem = mgr.generate_key_pair()
+
+        private_b64 = base64.b64encode(private_pem.encode()).decode()
+        public_b64 = base64.b64encode(public_pem.encode()).decode()
+
+        monkeypatch.setattr("app.core.config.settings.RSA_PRIVATE_KEY", private_b64)
+        monkeypatch.setattr("app.core.config.settings.RSA_PUBLIC_KEY", public_b64)
+
+        result = mgr._load_keys_from_env()
+        assert result is not None
+        loaded_private, loaded_public = result
+        assert loaded_private == private_pem
+        assert loaded_public == public_pem
+
+    def test_env_keys_missing_returns_none(self, monkeypatch):
+        """Missing env vars should return None (falls through to file-based)"""
+        from app.core.rsa_keys import RSAKeyManager
+
+        monkeypatch.setattr("app.core.config.settings.RSA_PRIVATE_KEY", None)
+        monkeypatch.setattr("app.core.config.settings.RSA_PUBLIC_KEY", None)
+
+        mgr = RSAKeyManager()
+        assert mgr._load_keys_from_env() is None
+
+    def test_env_keys_invalid_base64_returns_none(self, monkeypatch):
+        """Invalid base64 should return None (falls through to file-based)"""
+        from app.core.rsa_keys import RSAKeyManager
+
+        monkeypatch.setattr("app.core.config.settings.RSA_PRIVATE_KEY", "not-valid-base64!!!")
+        monkeypatch.setattr("app.core.config.settings.RSA_PUBLIC_KEY", "not-valid-base64!!!")
+
+        mgr = RSAKeyManager()
+        assert mgr._load_keys_from_env() is None
+
+    def test_env_keys_used_for_jwt_roundtrip(self, monkeypatch):
+        """Tokens created with env-loaded keys should verify correctly"""
+        import base64
+        from app.core.rsa_keys import RSAKeyManager
+
+        mgr = RSAKeyManager()
+        private_pem, public_pem = mgr.generate_key_pair()
+
+        private_b64 = base64.b64encode(private_pem.encode()).decode()
+        public_b64 = base64.b64encode(public_pem.encode()).decode()
+
+        monkeypatch.setattr("app.core.config.settings.RSA_PRIVATE_KEY", private_b64)
+        monkeypatch.setattr("app.core.config.settings.RSA_PUBLIC_KEY", public_b64)
+
+        result = mgr._load_keys_from_env()
+        assert result is not None
+        assert "BEGIN RSA PRIVATE KEY" in result[0] or "BEGIN PRIVATE KEY" in result[0]
+        assert "BEGIN PUBLIC KEY" in result[0] or "BEGIN PUBLIC KEY" in result[1]
+
+
 class TestSecurityEdgeCases:
     """Test security edge cases and potential vulnerabilities"""
 

@@ -2,7 +2,7 @@
 Authentication endpoints - Sync version
 """
 
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
 
 from fastapi import APIRouter, Depends, Form, Request, Response, status
@@ -126,7 +126,7 @@ def login(
         raise InactiveUserError()
 
     # Update last login
-    user.last_login_at = datetime.utcnow()
+    user.last_login_at = datetime.now(UTC)
     db.commit()
 
     # Create tokens

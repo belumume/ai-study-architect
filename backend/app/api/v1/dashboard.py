@@ -14,6 +14,7 @@ from sqlalchemy import Date, and_, case, cast, distinct, func
 from sqlalchemy.orm import Session
 
 from app.api.dependencies import get_current_user, get_db
+from app.core.cache import redis_cache
 from app.core.rate_limiter import limiter
 from app.models.concept import Concept
 from app.models.content import Content
@@ -64,6 +65,12 @@ async def get_dashboard(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
+    # Check Redis cache first (60s TTL per user)
+    cache_key = f"dashboard:{current_user.id}"
+    cached = redis_cache.get(cache_key)
+    if cached:
+        return DashboardSummary(**cached)
+
     user_tz = zoneinfo.ZoneInfo(current_user.timezone or "UTC")
     now_local = datetime.now(user_tz)
     today_start_local = now_local.replace(hour=0, minute=0, second=0, microsecond=0)
@@ -235,31 +242,12 @@ async def get_dashboard(
             )
         )
 
-    # Query 4: Concept mastery summary
-    try:
-        mastery_stats = (
-            db.query(
-                func.count(UserConceptMastery.id).label("total"),
-                func.sum(
-                    case(
-                        (UserConceptMastery.status == "mastered", 1),
-                        else_=0,
-                    )
-                ).label("mastered"),
-            )
-            .filter(UserConceptMastery.user_id == current_user.id)
-            .first()
-        )
-        total_concepts = (mastery_stats.total or 0) if mastery_stats else 0
-        mastered_concepts = (mastery_stats.mastered or 0) if mastery_stats else 0
-    except Exception:
-        logger.warning("Global mastery count query failed", exc_info=True)
-        total_concepts = 0
-        mastered_concepts = 0
-
+    # Derive global mastery from per-subject results (saves one DB round-trip)
+    total_concepts = sum(c for c, _ in mastery_by_subject.values())
+    mastered_concepts = sum(m for _, m in mastery_by_subject.values())
     mastery_index = (mastered_concepts / total_concepts * 100) if total_concepts > 0 else None
 
-    return DashboardSummary(
+    result = DashboardSummary(
         today_minutes=today_minutes,
         week_minutes=week_minutes,
         current_streak=streak,
@@ -270,3 +258,8 @@ async def get_dashboard(
         total_concepts=total_concepts,
         mastered_concepts=mastered_concepts,
     )
+
+    # Cache result for 60s (short enough that session changes reflect quickly)
+    redis_cache.set(cache_key, result.model_dump(mode="json"), ttl=60)
+
+    return result

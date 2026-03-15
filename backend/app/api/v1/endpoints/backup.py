@@ -7,7 +7,7 @@ import logging
 import os
 import subprocess
 import time
-from datetime import datetime
+from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Request
 from pydantic import BaseModel
@@ -33,11 +33,9 @@ MIN_BACKUP_INTERVAL = 3600  # 1 hour minimum between manual backups
 
 
 async def verify_backup_token(x_backup_token: str | None = Header(None), request: Request = None):
-    """Verify the backup token with rate limiting and logging"""
-    global last_backup_time
-
+    """Verify the backup token. Authentication only — rate limiting is on /trigger."""
     # Log attempt for security monitoring
-    client_ip = request.client.host if request else "unknown"
+    client_ip = request.client.host if request and request.client else "unknown"
     user_agent = request.headers.get("user-agent", "") if request else ""
     logger.info(f"Backup attempt from IP: {client_ip}, User-Agent: {user_agent}")
 
@@ -49,25 +47,27 @@ async def verify_backup_token(x_backup_token: str | None = Header(None), request
         logger.warning(f"Invalid backup token attempt from IP: {client_ip}")
         raise HTTPException(status_code=403, detail="Forbidden")
 
-    # During testing phase, we'll be more lenient with rate limiting
-    # After testing is complete, remove BACKUP_TEST_MODE and increase MIN_BACKUP_INTERVAL to 3600
-    is_test_mode = os.getenv("BACKUP_TEST_MODE", "false").lower() == "true"
-
-    # Apply rate limiting (unless in test mode)
-    if not is_test_mode:
-        # Check rate limiting for manual triggers
-        current_time = time.time()
-        if last_backup_time and (current_time - last_backup_time) < MIN_BACKUP_INTERVAL:
-            remaining_seconds = MIN_BACKUP_INTERVAL - (current_time - last_backup_time)
-            logger.warning(f"Rate limit hit from IP: {client_ip}. Wait {remaining_seconds:.0f}s")
-            raise HTTPException(
-                status_code=429,
-                detail=f"Rate limit: wait {remaining_seconds:.0f} seconds before next backup",
-            )
-    else:
-        logger.info("Test mode enabled - rate limiting bypassed")
-
     return True
+
+
+def _check_trigger_rate_limit(request: Request | None = None):
+    """Rate limit check for /trigger only. Raises 429 if called too soon."""
+    global last_backup_time
+
+    is_test_mode = os.getenv("BACKUP_TEST_MODE", "false").lower() == "true"
+    if is_test_mode:
+        logger.info("Test mode enabled - rate limiting bypassed")
+        return
+
+    current_time = time.time()
+    if last_backup_time and (current_time - last_backup_time) < MIN_BACKUP_INTERVAL:
+        remaining_seconds = MIN_BACKUP_INTERVAL - (current_time - last_backup_time)
+        client_ip = request.client.host if request else "unknown"
+        logger.warning(f"Rate limit hit from IP: {client_ip}. Wait {remaining_seconds:.0f}s")
+        raise HTTPException(
+            status_code=429,
+            detail=f"Rate limit: wait {remaining_seconds:.0f} seconds before next backup",
+        )
 
 
 @router.post("/trigger")
@@ -81,6 +81,8 @@ async def trigger_backup(
     Protected by secret token and rate limiting (except for GitHub Actions).
     """
     global last_backup_time
+
+    _check_trigger_rate_limit(request)
 
     provider = backup_request.provider
 
@@ -161,14 +163,14 @@ async def trigger_backup(
                 else ("success" if success_count == len(results) else "failed"),
                 "message": f"Backup completed: {success_count}/{len(results)} successful",
                 "details": results,
-                "timestamp": datetime.utcnow().isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
             }
         else:
             last_backup_time = time.time()
             return {
                 "status": "success",
                 "message": f"{provider.upper()} backup completed",
-                "timestamp": datetime.utcnow().isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
             }
     except subprocess.TimeoutExpired:
         logger.error("Backup operation timed out")
