@@ -1,62 +1,69 @@
 ---
-title: "Session 10: Todo Completion, Security Hardening, GitHub Actions Infrastructure, Monetization Strategy, and Multi-Round PR Review"
+title: "Session 10: Phase 2 Follow-up — Todo Resolution, Security Hardening, Model Routing, Monetization Strategy, and GitHub Actions Infrastructure"
 category: integration-issues
 date: 2026-03-15
 session: 10
 tags:
-  - todo-completion
+  - phase-2
+  - concept-extraction
   - structured-outputs
-  - empty-state-ux
-  - content-deletion-cascade
-  - mastery-percentage
-  - model-comparison
-  - lint-cleanup
-  - monetization-strategy
-  - usage-gated-freemium
-  - ai-cost-modeling
-  - ce-review
   - security-hardening
-  - user-scoping
+  - model-routing
+  - monetization
+  - github-actions
+  - ci-cd
+  - code-review
+  - todo-resolution
   - rce-removal
   - info-disclosure
+  - user-scoping
   - cache-ttl
   - extraction-status
   - vision-model-update
   - credential-exposure
-  - github-actions
-  - claude-code-review
-  - reusable-workflows
   - hub-and-spoke
   - shared-workflow
   - pr-review-loop
   - false-positive-analysis
   - todo-tracking
-severity: high
+severity: mixed (P1 security fixes, P2 feature work, P3 cleanup)
 components_affected:
-  - backend/app/services/concept_extraction.py
-  - backend/app/services/claude_service.py
-  - backend/app/services/vision_processor.py
   - backend/app/api/v1/concepts.py
   - backend/app/api/v1/content.py
   - backend/app/api/v1/dashboard.py
   - backend/app/api/v1/endpoints/backup.py
   - backend/app/core/cache.py
   - backend/app/core/upstash_cache.py
-  - backend/app/utils/sanitization.py
+  - backend/app/models/content.py
+  - backend/app/schemas/concept.py
+  - backend/app/services/claude_service.py
+  - backend/app/services/concept_extraction.py
+  - backend/app/services/vision_processor.py
   - backend/app/utils/file_validation.py
+  - backend/app/utils/sanitization.py
+  - backend/tests/test_concept_extraction.py
+  - backend/tests/test_dashboard.py
+  - backend/tests/test_sanitization.py
+  - backend/tests/spike_structured_outputs.py
+  - backend/tests/spike_model_comparison.py
   - frontend/src/components/dashboard/HeroMetrics.tsx
   - frontend/src/components/dashboard/SubjectList.tsx
   - frontend/src/components/subject-detail/ExtractionTrigger.tsx
   - frontend/src/components/subject-detail/SubjectMasteryOverview.tsx
   - frontend/src/pages/DashboardPage.tsx
   - frontend/src/pages/SubjectDetailPage.tsx
+  - frontend/src/types/concept.ts
   - .github/workflows/claude-code-review.yml
   - .github/workflows/claude.yml
-  - belumume/.github (shared workflow hub)
+  - belumume/.github (new repo)
+  - ~/.claude/commands/setup-claude-repo.md
+  - ~/.claude/commands/refresh-claude-token.md
+  - ~/.claude/rules/no-shortcuts.md
+  - ~/.claude/rules/claude-github-actions.md
 related_docs:
-  - docs/plans/2026-03-14-002-feat-concept-extraction-pipeline-plan.md
   - docs/solutions/integration-issues/phase2-concept-extraction-session9-compound.md
   - docs/solutions/integration-issues/phase2-followup-session10-compound.md
+  - docs/plans/2026-03-14-002-feat-concept-extraction-pipeline-plan.md
   - docs/brainstorms/2026-03-14-monetization-strategy-brainstorm.md
   - docs/analysis/AI_EDUCATION_COST_MODELING_2026.md
   - docs/analysis/PRICING_DECISION_CARD.md
@@ -66,181 +73,306 @@ related_docs:
 
 ## Overview
 
-Session 10 covered 5 major work phases across 15 distinct problems solved, producing 95 file changes, 11 new todos (009-019), 3 strategy docs, and infrastructure spanning all 46 GitHub repositories. PR #29 squash-merged to main.
+Session 10 covered 5 major work phases, solving 36 distinct problems across 95 file changes. Produced 11 new todos (009-019), 3 strategy docs, and infrastructure spanning all 46 GitHub repositories. PR #29 squash-merged to main. 421 backend + 86 frontend tests pass, 53.9% coverage.
 
 ---
 
-## 1. Structured Outputs Validation
+## Phase 1: Todo Completion (Problems 1-8)
 
-**Problem:** Untested whether Claude's `output_config.format` with JSON schema works reliably via raw httpx.
+### Problem 1: Structured Outputs API Contract Unvalidated
 
-**Root Cause:** Feature was GA but never spike-tested in this codebase.
+**Problem:** Concept extraction used `output_config.format` with `json_schema` but was never tested against the real API. Model IDs in the initial spike script were stale (from training data).
 
-**Solution:** Spike test confirmed both Sonnet 4.6 and Haiku 4.5 return guaranteed-valid JSON. No beta header needed. `anthropic-version: 2023-06-01` is the current and only stable version. Response at `content[0]["text"]` parses cleanly with `json.loads()`.
+**Solution:** Spike test confirmed both `claude-sonnet-4-6` and `claude-haiku-4-5` return guaranteed-valid JSON via raw httpx with `anthropic-version: 2023-06-01`. No beta header needed (GA). Added `output_config` and `model` params to `ClaudeService.chat_completion()`.
 
-**Code Changes:** Added `output_config` and `model` params to `ClaudeService.chat_completion()`. Spike test at `backend/tests/spike_structured_outputs.py`.
+**Code Changes:** `spike_structured_outputs.py` (new), `claude_service.py` (output_config + model params)
 
-## 2. Empty Extraction UX
+### Problem 2: No UX for Zero-Concept Extraction
 
-**Problem:** Zero-concept extraction showed "success" toast and "completed" status -- misleading.
+**Problem:** Zero-concept extraction showed success toast and `completed` status. No distinction between "found concepts" and "found nothing."
 
-**Root Cause:** No distinction between "extraction ran and found nothing" vs "extraction ran and found concepts."
+**Solution:** Three-tier status: `completed`, `completed_empty`, `failed`. Added `message` field to `ConceptBulkCreateResponse`. Frontend warning toast for 0 concepts. Content items show "No concepts found" for `completed_empty`.
 
-**Solution:** Three-tier status: `completed` (found concepts), `completed_empty` (ran successfully, nothing found), `failed` (API error). Added `message` field to `ConceptBulkCreateResponse`. Frontend shows warning toast for 0 concepts.
+**Code Changes:** `concept.py` (message field), `concept_extraction.py` (early return), `concepts.py` (status logic), `ExtractionTrigger.tsx` (warning toast), `SubjectDetailPage.tsx` (status text)
 
-**Code Changes:** `concept_extraction.py` (early return with message), `concepts.py` (status logic), `ExtractionTrigger.tsx` (warning toast), `SubjectDetailPage.tsx` (status text).
+### Problem 3: Dashboard Tests and Per-Subject Mastery
 
-## 3. Content Deletion Cascade Warning
+**Problem:** No dashboard tests. Per-subject mastery missing from API and UI. Coverage 53.48%.
 
-**Problem:** `DELETE /content/{id}` silently cascaded to concepts + mastery records.
+**Solution:** 4 dashboard tests, zero-concept extraction test. Per-subject mastery query with `Concept` + `UserConceptMastery` outerjoin grouped by `subject_id`. Coverage rose to 54.29%.
 
-**Solution:** `confirm_delete` query param (defaults to `false`). Returns 409 with `{concepts_count, mastery_records}` unless `?confirm_delete=true`.
+**Code Changes:** `test_dashboard.py` (new), `test_concept_extraction.py` (+33 lines), `dashboard.py` (mastery query), `SubjectList.tsx` (concept count display)
 
-## 4. Security: User-Scoping Gaps
+### Problem 4: Content Deletion Silently Cascades
 
-**Problem:** Dashboard concept count and delete cascade mastery count not filtered by user.
+**Problem:** DELETE destroyed concepts and mastery records without warning.
 
-**Solution:** Added `Content.user_id` join filter to dashboard. Added `UserConceptMastery.user_id` filter to delete cascade count.
+**Solution:** `confirm_delete` query parameter. Without it: 409 with `{concepts_count, mastery_records}`. With `?confirm_delete=true`: proceeds.
 
-## 5. Model Selection
+**Code Changes:** `content.py` (confirm_delete param, cascade impact check)
 
-**Problem:** Sonnet used for all extraction. Haiku untested.
+### Problem 5: Misleading Mastery Empty States
 
-**Solution:** Comparison: Haiku 3.6x cheaper, 2.6x faster, comparable quality (13 vs 15 concepts, same 0.92 confidence). Default changed to `claude-haiku-4-5`.
+**Problem:** Dashboard showed "0% ACROSS SUBJECTS." Subject Detail showed wall of zeros.
 
-## 6. Claude GitHub Actions Debugging
+**Solution:** HeroMetrics shows concept count sublabel. SubjectMasteryOverview shows "Practice features coming soon" when all concepts are not_started.
 
-**Problem:** PR review comments never posted despite workflows running.
+**Code Changes:** `HeroMetrics.tsx` (totalConcepts prop, sublabel logic), `SubjectMasteryOverview.tsx` (not_started check), `DashboardPage.tsx` (pass totalConcepts)
 
-**Root Cause:** `anthropics/claude-code-action@v1` has broken comment posting (issue #567). Also: 5 permission denials without `--allowedTools`, workflow file validation fails when PR branch differs from main.
+### Problem 6: Lint Issues Accumulated
 
-**Solution:** Reverted to `@beta` + `direct_prompt`. Simplified prompt to 4 timeless lines + privacy constraint. Verified with bait PR that comments post correctly.
+**Problem:** 1000+ lint warnings across backend.
 
-## 7. Shared Workflow Hub (Hub-and-Spoke)
+**Solution:** ruff `--fix` applied 915 auto-fixes (857 safe + 58 whitespace). 145 remaining are framework-required.
 
-**Problem:** 46 repos need identical Claude workflows. Maintaining copies is unsustainable.
+### Problem 7: Extraction Model Cost Optimization
 
-**Solution:** Created `belumume/.github` with reusable workflows. All repos use thin caller files (8-15 lines) pointing to hub. One change propagates everywhere. Fixed permissions issue: callers must declare permissions for reusable workflows.
+**Problem:** Sonnet used for all extraction without quality comparison.
 
-**Infrastructure created:**
-- `belumume/.github` repo (shared workflows + templates)
-- `/setup-claude-repo` slash command (sets secret + adds caller files)
-- `/refresh-claude-token` slash command (updates token across all repos)
-- `~/.claude/rules/claude-github-actions.md` (scoped rule)
+**Solution:** Comparison: Haiku 3.6x cheaper ($0.016 vs $0.057), 2.6x faster (20s vs 51s), comparable quality (13 vs 15 concepts, same 0.92 confidence). Default changed to `claude-haiku-4-5`.
 
-## 8. Cache RCE Removal
+**Code Changes:** `spike_model_comparison.py` (new), `concept_extraction.py` (default model changed)
 
-**Problem:** `cache.py` used unsafe deserialization from Redis -- RCE vector if cache compromised.
+### Problem 8: Test User in Production
 
-**Solution:** Removed unsafe deserialization entirely. JSON-only serialization.
+**Problem:** `uitest2026` remained in production Neon.
 
-## 9. Backup Security Hardening
+**Solution:** Deleted via browser automation (Neon SQL Editor). Manual cascade through all FK-dependent tables. Verified COUNT=0.
 
-**Problem:** Predictable `"not-configured"` token fallback. Stack traces + subprocess output in HTTP responses. Credential exposure in process list via CLI args. Rate limiter before success.
+---
 
-**Solution:** Token fail-closed (`None` + 503). Generic error responses with `exc_info=True` in logger. CLI replaced with SQLAlchemy `engine.connect()`. Rate limiter moved to after successful backup only.
+## Phase 2: Security Hardening (Problems 9-22)
 
-## 10. Filename Sanitization
+### Problem 9: Dashboard Concept Count Not User-Scoped
 
-**Problem:** `".."` directory traversal possible. `lstrip(".")` removed file extensions.
+**Problem:** Per-subject mastery query did not filter by `Content.user_id` -- latent cross-user data leak.
 
-**Solution:** Strip consecutive leading dots while preserving extensions. `"....pdf"` -> `".pdf"`, `".."` -> `"unnamed_file"`, `".hidden.txt"` -> `".hidden.txt"`.
+**Solution:** Added `.join(Content).filter(Content.user_id == current_user.id)`.
 
-## 11. Cache Improvements
+### Problem 10: Delete Cascade Mastery Count Not User-Scoped
 
-**Problem:** TTL=0 silently dropped (`if ex:`). Falsy values treated as cache misses (`if result:`). No timeouts on HTTP calls. No URL encoding for keys.
+**Problem:** Mastery count in 409 response included other users' records.
 
-**Solution:** `if ex is not None and ex > 0:`. `if result is not None:`. `timeout=5` on all requests. `quote(key, safe='')` for GET requests.
+**Solution:** Added `UserConceptMastery.user_id == current_user.id` filter.
 
-## 12. Extraction Status Logic
+### Problem 11: Bare `except: pass` in Dashboard
 
-**Problem:** `created_concepts == 0` checked before `chunks_failed`, masking failures as "completed_empty".
+**Problem:** 4 bare `except: pass` blocks swallowed all errors silently.
+
+**Solution:** Added `logger.warning("...", exc_info=True)` to all 4.
+
+### Problem 12: Backup Token Predictable Fallback
+
+**Problem:** `BACKUP_TOKEN = "not-configured"` when env var missing -- known backdoor value.
+
+**Solution:** `BACKUP_TOKEN = None` + 503 "Backup service not configured" when None. Fail-closed.
+
+### Problem 13: Filename Sanitization Directory Traversal
+
+**Problem:** `sanitize_filename(".....")` returned `".."` -- directory traversal.
+
+**Solution:** Strip leading `..` sequences while preserving extensions. `"....pdf"` -> `".pdf"`, `".."` -> `"unnamed_file"`.
+
+### Problem 14: Stack Trace Exposure in Backup Response
+
+**Problem:** `traceback.format_exc()[-1000:]` leaked in HTTP response.
+
+**Solution:** `logger.error(..., exc_info=True)` server-side. Generic `"Backup failed unexpectedly"` in response.
+
+### Problem 15: Subprocess Output Leakage in Backup
+
+**Problem:** `result.stdout[-1000:]` and `result.stderr[-1000:]` leaked in HTTP error responses.
+
+**Solution:** Log server-side, generic error in HTTP response.
+
+### Problem 16: Extraction Status Logic Ordering
+
+**Problem:** `created_concepts == 0` checked before `chunks_failed`, masking failures as "completed_empty." Flagged by 3 independent reviewers.
 
 **Solution:** Check `chunks_failed` first.
 
-## 13. Frontend Fixes
+### Problem 17: Unsafe Deserialization (RCE) in Cache
 
-- Mastery overview: `not_started_count === total_concepts` (handles reviewing state)
-- Added `partial` extraction status display
-- Added `extracting` in-progress status with disabled button
-- HeroMetrics: concept count sublabel when mastery is 0%
-- Model override reporting fixed in success path
+**Problem:** `cache.py` used unsafe deserialization as fallback from Redis -- RCE vector if cache compromised.
 
-## 14. Monetization Strategy
+**Solution:** Removed entirely. JSON-only serialization.
 
-**Problem:** No pricing/monetization model existed.
+### Problem 18: Deprecated Vision Model
 
-**Solution:** Researched 12+ education SaaS products. Decision: $9.99/mo usage-gated freemium. Internal model routing by task (Haiku extraction, Sonnet tutoring). Same AI quality across tiers. No model picker UI. 90% margin at $9.99 with Sonnet tutoring + Haiku extraction. Phase 6 implementation.
+**Problem:** `gpt-4-vision-preview` hardcoded -- confirmed retired via OpenAI docs.
 
-**Docs created:** `docs/brainstorms/2026-03-14-monetization-strategy-brainstorm.md`, `docs/analysis/PRICING_DECISION_CARD.md`, `docs/analysis/AI_EDUCATION_COST_MODELING_2026.md`.
+**Solution:** Changed to `os.getenv("OPENAI_MODEL", "gpt-5.4")`.
 
-## 15. Vision Model Update
+### Problem 19: psql Credential Exposure
 
-**Problem:** `gpt-4-vision-preview` deprecated (verified via OpenAI docs).
+**Problem:** `subprocess.run(["psql", db_url, ...])` exposed DATABASE_URL (with password) in process list.
 
-**Solution:** Replaced with `os.getenv("OPENAI_MODEL", "gpt-5.4")` -- same default as rest of app. Modern models include vision natively.
+**Solution:** Replaced with SQLAlchemy `engine.connect()` + `text()` query.
+
+### Problem 20: Upstash Cache Missing Timeouts
+
+**Problem:** 7 HTTP calls with no timeout -- could hang indefinitely.
+
+**Solution:** `timeout=5` on all 7 calls.
+
+### Problem 21: Cache TTL=0 Bug
+
+**Problem:** `if ex:` treated TTL=0 as falsy, skipping expiration. Redis also rejects EX 0.
+
+**Solution:** `if ex is not None and ex > 0:`.
+
+### Problem 22: Cache Falsy Value Treated as Miss
+
+**Problem:** `if result:` treated `0`, `""`, `false` as cache misses.
+
+**Solution:** `if result is not None:`.
+
+---
+
+## Phase 3: Frontend Fixes (Problems 23-27)
+
+### Problem 23: Missing `extracting` Status
+
+**Problem:** No handling for in-progress extraction.
+
+**Solution:** "Extracting concepts..." text + disabled extract button.
+
+### Problem 24: Cache Key URL Encoding
+
+**Problem:** Keys with `/` or `?` broke Upstash REST GET URL.
+
+**Solution:** `quote(key, safe='')` for GET requests.
+
+### Problem 25: Missing `partial` Extraction Status
+
+**Problem:** No UI handling for partial extraction failures.
+
+**Solution:** "Partial extraction -- some sections failed" text.
+
+### Problem 26: Mastery Overview Ignoring `reviewing` State
+
+**Problem:** `mastered === 0 && learning === 0` misclassified reviewing concepts as empty.
+
+**Solution:** Changed to `not_started_count === total_concepts`.
+
+### Problem 27: Model Override Reporting Wrong Model
+
+**Problem:** Success response used `self.model` instead of `model or self.model` when override was passed.
+
+**Solution:** Fixed in success path (line 146).
+
+---
+
+## Phase 4: GitHub Actions Infrastructure (Problems 28-32)
+
+### Problem 28: Claude Review Action Not Posting Comments
+
+**Problem:** `@v1` has broken comment posting (anthropics/claude-code-action#567). 5 permission denials without `--allowedTools`. Workflow file validation fails when PR branch differs from main.
+
+**Solution:** Reverted to `@beta` + `direct_prompt`. Simplified prompt to 4 timeless lines + privacy instruction. Verified with bait PR (#28).
+
+### Problem 29: No Centralized Workflow Management
+
+**Problem:** 46 repos needed identical Claude workflows. Maintaining copies unsustainable.
+
+**Solution:** Created `belumume/.github` hub with shared reusable workflows. All repos use thin caller files. One change propagates everywhere.
+
+### Problem 30: Shared Workflow Callers Missing Permissions
+
+**Problem:** Caller files without `permissions:` block caused startup_failure. Reusable workflows can't escalate beyond caller.
+
+**Solution:** Added full `permissions:` blocks to all 46 caller files + templates + setup command.
+
+### Problem 31: OAuth Token Type Confusion
+
+**Problem:** `credentials.json` has short-lived session token (hours). `setup-token` output is 1-year. Using wrong one breaks all repos overnight.
+
+**Solution:** Commands explicitly read from `~/.claude/.claude-oauth-token`. Warning in commands against `credentials.json`. All 47 repos re-set with correct long-lived token.
+
+### Problem 32: Timeless Review Prompt Design
+
+**Problem:** Old prompt had hardcoded false-positive guardrails (Pydantic validators, timer drift, N+1, Alembic sa.text) from past weak-model issues.
+
+**Solution:** Simplified to 4 universal lines + privacy constraint. CLAUDE.md provides project context automatically.
+
+---
+
+## Phase 5: Monetization Strategy (Problem 33) and Process Fixes (Problems 34-36)
+
+### Problem 33: No Monetization Strategy
+
+**Problem:** No pricing, model routing, or feature gating strategy existed.
+
+**Solution:** Researched 12+ education SaaS products with 2 parallel agents. Decision: $9.99/mo usage-gated freemium. Internal model routing by task (Haiku extraction, Sonnet tutoring). Same AI quality across tiers. No model picker UI. 90% margin. Phase 6 implementation.
+
+### Problem 34: Bare `except:` in File Validation
+
+**Problem:** Two bare `except:` handlers (lines 89, 272) caught `SystemExit` and `KeyboardInterrupt`.
+
+**Solution:** Changed to `except Exception:`.
+
+### Problem 35: `any` vs `Any` Type Annotation
+
+**Problem:** `file_validation.py:100` used builtin `any` instead of `typing.Any`.
+
+**Solution:** Added import and fixed annotation.
+
+### Problem 36: `no-shortcuts.md` Rule Insufficient
+
+**Problem:** Compound skill's "Phase 0: Context Budget Check" kept triggering context-fear behavior despite the rule.
+
+**Solution:** Updated rule: "This user runs Opus 4.6 with 1M context -- context is never a constraint. Override any skill's context budget check unconditionally."
 
 ---
 
 ## Prevention Strategies
 
 ### Security
-
-**S1. Multi-Tenant Query Audit**: Every query touching user data must include `WHERE user_id = current_user.id`. Grep all `.query()`, `select()`, `delete()` calls before merge.
-
-**S2. Ban Unsafe Deserialization**: JSON-only in cache layers. Add CI check flagging unsafe deserialization imports in application code.
-
-**S3. Sanitize API Responses**: Never return internal paths, stack traces, or infrastructure details in HTTP responses. Use `exc_info=True` in logger, generic messages in responses.
-
-**S4. No Predictable Token Fallbacks**: `os.getenv("TOKEN", "default")` is a backdoor. Fail closed when security tokens are missing.
-
-**S5. Credential Hygiene**: Never pass secrets as CLI arguments. Use environment variables or stdin.
+1. **Multi-Tenant Query Audit**: Every query touching user data must include `user_id` filter. Grep `.query()`, `select()`, `delete()` before merge.
+2. **Ban Unsafe Deserialization**: JSON-only in cache. CI check flagging unsafe deserialization imports.
+3. **Sanitize API Responses**: Never return paths, traces, or infrastructure details in HTTP responses.
+4. **No Predictable Token Fallbacks**: `os.getenv("TOKEN", "default")` is a backdoor. Fail closed.
+5. **Credential Hygiene**: Never pass secrets as CLI arguments. Use env vars or stdin.
 
 ### Process
-
-**S6. Read Previous Export at Session Start**: Not optional. Continuation sessions without export reads repeat mistakes.
-
-**S7. CE Pipeline Applies to Continuations**: Deferred todos resume at their pipeline stage, not as isolated tasks.
-
-**S8. "Already Tracked" Requires Evidence**: Cite the specific todo file. If you can't, it's not tracked -- create one.
+6. **Read Previous Export at Session Start**: Not optional. Continuation sessions without export reads repeat mistakes.
+7. **CE Pipeline Applies to Continuations**: Deferred todos resume at their pipeline stage.
+8. **"Already Tracked" Requires Evidence**: Cite the specific todo. No evidence = not tracked.
+9. **Don't Ask Permission for Work the Pipeline Requires**: If the task list includes it, do it.
+10. **Don't Replace Working Code Without Comparing**: Diff local vs shared before substituting.
 
 ### GitHub Actions
-
-**S9. Version Pinning**: Pin by SHA, not `@v1` tags. Tags can break silently.
-
-**S10. Caller Declares Permissions**: Reusable workflows inherit caller permissions. Fix is always in the caller.
+11. **Version Pinning**: Pin by SHA, not `@v1` tags. Tags break silently.
+12. **Caller Declares Permissions**: Reusable workflows inherit caller permissions.
 
 ### Review Loop
-
-**S11. Reviewer Trust Earned Per-Finding**: Neither blanket trust nor blanket dismissal. Each finding independently verified.
-
-**S12. Reviewer Hallucination Guard**: Don't accept specific model IDs or dates from reviewer without verification from official docs.
-
-**S13. Deprecated APIs Are Ticking Clocks**: Retired = P1. Deprecated = P2. Automate detection via lint rules.
+13. **Reviewer Trust Earned Per-Finding**: Each finding independently verified.
+14. **Reviewer Hallucination Guard**: Verify model IDs, dates, versions from official docs.
+15. **Deprecated APIs Are Ticking Clocks**: Retired = P1. Deprecated = P2. Automate detection.
 
 ---
 
 ## Lessons Learned
 
-**L1. Security gaps cluster around authorization, not authentication.** Per-query scoping, not auth mechanisms, is where leaks happen.
+**L1.** Security gaps cluster around authorization, not authentication. Per-query scoping is where leaks happen.
 
-**L2. "Context constraints" is a fabricated excuse.** Subagents have independent context windows. This appeared 3 times despite a rule against it.
+**L2.** "Context constraints" is a fabricated excuse. Appeared 3 times despite a rule against it. The trigger was a skill's built-in Phase 0 check.
 
-**L3. Reusable workflow permissions are the caller's responsibility.** A reusable workflow cannot escalate permissions.
+**L3.** Reusable workflow permissions are the caller's responsibility. The hub can't escalate for the caller.
 
-**L4. Sticky review comments degrade after many updates.** Close and reopen PRs for clean review cycles.
+**L4.** Sticky review comments degrade after many updates. Close and reopen PRs for clean review cycles.
 
-**L5. Continuation sessions without export reads repeat mistakes.** The export exists to provide continuity.
+**L5.** Continuation sessions without export reads repeat mistakes. The export provides continuity.
 
-**L6. `bare except: pass` is a bug factory.** It catches `SystemExit` and `KeyboardInterrupt`. Minimum: `except Exception:` with logging.
+**L6.** `bare except: pass` is a bug factory. Catches `SystemExit` and `KeyboardInterrupt`.
 
-**L7. False positive dismissal requires the same rigor as investigation.** "Pre-existing and minor" without evidence is ignoring a real finding.
+**L7.** False positive dismissal requires the same rigor as investigation. "Pre-existing and minor" without evidence = ignoring.
 
-**L8. Each review run re-flags pre-existing issues.** The reviewer has no memory. The only way to stop re-flagging is to fix the issues. Tracking without fixing creates an infinite review loop.
+**L8.** Each review run re-flags pre-existing issues. The reviewer has no memory. Fix or accept the loop.
 
-**L9. OAuth tokens have different lifetimes.** Session tokens (hours) vs setup-token output (1 year). Using the wrong one breaks all repos overnight.
+**L9.** OAuth session tokens (hours) vs setup tokens (1 year) serve different purposes. Wrong one = time bomb.
 
-**L10. Hub-and-spoke workflow architecture works.** One change to `belumume/.github` propagates to 46 repos. But callers must declare permissions -- the hub can't do it for them.
+**L10.** Hub-and-spoke architecture works. One change to `belumume/.github` propagates to 46 repos. But callers must declare permissions.
 
 ---
 
@@ -248,22 +380,44 @@ Session 10 covered 5 major work phases across 15 distinct problems solved, produ
 
 ### Created This Session
 - `docs/brainstorms/2026-03-14-monetization-strategy-brainstorm.md` -- Monetization strategy
-- `docs/analysis/AI_EDUCATION_COST_MODELING_2026.md` -- AI cost modeling
-- `docs/analysis/PRICING_DECISION_CARD.md` -- Pricing decision card
+- `docs/analysis/AI_EDUCATION_COST_MODELING_2026.md` -- AI cost modeling (~400 lines)
+- `docs/analysis/PRICING_DECISION_CARD.md` -- Pricing decision card (~200 lines)
+- `docs/analysis/COST_COMPARISON_TABLE.csv` -- Cost comparison spreadsheet
 - `docs/solutions/integration-issues/phase2-followup-session10-compound.md` -- Earlier partial compound
 
 ### Prior Sessions
 - `docs/solutions/integration-issues/phase2-concept-extraction-session9-compound.md` -- Session 9
 - `docs/solutions/integration-issues/full-product-build-mui-to-tailwind-migration.md` -- Session 8
-- `docs/plans/2026-03-14-002-feat-concept-extraction-pipeline-plan.md` -- Phase 2 plan
+- `docs/solutions/integration-issues/claude-code-review-action-silent-permission-failure.md` -- CI permissions fix
+- `docs/solutions/runtime-errors/sqlalchemy-model-import-order-dashboard-500.md` -- Dashboard 500 fix
+- `docs/plans/2026-03-14-002-feat-concept-extraction-pipeline-plan.md` -- Phase 2 plan (1328 lines)
 
 ### New Infrastructure
-- `belumume/.github` repo -- Shared workflows hub
-- `~/.claude/commands/setup-claude-repo.md` -- Repo setup command
-- `~/.claude/commands/refresh-claude-token.md` -- Token refresh command
+- `belumume/.github` repo -- Shared workflows hub (reusable workflows + templates)
+- `~/.claude/commands/setup-claude-repo.md` -- Repo setup slash command
+- `~/.claude/commands/refresh-claude-token.md` -- Token refresh slash command
 - `~/.claude/rules/claude-github-actions.md` -- Actions configuration rule
+- `~/.local/bin/setup-claude-repo.sh` -- Shell script version
 
-### Todos Created (009-019)
+### Spike Tests
+- `backend/tests/spike_structured_outputs.py` -- Structured Outputs validation
+- `backend/tests/spike_model_comparison.py` -- Sonnet vs Haiku quality/cost comparison
+
+### New Tests
+- `backend/tests/test_dashboard.py` -- Dashboard endpoint tests (4 tests)
+- `backend/tests/test_concept_extraction.py` -- Zero-concept extraction test added
+- `backend/tests/test_sanitization.py` -- Traversal + extension preservation tests added
+
+### Session Export
+- `~/.claude/exports/ai-study-architect/2026-03-15-session10-phase2-followup-security-actions-monetization.txt` -- Full export (9103 lines)
+
+### External References
+- `anthropics/claude-code-action#567` -- @v1 breaks PR comment posting (confirmed, unresolved)
+- `platform.claude.com/docs/en/api/versioning` -- 2023-06-01 is current/only API version
+- `platform.openai.com/docs/deprecations` -- gpt-4-vision-preview confirmed retired
+
+### Todos
+
 | Todo | Priority | Description | Status |
 |------|----------|-------------|--------|
 | 009 | P2 | Dashboard Redis caching | Pending |
@@ -274,7 +428,7 @@ Session 10 covered 5 major work phases across 15 distinct problems solved, produ
 | 014 | P2 | Session unique constraint | Pending |
 | 015 | P2 | JWT kid in header | Pending |
 | 016 | P2 | psql credential exposure | Complete |
-| 017 | P3 | Pre-existing code quality | Pending |
+| 017 | P3 | Pre-existing code quality (6 items) | Pending |
 | 018 | P3 | Backup rate limit scope | Pending |
 | 019 | P3 | Vision processor dead import | Pending |
 
@@ -286,3 +440,4 @@ Session 10 covered 5 major work phases across 15 distinct problems solved, produ
 - Frontend: 86 passed, TypeScript clean
 - PR #29 squash-merged to main
 - Production test user (uitest2026) deleted from Neon
+- PR lifecycle: #27 (closed -- sticky comment issues), #28 (bait test -- closed), #29 (clean -- merged)
