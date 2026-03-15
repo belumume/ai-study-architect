@@ -124,7 +124,7 @@ This document tracks the current implementation status of AI Study Architect. Fo
 **Status**: IMPLEMENTED (Socratic Version)
 - Socratic questioning methodology
 - Intelligent AI service selection
-- Full streaming support (Claude; OpenAI basic response)
+- Streaming support (Claude SSE; OpenAI fallback is non-streaming)
 - Session and context management
 - Difficulty adaptation
 - Context preservation
