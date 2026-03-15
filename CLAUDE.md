@@ -150,7 +150,8 @@ frontend/src/
 - **NEVER change BACKUP_ENCRYPTION_KEY** — Loses access to all previous backups
 - **CSP worker-src** — Production must be `'self' blob:` (not `'none'`) for Web Workers
 - **MUI still installed** — Bundled as `mui-vendor` chunk in vite.config.ts rollupOptions. Removal in Phase 3.
-- **RSA keys rebuild on every deploy** — HS256 fallback (JWT_SECRET_KEY) survives. Fix before real users.
+- **RSA keys from env vars** — Loaded from `RSA_PRIVATE_KEY`/`RSA_PUBLIC_KEY` CF Worker secrets (base64-encoded PEM). Generate with `scripts/export_rsa_keys_b64.py`, store via `wrangler secret put`. `rotate_keys()` is in-memory only when env vars active.
+- **Use `utcnow()` not `datetime.now(UTC)`** — All `DateTime` columns are timezone-naive. `datetime.now(UTC)` returns tz-aware, causing `TypeError` on arithmetic with DB-loaded values. Import from `app.core.utils`.
 
 ### Windows Dev
 - PostgreSQL on port 5433 (not 5432). Start: `pg_ctl -D "C:/Program Files/PostgreSQL/17/data" start`
