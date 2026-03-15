@@ -2,16 +2,24 @@
 Authentication endpoints - Sync version
 """
 
-from datetime import datetime, timedelta
-from typing import Any, Optional
-from fastapi import APIRouter, Depends, HTTPException, status, Request, Response, Form
-from fastapi.responses import JSONResponse
-from fastapi.security import HTTPBearer, OAuth2PasswordRequestForm
+from datetime import datetime
+from typing import Any
+
+from fastapi import APIRouter, Depends, Form, Request, Response, status
+from fastapi.security import HTTPBearer
 from sqlalchemy import or_
 from sqlalchemy.orm import Session
+
 from app.api.dependencies import get_current_user, get_db
-from app.core.rate_limiter import limiter
 from app.core.config import settings
+from app.core.exceptions import (
+    InactiveUserError,
+    InvalidCredentialsError,
+    InvalidTokenError,
+    UserAlreadyExistsError,
+    UserNotFoundError,
+)
+from app.core.rate_limiter import limiter
 from app.core.security import (
     create_access_token,
     create_refresh_token,
@@ -19,19 +27,12 @@ from app.core.security import (
     verify_password,
     verify_token,
 )
-from app.core.exceptions import (
-    UserAlreadyExistsError,
-    InvalidCredentialsError,
-    InactiveUserError,
-    InvalidTokenError,
-    UserNotFoundError,
-)
 from app.models.user import User
 from app.schemas.user import (
+    RefreshTokenRequest,
     Token,
     UserCreate,
     UserResponse,
-    RefreshTokenRequest,
 )
 
 
@@ -46,8 +47,8 @@ class OAuth2PasswordRequestFormWithRememberMe:
         password: str = Form(),
         remember_me: str = Form(default="false"),
         scope: str = Form(default=""),
-        client_id: Optional[str] = Form(default=None),
-        client_secret: Optional[str] = Form(default=None),
+        client_id: str | None = Form(default=None),
+        client_secret: str | None = Form(default=None),
     ):
         self.username = username
         self.password = password
@@ -178,7 +179,7 @@ def login(
 def refresh_token(
     request: Request,
     response: Response,  # Added for cookie support
-    token_request: Optional[RefreshTokenRequest] = None,
+    token_request: RefreshTokenRequest | None = None,
     db: Session = Depends(get_db),
 ) -> Any:
     """

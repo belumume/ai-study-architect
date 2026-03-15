@@ -1,5 +1,5 @@
 ---
-status: pending
+status: complete
 priority: p1
 issue_id: "001"
 tags: [code-review, plan-review, api, claude]
@@ -44,10 +44,10 @@ The plan pivoted to using Claude's `output_config.format` (Structured Outputs, G
 
 ## Acceptance Criteria
 
-- [ ] Structured output request succeeds with raw httpx + existing headers
-- [ ] Response `content[0]["text"]` is valid JSON matching the schema
-- [ ] `json.loads()` parses it without fallback needed
-- [ ] Tested with both Sonnet and Haiku models
+- [x] Structured output request succeeds with raw httpx + existing headers
+- [x] Response `content[0]["text"]` is valid JSON matching the schema
+- [x] `json.loads()` parses it without fallback needed
+- [x] Tested with both Sonnet and Haiku models
 
 ## Work Log
 
@@ -55,3 +55,16 @@ The plan pivoted to using Claude's `output_config.format` (Structured Outputs, G
 
 **By:** Claude Code (ce-review)
 **Actions:** Identified as critical validation step. Structured Outputs is the foundation of the extraction service — if it fails, the fallback is significant rework.
+
+### 2026-03-14 - Spike Validated
+
+**By:** Claude Code (session 10)
+**Actions:**
+- Verified API contract from official docs (platform.claude.com): `output_config.format` with `type: json_schema` is GA, no beta header needed, works with `anthropic-version: 2023-06-01`
+- Wrote `tests/spike_structured_outputs.py` — standalone spike test
+- Ran against real API: ALL CHECKS PASSED for both `claude-sonnet-4-6` and `claude-haiku-4-5`
+- Sonnet: 4 concepts, 371 in / 167 out tokens, 6.9s
+- Haiku: 4 concepts, 370 in / 149 out tokens, 3.5s (2x faster, comparable quality for extraction)
+- Added `output_config` and `model` params to `ClaudeService.chat_completion()` for future callers
+- Extraction service keeps its own HTTP call (justified: needs system-as-array for cache_control + custom 429 retry)
+- All 132 backend tests pass (1 pre-existing failure: test_office_document_with_macros)

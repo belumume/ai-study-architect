@@ -2,10 +2,10 @@
 
 import uuid
 from datetime import datetime
-from typing import List, Optional, Dict, Any
+from enum import Enum
+from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
-from enum import Enum
 
 
 class DifficultyLevel(str, Enum):
@@ -20,65 +20,65 @@ class LearningObjective(BaseModel):
     title: str
     description: str
     estimated_hours: float
-    topics: List[str]
-    prerequisites: List[str] = Field(default_factory=list)
-    resources: List[str] = Field(default_factory=list)
+    topics: list[str]
+    prerequisites: list[str] = Field(default_factory=list)
+    resources: list[str] = Field(default_factory=list)
     completed: bool = False
-    completion_date: Optional[datetime] = None
+    completion_date: datetime | None = None
 
 
 class StudyPlan(BaseModel):
     title: str
     description: str
-    objectives: List[LearningObjective]
+    objectives: list[LearningObjective]
     total_hours: float
     created_by: str
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
-    metadata: Dict[str, Any] = Field(default_factory=dict)
+    metadata: dict[str, Any] = Field(default_factory=dict)
 
 
 class StudySessionCreate(BaseModel):
     title: str
-    description: Optional[str] = None
+    description: str | None = None
     planned_duration: int
-    content_ids: List[uuid.UUID] = Field(default_factory=list)
-    objectives: List[str] = Field(default_factory=list)
+    content_ids: list[uuid.UUID] = Field(default_factory=list)
+    objectives: list[str] = Field(default_factory=list)
 
 
 class StudySessionUpdate(BaseModel):
-    title: Optional[str] = None
-    description: Optional[str] = None
-    planned_duration: Optional[int] = None
-    actual_duration: Optional[int] = None
-    completion_percentage: Optional[int] = None
-    notes: Optional[str] = None
-    is_completed: Optional[bool] = None
+    title: str | None = None
+    description: str | None = None
+    planned_duration: int | None = None
+    actual_duration: int | None = None
+    completion_percentage: int | None = None
+    notes: str | None = None
+    is_completed: bool | None = None
 
 
 class StudySessionResponse(BaseModel):
     id: uuid.UUID
     user_id: uuid.UUID
-    subject_id: Optional[uuid.UUID] = None
+    subject_id: uuid.UUID | None = None
     title: str
-    description: Optional[str]
-    planned_duration: Optional[int] = None
-    actual_duration: Optional[int] = None
-    completion_percentage: Optional[int] = None
-    notes: Optional[str] = None
-    is_completed: Optional[bool] = None
+    description: str | None
+    planned_duration: int | None = None
+    actual_duration: int | None = None
+    completion_percentage: int | None = None
+    notes: str | None = None
+    is_completed: bool | None = None
     accumulated_seconds: int = 0
-    status: Optional[str] = None
+    status: str | None = None
     created_at: datetime
-    updated_at: Optional[datetime]
+    updated_at: datetime | None
 
     model_config = ConfigDict(from_attributes=True)
 
 
 class StartSessionRequest(BaseModel):
-    subject_id: Optional[uuid.UUID] = None
+    subject_id: uuid.UUID | None = None
     study_mode: str = "practice"
-    title: Optional[str] = None
+    title: str | None = None
 
 
 class SessionStateResponse(BaseModel):
@@ -86,10 +86,10 @@ class SessionStateResponse(BaseModel):
     status: str
     accumulated_seconds: int
     duration_minutes: int
-    subject_id: Optional[uuid.UUID] = None
+    subject_id: uuid.UUID | None = None
     title: str
-    actual_start: Optional[datetime] = None
-    actual_end: Optional[datetime] = None
+    actual_start: datetime | None = None
+    actual_end: datetime | None = None
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -99,7 +99,7 @@ class StudyProgress(BaseModel):
     completed_sessions: int
     total_study_time: int
     average_completion_rate: float
-    topics_covered: List[str]
+    topics_covered: list[str]
     current_streak: int
     longest_streak: int
-    last_study_date: Optional[datetime]
+    last_study_date: datetime | None

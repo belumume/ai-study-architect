@@ -2,12 +2,13 @@
 Configuration settings for AI Study Architect - Complete version
 """
 
-from typing import Any, Optional, List, Union
-from urllib.parse import quote_plus
-from pathlib import Path
-from pydantic_settings import BaseSettings, SettingsConfigDict
-from pydantic import PostgresDsn, field_validator, Field
 import os
+from pathlib import Path
+from typing import Any
+from urllib.parse import quote_plus
+
+from pydantic import Field, field_validator
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
@@ -38,12 +39,12 @@ class Settings(BaseSettings):
     )
 
     # Database
-    POSTGRES_USER: Optional[str] = None
-    POSTGRES_PASSWORD: Optional[str] = None
-    POSTGRES_DB: Optional[str] = None
+    POSTGRES_USER: str | None = None
+    POSTGRES_PASSWORD: str | None = None
+    POSTGRES_DB: str | None = None
     POSTGRES_HOST: str = "localhost"
     POSTGRES_PORT: int = 5432
-    DATABASE_URL: Optional[str] = None
+    DATABASE_URL: str | None = None
 
     # Database Connection Pool Settings
     DB_POOL_SIZE: int = Field(default=5, description="Database connection pool size")
@@ -59,19 +60,19 @@ class Settings(BaseSettings):
     REDIS_DB: int = 0
 
     # Celery
-    CELERY_BROKER_URL: Optional[str] = None
-    CELERY_RESULT_BACKEND: Optional[str] = None
+    CELERY_BROKER_URL: str | None = None
+    CELERY_RESULT_BACKEND: str | None = None
 
     # CORS - Use str and parse in validator
     # Default is for production - localhost should ONLY be added via env vars in development
-    BACKEND_CORS_ORIGINS: Union[str, List[str]] = Field(
+    BACKEND_CORS_ORIGINS: str | list[str] = Field(
         default="https://www.aistudyarchitect.com,https://aistudyarchitect.com",
         description="Comma-separated list of allowed origins",
     )
 
     @field_validator("BACKEND_CORS_ORIGINS", mode="before")
     @classmethod
-    def parse_cors_origins(cls, v: Any) -> List[str]:
+    def parse_cors_origins(cls, v: Any) -> list[str]:
         if isinstance(v, str):
             return [origin.strip() for origin in v.split(",")]
         elif isinstance(v, list):
@@ -80,21 +81,21 @@ class Settings(BaseSettings):
 
     # File Upload
     MAX_UPLOAD_SIZE: int = 52428800  # 50MB
-    ALLOWED_UPLOAD_EXTENSIONS: Union[str, List[str]] = Field(
+    ALLOWED_UPLOAD_EXTENSIONS: str | list[str] = Field(
         default="pdf,docx,pptx,txt,md,jpg,jpeg,png,mp3,mp4,wav",
         description="Comma-separated list of allowed extensions",
     )
     UPLOAD_DIR: str = "uploads"  # Legacy — R2 used in production
 
     # R2 Storage
-    R2_ENDPOINT_URL: Optional[str] = None
-    R2_ACCESS_KEY_ID: Optional[str] = None
-    R2_SECRET_ACCESS_KEY: Optional[str] = None
+    R2_ENDPOINT_URL: str | None = None
+    R2_ACCESS_KEY_ID: str | None = None
+    R2_SECRET_ACCESS_KEY: str | None = None
     R2_BUCKET_NAME: str = "study-architect-storage"
 
     @field_validator("ALLOWED_UPLOAD_EXTENSIONS", mode="before")
     @classmethod
-    def parse_upload_extensions(cls, v: Any) -> List[str]:
+    def parse_upload_extensions(cls, v: Any) -> list[str]:
         if isinstance(v, str):
             return [ext.strip() for ext in v.split(",")]
         elif isinstance(v, list):
@@ -110,8 +111,8 @@ class Settings(BaseSettings):
     LOG_LEVEL: str = "INFO"
 
     # Testing
-    TEST_DATABASE_URL: Optional[str] = None
-    TEST_REDIS_URL: Optional[str] = None
+    TEST_DATABASE_URL: str | None = None
+    TEST_REDIS_URL: str | None = None
 
     @property
     def DATABASE_URL_SQLALCHEMY(self) -> str:

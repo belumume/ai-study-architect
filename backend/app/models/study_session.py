@@ -2,25 +2,25 @@
 Study Session model for tracking learning sessions
 """
 
+import enum
+import uuid
 from datetime import datetime
-from typing import Optional
+
 from sqlalchemy import (
+    JSON,
     Boolean,
     Column,
     DateTime,
     Enum,
+    Float,
     ForeignKey,
     Integer,
     String,
-    Text,
-    Float,
     Table,
-    JSON,
+    Text,
 )
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
-import uuid
-import enum
 
 from app.core.database import Base
 

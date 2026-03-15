@@ -2,12 +2,12 @@
 User model for authentication and profile management
 """
 
+import uuid
 from datetime import datetime
-from typing import Optional
+
 from sqlalchemy import Boolean, Column, DateTime, String, Text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
-import uuid
 
 from app.core.database import Base
 

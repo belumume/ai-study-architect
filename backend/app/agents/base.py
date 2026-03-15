@@ -1,12 +1,13 @@
 """Base Agent class for all AI agents in the system"""
 
-from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Optional, Union
-from datetime import datetime
-import logging
 import asyncio
-from pydantic import BaseModel, Field
+import logging
+from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
+from datetime import datetime
+from typing import Any
+
+from pydantic import BaseModel, Field
 
 
 @dataclass
@@ -40,11 +41,11 @@ class AgentState(BaseModel):
     """Base state model for agents"""
 
     agent_id: str
-    user_id: Optional[str] = None
-    session_id: Optional[str] = None
+    user_id: str | None = None
+    session_id: str | None = None
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
-    metadata: Dict[str, Any] = Field(default_factory=dict)
+    metadata: dict[str, Any] = Field(default_factory=dict)
 
 
 class AgentResponse(BaseModel):
@@ -52,9 +53,9 @@ class AgentResponse(BaseModel):
 
     success: bool
     message: str
-    data: Optional[Dict[str, Any]] = None
-    errors: Optional[List[str]] = None
-    metadata: Dict[str, Any] = Field(default_factory=dict)
+    data: dict[str, Any] | None = None
+    errors: list[str] | None = None
+    metadata: dict[str, Any] = Field(default_factory=dict)
 
 
 class BaseAgent(ABC):
@@ -113,7 +114,7 @@ class BaseAgent(ABC):
         pass
 
     @abstractmethod
-    def process(self, input_data: Dict[str, Any]) -> AgentResponse:
+    def process(self, input_data: dict[str, Any]) -> AgentResponse:
         """
         Process input and generate a response.
         Must be implemented by subclasses.
@@ -130,7 +131,7 @@ class BaseAgent(ABC):
         """Add a message to the conversation memory"""
         self.memory.append(message)
 
-    def get_messages(self) -> List[BaseMessage]:
+    def get_messages(self) -> list[BaseMessage]:
         """Get all messages from memory"""
         return self.memory
 
@@ -138,7 +139,7 @@ class BaseAgent(ABC):
         """Clear the conversation memory"""
         self.memory = []
 
-    def format_prompt(self, user_input: str) -> List[BaseMessage]:
+    def format_prompt(self, user_input: str) -> list[BaseMessage]:
         """
         Format the prompt with system message and conversation history.
 
@@ -244,8 +245,9 @@ class BaseAgent(ABC):
 
             # Cache the response if caching is enabled and response is valid
             if use_cache and response and not result.get("error"):
-                from app.core.cache import ai_cache
                 from datetime import timedelta
+
+                from app.core.cache import ai_cache
 
                 model_name = f"{self.model_preference}-agent"
                 ai_cache.set_llm_response(
@@ -312,8 +314,9 @@ class BaseAgent(ABC):
 
             # Cache the response if caching is enabled and response is valid
             if use_cache and response and not result.get("error"):
-                from app.core.cache import ai_cache
                 from datetime import timedelta
+
+                from app.core.cache import ai_cache
 
                 model_name = f"{self.model_preference}-agent"
                 ai_cache.set_llm_response(
@@ -337,7 +340,7 @@ class BaseAgent(ABC):
                 setattr(self.state, key, value)
         self.state.updated_at = datetime.utcnow()
 
-    def get_state(self) -> Dict[str, Any]:
+    def get_state(self) -> dict[str, Any]:
         """Get the current agent state as a dictionary"""
         return self.state.model_dump()
 

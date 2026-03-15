@@ -4,6 +4,7 @@ import { Clock, Brain, Flame, AlertTriangle } from 'lucide-react'
 interface HeroMetricsProps {
   readonly todayMinutes: number
   readonly masteryIndex?: number
+  readonly totalConcepts?: number
   readonly streak: number
   readonly dueForReview?: number
 }
@@ -18,9 +19,18 @@ function formatTime(minutes: number): string {
 export function HeroMetrics({
   todayMinutes,
   masteryIndex,
+  totalConcepts,
   streak,
   dueForReview,
 }: HeroMetricsProps) {
+  const masteryValue = masteryIndex != null ? `${masteryIndex}%` : totalConcepts ? '0%' : '--'
+  const masterySublabel =
+    masteryIndex != null && masteryIndex > 0
+      ? 'ACROSS SUBJECTS'
+      : totalConcepts
+        ? `${totalConcepts} CONCEPTS`
+        : 'EXTRACT CONCEPTS FIRST'
+
   const metrics = [
     {
       label: "TODAY'S FOCUS",
@@ -32,8 +42,8 @@ export function HeroMetrics({
     },
     {
       label: 'MASTERY INDEX',
-      value: masteryIndex != null ? `${masteryIndex}%` : '--',
-      sublabel: 'ACROSS SUBJECTS',
+      value: masteryValue,
+      sublabel: masterySublabel,
       icon: Brain,
       color: 'text-secondary glow-secondary',
       delay: '200ms',
@@ -73,9 +83,7 @@ export function HeroMetrics({
           <p className="font-mono text-[10px] uppercase tracking-widest text-text-muted">
             {metric.label}
           </p>
-          <p className={`mt-1 font-mono text-3xl font-bold ${metric.color}`}>
-            {metric.value}
-          </p>
+          <p className={`mt-1 font-mono text-3xl font-bold ${metric.color}`}>{metric.value}</p>
           <p className="mt-1 font-mono text-[10px] uppercase tracking-widest text-text-muted">
             {metric.sublabel}
           </p>

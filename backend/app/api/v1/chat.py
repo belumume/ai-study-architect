@@ -2,9 +2,9 @@
 
 import json
 import logging
-from typing import List, Optional, Dict, Any
-from uuid import UUID, uuid4
 from datetime import datetime
+from typing import Any
+from uuid import UUID, uuid4
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import StreamingResponse
@@ -12,13 +12,10 @@ from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from app.api.dependencies import get_current_active_user, get_db
-from app.models.user import User
-from app.models.content import Content
-from app.models.chat_message import ChatMessage as ChatMessageModel
 from app.core.cache import redis_cache
-from app.core.agent_manager import agent_manager
-from app.services.claude_service import claude_service
-from app.services.openai_fallback import openai_fallback
+from app.models.chat_message import ChatMessage as ChatMessageModel
+from app.models.content import Content
+from app.models.user import User
 from app.services.ai_service_manager import ai_service_manager
 
 logger = logging.getLogger(__name__)
@@ -31,20 +28,20 @@ class ChatMessage(BaseModel):
 
     role: str = Field(..., pattern="^(user|assistant|system)$")
     content: str
-    timestamp: Optional[datetime] = None
-    metadata: Optional[dict] = None
+    timestamp: datetime | None = None
+    metadata: dict | None = None
 
 
 class ChatRequest(BaseModel):
     """Chat request with message history"""
 
-    messages: List[ChatMessage]
-    content_ids: Optional[List[UUID]] = Field(
+    messages: list[ChatMessage]
+    content_ids: list[UUID] | None = Field(
         default=None, description="IDs of content to include in context"
     )
     stream: bool = Field(default=True, description="Stream the response")
     temperature: float = Field(default=0.7, ge=0.0, le=2.0)
-    max_tokens: Optional[int] = Field(default=None, ge=1, le=4096)
+    max_tokens: int | None = Field(default=None, ge=1, le=4096)
 
 
 class ChatResponse(BaseModel):
@@ -52,7 +49,7 @@ class ChatResponse(BaseModel):
 
     message: ChatMessage
     session_id: str
-    usage: Optional[dict] = None
+    usage: dict | None = None
 
 
 def save_chat_messages(
@@ -61,8 +58,8 @@ def save_chat_messages(
     session_id: str,
     new_message_role: str,
     new_message_content: str,
-    new_message_metadata: Optional[dict] = None,
-    content_ids: Optional[List[UUID]] = None,
+    new_message_metadata: dict | None = None,
+    content_ids: list[UUID] | None = None,
 ) -> None:
     """
     Save a new chat message to the database with deduplication.
@@ -124,7 +121,7 @@ async def stream_chat_response(request: ChatRequest, user: User, db: Session):
     Yields Server-Sent Events (SSE) format.
     """
     try:
-        logger.info(f"=== STREAMING CHAT DEBUG ===")
+        logger.info("=== STREAMING CHAT DEBUG ===")
         logger.info(f"User: {user.username} (ID: {user.id})")
         logger.info(f"Request content_ids: {request.content_ids}")
         logger.info(f"Number of messages: {len(request.messages)}")
@@ -154,10 +151,10 @@ FUNDAMENTAL APPROACH:
 3. SOCRATIC METHOD WITH WARMTH
    Student: "What is recursion?"
    You: "I love that you're tackling recursion! Before we dive in - have you noticed any patterns in your uploaded materials where something refers back to itself? Maybe in the code examples or even in everyday life?"
-   
+
    Student: "I'm completely lost"
    You: "Being lost means you're in new territory - that's where learning happens. Let's start with what feels familiar. What's the last thing that made sense to you?"
-   
+
    Student: "Just tell me the answer!"
    You: "I hear your frustration - it's real and valid. Here's the thing: if I just tell you, it won't stick. But if we work through it together, you'll own this knowledge forever. Can we try one small step?"
 
@@ -267,7 +264,7 @@ NEVER:
                                     content_context += content.extracted_text[start:end]
 
                                 # End
-                                content_context += f"\n\n[... final section ...]\n\n"
+                                content_context += "\n\n[... final section ...]\n\n"
                                 content_context += content.extracted_text[-chunk_size:]
 
                                 content_context += f"\n\n[Note: Large document ({text_len} chars) shown in 5 representative sections of {chunk_size} chars each.]"
@@ -345,7 +342,7 @@ NEVER:
                         error_msg = chunk_data["error"]
                         logger.error(f"AI streaming error: {error_msg}")
                         full_response = (
-                            f"I encountered an error processing your request. Please try again."
+                            "I encountered an error processing your request. Please try again."
                         )
                         yield f"data: {json.dumps({'type': 'content', 'content': full_response, 'index': 0})}\n\n"
                         break
@@ -515,10 +512,10 @@ FUNDAMENTAL APPROACH:
 3. SOCRATIC METHOD WITH WARMTH
    Student: "What is recursion?"
    You: "I love that you're tackling recursion! Before we dive in - have you noticed any patterns in your uploaded materials where something refers back to itself? Maybe in the code examples or even in everyday life?"
-   
+
    Student: "I'm completely lost"
    You: "Being lost means you're in new territory - that's where learning happens. Let's start with what feels familiar. What's the last thing that made sense to you?"
-   
+
    Student: "Just tell me the answer!"
    You: "I hear your frustration - it's real and valid. Here's the thing: if I just tell you, it won't stick. But if we work through it together, you'll own this knowledge forever. Can we try one small step?"
 
@@ -624,7 +621,7 @@ NEVER:
                                     content_context += content.extracted_text[start:end]
 
                                 # End
-                                content_context += f"\n\n[... final section ...]\n\n"
+                                content_context += "\n\n[... final section ...]\n\n"
                                 content_context += content.extracted_text[-chunk_size:]
 
                                 content_context += f"\n\n[Note: Large document ({text_len} chars) shown in 5 representative sections of {chunk_size} chars each.]"
@@ -744,7 +741,7 @@ async def get_chat_history(
     Groups messages by session_id and returns most recent sessions first.
     """
     # Get distinct session IDs for the user, ordered by most recent message
-    from sqlalchemy import func, distinct
+    from sqlalchemy import distinct, func
 
     # Get all messages for the user, ordered by creation time
     messages_query = (
@@ -872,7 +869,7 @@ class QARequest(BaseModel):
     """Q&A request about specific content"""
 
     question: str = Field(..., min_length=1, max_length=1000)
-    content_ids: List[UUID] = Field(..., min_items=1, max_items=10)
+    content_ids: list[UUID] = Field(..., min_items=1, max_items=10)
     include_summary: bool = Field(default=True, description="Include content summaries in context")
     include_full_text: bool = Field(default=False, description="Include full extracted text")
     max_context_chars: int = Field(default=3000, ge=500, le=10000)
@@ -883,8 +880,8 @@ class QAResponse(BaseModel):
 
     answer: str
     confidence: float = Field(ge=0.0, le=1.0)
-    referenced_content: List[Dict[str, Any]]
-    suggestions: Optional[List[str]] = None
+    referenced_content: list[dict[str, Any]]
+    suggestions: list[str] | None = None
 
 
 @router.post("/qa", response_model=QAResponse)
@@ -954,9 +951,9 @@ async def answer_content_question(
     messages = [
         {
             "role": "system",
-            "content": """You are an AI tutor helping a student understand their study materials. 
+            "content": """You are an AI tutor helping a student understand their study materials.
 Answer their questions based on the provided content. Be specific, accurate, and helpful.
-If the content doesn't contain enough information to fully answer the question, 
+If the content doesn't contain enough information to fully answer the question,
 acknowledge this and provide what information you can.""",
         },
         {"role": "system", "content": "Study materials context:\n\n" + "\n\n".join(context_parts)},

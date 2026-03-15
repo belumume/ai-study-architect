@@ -1,16 +1,16 @@
 """Input sanitization utilities for security"""
-import os
+
 import html
-from typing import Optional
+import os
 
 
-def sanitize_input(text: Optional[str]) -> Optional[str]:
+def sanitize_input(text: str | None) -> str | None:
     """
     Sanitize user input to prevent XSS attacks.
-    
+
     Args:
         text: The input text to sanitize
-        
+
     Returns:
         Sanitized text with HTML entities escaped
     """
@@ -23,10 +23,10 @@ def sanitize_input(text: Optional[str]) -> Optional[str]:
 def sanitize_filename(filename: str) -> str:
     """
     Sanitize filename to prevent directory traversal attacks.
-    
+
     Args:
         filename: The filename to sanitize
-        
+
     Returns:
         Sanitized filename with only safe characters
     """
@@ -34,4 +34,12 @@ def sanitize_filename(filename: str) -> str:
     filename = os.path.basename(filename)
     # Remove potentially dangerous characters
     safe_chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789.-_"
-    return "".join(c for c in filename if c in safe_chars)
+    sanitized = "".join(c for c in filename if c in safe_chars)
+    # Strip leading dots to prevent traversal, but preserve the last dot if it separates an extension
+    while sanitized.startswith(".."):
+        sanitized = sanitized[1:]
+    if sanitized == ".":
+        return "unnamed_file"
+    if not sanitized:
+        return "unnamed_file"
+    return sanitized

@@ -210,6 +210,19 @@ class ConceptExtractionService:
 
         all_concepts = all_concepts[: self.MAX_CONCEPTS]
 
+        if not all_concepts:
+            return ConceptBulkCreateResponse(
+                created_concepts=0,
+                created_dependencies=0,
+                concept_ids=[],
+                dependency_ids=[],
+                errors=[],
+                chunks_total=len(chunks),
+                chunks_succeeded=chunks_succeeded,
+                chunks_failed=len(chunks) - chunks_succeeded,
+                message="No concepts found in this content. Try uploading more detailed study materials.",
+            )
+
         concept_ids = self._bulk_insert(
             db, all_concepts, all_dependencies, content_id, subject_id, user_id
         )
@@ -229,7 +242,7 @@ class ConceptExtractionService:
         """Call Claude with Structured Outputs for guaranteed valid JSON."""
         model = os.getenv(
             "CLAUDE_EXTRACTION_MODEL",
-            os.getenv("CLAUDE_MODEL", "claude-sonnet-4-6"),
+            "claude-haiku-4-5",
         )
         payload = {
             "model": model,

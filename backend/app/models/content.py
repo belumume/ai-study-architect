@@ -2,24 +2,23 @@
 Content model for user-uploaded study materials
 """
 
+import enum
+import uuid
 from datetime import datetime
-from typing import Optional
+
 from sqlalchemy import (
+    JSON,
+    CheckConstraint,
     Column,
     DateTime,
-    Enum,
+    Float,
     ForeignKey,
     Integer,
     String,
     Text,
-    Float,
-    JSON,
-    CheckConstraint,
 )
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
-import uuid
-import enum
 
 from app.core.database import Base
 
@@ -115,7 +114,9 @@ class Content(Base):
     tags = Column(JSON, nullable=True)  # List of tags
 
     # Concept extraction lifecycle (separate from processing_status)
-    extraction_status = Column(String(20), nullable=True)  # extracting|completed|failed|partial
+    extraction_status = Column(
+        String(20), nullable=True
+    )  # extracting|completed|completed_empty|failed|partial
     extraction_error = Column(Text, nullable=True)
 
     # Analytics
