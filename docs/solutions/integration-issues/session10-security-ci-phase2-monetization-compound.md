@@ -374,6 +374,35 @@ Session 10 covered 5 major work phases, solving 36 distinct problems across 95 f
 
 **L10.** Hub-and-spoke architecture works. One change to `belumume/.github` propagates to 46 repos. But callers must declare permissions.
 
+### Additional Prevention Strategies (from post-merge work)
+
+16. **Production smoke test must be click-only**: Never type URLs after the login page. Direct URL navigation hides UX gaps (Focus page unreachable from empty dashboard was invisible until click-testing).
+17. **Credential exposure requires immediate acknowledgment**: `credentials.json` was dumped in-session with live tokens for 10+ services. Flag immediately, not 2 hours later. Add credential files to "never read directly" list.
+18. **Break infinite review loops with squash + fresh PR**: 7+ review runs re-flagging the same issues. Fix: squash all commits, close old PR, open fresh one. Limit to 3 review cycles per PR.
+19. **Test user lifecycle is atomic**: Create, test, delete in the same session. `uitest2026` leaked from session 9. `smoketest2026` leaked from session 10. An admin delete endpoint would prevent this.
+20. **"Design choice" is not a valid dismissal without a decision record**: Focus page inaccessibility was called a "known design choice" — nobody decided it, it was an oversight.
+21. **Shared workflow callers must declare permissions**: First deploy to 46 repos failed because callers lacked `permissions:` blocks. Reusable workflows inherit, not escalate.
+22. **Verify reviewer claims from official sources, not training data**: "claude-sonnet-4-6 is invalid" was false. Exact deprecation dates need web verification.
+23. **Multi-round PR reviews have diminishing returns**: 7 runs cost ~$3.50. After run 3, marginal value drops sharply. Fix remaining findings in follow-up PRs.
+
+### Additional Lessons Learned (from post-merge work)
+
+**L11.** UI testing vs API testing: click-through tests discoverability and user flows. Direct URL tests routing and rendering. Both needed, different purposes.
+
+**L12.** The "design choice" dodge is deferral without evidence. If no one explicitly decided it, it's a bug.
+
+**L13.** Credential files dumped in session are a security incident, not an FYI.
+
+**L14.** Multi-round PR review loops are expensive ($3.50 for 7 runs) with 60-70% duplicate findings per run.
+
+**L15.** Hub-and-spoke eliminates per-repo maintenance but introduces single point of failure. One broken `.github` change breaks all 46 repos.
+
+**L16.** Production smoke tests must exercise the full data lifecycle (create subject, run session, check dashboard), not just empty states.
+
+**L17.** Pass-cli slowness in Bash tool is real operational friction. Direct lookups (~2s) work; list+filter (~10s) often times out.
+
+**L18.** `/audit-staleness` command created to prevent cross-file contradictions. Added to session-discipline rule as required before session close.
+
 ---
 
 ## Related Documents
@@ -384,6 +413,9 @@ Session 10 covered 5 major work phases, solving 36 distinct problems across 95 f
 - `docs/analysis/PRICING_DECISION_CARD.md` -- Pricing decision card (~200 lines)
 - `docs/analysis/COST_COMPARISON_TABLE.csv` -- Cost comparison spreadsheet
 - `docs/solutions/integration-issues/phase2-followup-session10-compound.md` -- Earlier partial compound
+- `~/.claude/projects/.../memory/ai-api-cost-research-march2026.md` -- Cost research (subagent)
+- `~/.claude/projects/.../memory/education-saas-pricing-research.md` -- Pricing research (subagent)
+- `~/.claude/projects/.../memory/feedback_follow_ce_pipeline.md` -- CE pipeline continuity feedback
 
 ### Prior Sessions
 - `docs/solutions/integration-issues/phase2-concept-extraction-session9-compound.md` -- Session 9
@@ -393,10 +425,15 @@ Session 10 covered 5 major work phases, solving 36 distinct problems across 95 f
 - `docs/plans/2026-03-14-002-feat-concept-extraction-pipeline-plan.md` -- Phase 2 plan (1328 lines)
 
 ### New Infrastructure
-- `belumume/.github` repo -- Shared workflows hub (reusable workflows + templates)
+- `belumume/.github` repo -- Shared workflows hub (reusable workflows + templates for 46 repos)
 - `~/.claude/commands/setup-claude-repo.md` -- Repo setup slash command
 - `~/.claude/commands/refresh-claude-token.md` -- Token refresh slash command
+- `~/.claude/commands/audit-staleness.md` -- Staleness audit slash command
 - `~/.claude/rules/claude-github-actions.md` -- Actions configuration rule
+- `~/.claude/rules/no-shortcuts.md` -- Updated: override context budget checks unconditionally
+- `~/.claude/rules/pass-cli.md` -- Updated: performance patterns, Pass-Query recommendation
+- `~/.claude/.claude-oauth-token` -- 1-year token for GitHub Actions (from `claude setup-token`)
+- `~/.claude/projects/C--Users-elzai/memory/automation-reference.md` -- Updated: GitHub Actions Management section
 - `~/.local/bin/setup-claude-repo.sh` -- Shell script version
 
 ### Spike Tests
@@ -413,6 +450,8 @@ Session 10 covered 5 major work phases, solving 36 distinct problems across 95 f
 
 ### External References
 - `anthropics/claude-code-action#567` -- @v1 breaks PR comment posting (confirmed, unresolved)
+- `anthropics/claude-code-action@beta` -- working version used (posts comments correctly)
+- `github.com/apps/claude` -- GitHub App installed across all repos
 - `platform.claude.com/docs/en/api/versioning` -- 2023-06-01 is current/only API version
 - `platform.openai.com/docs/deprecations` -- gpt-4-vision-preview confirmed retired
 
@@ -435,6 +474,7 @@ Session 10 covered 5 major work phases, solving 36 distinct problems across 95 f
 | 021 | P3 | Focus page not discoverable from empty dashboard | Pending |
 | 022 | P3 | Content search returns 422 | Pending |
 | 023 | P3 | Subject card progress bar at 0% | Pending |
+| 024 | P1 | RSA key persistence (users logged out on deploy) | Pending |
 
 ---
 
@@ -468,4 +508,5 @@ Comprehensive browser + API test on https://aistudyarchitect.com after deploy.
 ## Session Exports
 
 - `~/.claude/exports/ai-study-architect/2026-03-15-session10-phase2-followup-security-actions-monetization.txt` (mid-session)
-- `~/.claude/exports/ai-study-architect/2026-03-15-session10-final-export.txt` (final)
+- `~/.claude/exports/ai-study-architect/2026-03-15-session10-final-export.txt` (post-merge)
+- `~/.claude/exports/ai-study-architect/2026-03-15-session10-absolute-final-export.txt` (absolute final)
