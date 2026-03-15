@@ -7,10 +7,12 @@ Primary service for AI Study Architect based on research showing Claude's advant
 - More natural, human-like responses
 """
 
-import os
 import json
 import logging
-from typing import List, Dict, Any, Optional, AsyncIterator
+import os
+from collections.abc import AsyncIterator
+from typing import Any
+
 import httpx
 from httpx import AsyncClient
 
@@ -54,7 +56,7 @@ class ClaudeService:
             logger.error(f"Claude health check failed: {e}")
             return False
 
-    def _get_headers(self) -> Dict[str, str]:
+    def _get_headers(self) -> dict[str, str]:
         """Get headers for Claude API requests"""
         return {
             "x-api-key": self.api_key,
@@ -64,11 +66,13 @@ class ClaudeService:
 
     async def chat_completion(
         self,
-        messages: List[Dict[str, str]],
+        messages: list[dict[str, str]],
         temperature: float = 0.7,
-        max_tokens: Optional[int] = None,
+        max_tokens: int | None = None,
         stream: bool = False,
-    ) -> Dict[str, Any] | AsyncIterator[str]:
+        output_config: dict[str, Any] | None = None,
+        model: str | None = None,
+    ) -> dict[str, Any] | AsyncIterator[str]:
         """
         Chat completion using Claude API
 
@@ -108,7 +112,7 @@ class ClaudeService:
 
         # Build request payload
         payload = {
-            "model": self.model,
+            "model": model or self.model,
             "messages": claude_messages,
             "temperature": temperature,
             "max_tokens": max_tokens or 4096,  # Claude default
@@ -117,6 +121,9 @@ class ClaudeService:
         # Add system message if present
         if system_message:
             payload["system"] = system_message
+
+        if output_config:
+            payload["output_config"] = output_config
 
         try:
             if stream:
@@ -136,7 +143,7 @@ class ClaudeService:
                 return {
                     "response": data["content"][0]["text"],
                     "done": True,
-                    "model": self.model,
+                    "model": model or self.model,
                     "usage": {
                         "input_tokens": data.get("usage", {}).get("input_tokens", 0),
                         "output_tokens": data.get("usage", {}).get("output_tokens", 0),
@@ -161,14 +168,14 @@ class ClaudeService:
             logger.error(f"Claude API error: {e}")
             return {"error": str(e), "response": "Failed to get AI response."}
 
-    async def _stream_claude_response_wrapper(self, payload: Dict[str, Any]) -> AsyncIterator[str]:
+    async def _stream_claude_response_wrapper(self, payload: dict[str, Any]) -> AsyncIterator[str]:
         """Wrapper that manages its own client for streaming"""
         async with httpx.AsyncClient(timeout=self.timeout) as client:
             async for chunk in self._stream_claude_response(client, payload):
                 yield chunk
 
     async def _stream_claude_response(
-        self, client: AsyncClient, payload: Dict[str, Any]
+        self, client: AsyncClient, payload: dict[str, Any]
     ) -> AsyncIterator[str]:
         """Stream response from Claude API"""
         import json
@@ -209,8 +216,8 @@ class ClaudeService:
             yield json.dumps({"error": str(e)})
 
     async def analyze_content(
-        self, content: str, content_type: str, instructions: Optional[str] = None
-    ) -> Dict[str, Any]:
+        self, content: str, content_type: str, instructions: str | None = None
+    ) -> dict[str, Any]:
         """
         Analyze educational content using Claude's superior reasoning
 
@@ -292,6 +299,6 @@ claude_service = ClaudeService()
 
 
 # Convenience functions
-async def chat_with_claude(messages: List[Dict[str, str]], **kwargs) -> Dict[str, Any]:
+async def chat_with_claude(messages: list[dict[str, str]], **kwargs) -> dict[str, Any]:
     """Chat with Claude model - primary AI service"""
     return await claude_service.chat_completion(messages, **kwargs)

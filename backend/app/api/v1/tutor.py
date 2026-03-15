@@ -1,18 +1,18 @@
 """API endpoints for the Lead Tutor Agent"""
 
-from typing import Dict, Any, Optional
-from fastapi import APIRouter, Depends, HTTPException, status, Request
-from sqlalchemy.orm import Session
+import logging
+from typing import Any
+
+from fastapi import APIRouter, Depends, Request
 from pydantic import BaseModel, Field
-from app.api.dependencies import get_current_user, get_db
-from app.models.user import User
-from app.models.study_session import StudySession
+from sqlalchemy.orm import Session
+
 from app.agents.lead_tutor import LeadTutorAgent
+from app.api.dependencies import get_current_user, get_db
 from app.core.agent_manager import agent_manager
-from app.core.config import settings
 from app.core.exceptions import AgentProcessingError
 from app.core.rate_limiter import limiter
-import logging
+from app.models.user import User
 
 logger = logging.getLogger(__name__)
 
@@ -23,14 +23,14 @@ class TutorRequest(BaseModel):
     """Request model for tutor interactions"""
 
     message: str = Field(..., description="User's message or question")
-    action: Optional[str] = Field(
+    action: str | None = Field(
         default="general",
         description="Specific action: create_plan, explain_concept, check_understanding, provide_feedback",
     )
-    context: Optional[Dict[str, Any]] = Field(
+    context: dict[str, Any] | None = Field(
         default_factory=dict, description="Additional context for the request"
     )
-    session_id: Optional[str] = Field(None, description="Study session ID")
+    session_id: str | None = Field(None, description="Study session ID")
 
 
 class TutorResponse(BaseModel):
@@ -38,8 +38,8 @@ class TutorResponse(BaseModel):
 
     success: bool
     message: str
-    response: Optional[str] = None
-    data: Optional[Dict[str, Any]] = None
+    response: str | None = None
+    data: dict[str, Any] | None = None
     session_id: str
 
 
@@ -60,7 +60,7 @@ class AdaptDifficultyRequest(BaseModel):
     )
 
 
-def get_or_create_agent(user_id: str, session_id: Optional[str] = None) -> LeadTutorAgent:
+def get_or_create_agent(user_id: str, session_id: str | None = None) -> LeadTutorAgent:
     """Get existing agent or create new one for user via Agent Manager"""
     agent = agent_manager.get_agent(
         user_id=user_id,
@@ -170,7 +170,7 @@ def create_study_plan(
 def get_learning_progress(
     request: Request,
     current_user: User = Depends(get_current_user),
-    session_id: Optional[str] = None,
+    session_id: str | None = None,
 ):
     """Get the user's learning progress"""
     agent = agent_manager.get_agent(
@@ -193,7 +193,7 @@ def get_learning_progress(
 def clear_tutor_session(
     request: Request,
     current_user: User = Depends(get_current_user),
-    session_id: Optional[str] = None,
+    session_id: str | None = None,
 ):
     """Clear the tutor session for the current user"""
     success = agent_manager.delete_agent(
@@ -213,7 +213,7 @@ def adapt_difficulty(
     request: Request,
     adapt_request: AdaptDifficultyRequest,
     current_user: User = Depends(get_current_user),
-    session_id: Optional[str] = None,
+    session_id: str | None = None,
 ):
     """Manually trigger difficulty adaptation based on performance"""
     agent = get_or_create_agent(str(current_user.id), session_id)
