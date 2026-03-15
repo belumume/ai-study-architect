@@ -431,6 +431,28 @@ Session 10 covered 5 major work phases, solving 36 distinct problems across 95 f
 | 017 | P3 | Pre-existing code quality (6 items) | Pending |
 | 018 | P3 | Backup rate limit scope | Pending |
 | 019 | P3 | Vision processor dead import | Pending |
+| 020 | P2 | SVG timer ring intercepts button clicks on Focus | Pending |
+| 021 | P3 | Focus page not discoverable from empty dashboard | Pending |
+| 022 | P3 | Content search returns 422 | Pending |
+| 023 | P3 | Subject card progress bar at 0% | Pending |
+
+---
+
+## Production Smoke Test (Post-Merge)
+
+Comprehensive browser + API test on https://aistudyarchitect.com after deploy.
+
+**UI Routes Tested (click-only navigation):**
+- Login/Register: Working, dark theme
+- Dashboard (empty + with data): Working, correct empty states, HeroMetrics sublabels
+- Study/Chat: Working (streaming, Socratic), MUI white panel (Phase 3)
+- Content: Working, MUI white panel (Phase 3)
+- Subject Detail: Working, mastery ring, empty state
+- Focus (setup/timer/complete): Working, session recorded to dashboard
+
+**API Endpoints Verified:** dashboard, subjects, subject detail, content, sessions, auth, health, CSRF — all 200. Unauthenticated = 401. Nonexistent = 404. API docs blocked = 404.
+
+**Bugs Found:** 4 (todos 020-023 above)
 
 ---
 
@@ -439,5 +461,11 @@ Session 10 covered 5 major work phases, solving 36 distinct problems across 95 f
 - Backend: 421 passed, 53.9% coverage
 - Frontend: 86 passed, TypeScript clean
 - PR #29 squash-merged to main
-- Production test user (uitest2026) deleted from Neon
-- PR lifecycle: #27 (closed -- sticky comment issues), #28 (bait test -- closed), #29 (clean -- merged)
+- Production smoke test: all routes functional, 4 bugs tracked
+- Test users: uitest2026 deleted, smoketest2026 needs Neon cleanup
+- PR lifecycle: #27 (closed), #28 (bait test, closed), #29 (merged)
+
+## Session Exports
+
+- `~/.claude/exports/ai-study-architect/2026-03-15-session10-phase2-followup-security-actions-monetization.txt` (mid-session)
+- `~/.claude/exports/ai-study-architect/2026-03-15-session10-final-export.txt` (final)
