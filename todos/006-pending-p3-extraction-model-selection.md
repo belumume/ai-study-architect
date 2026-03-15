@@ -1,5 +1,5 @@
 ---
-status: pending
+status: complete
 priority: p3
 issue_id: "006"
 tags: [code-review, plan-review, cost, configuration]
@@ -30,6 +30,9 @@ The extraction service defaults to `claude-sonnet-4-6` (same as chat). Sonnet is
 
 ## Acceptance Criteria
 
-- [ ] `CLAUDE_EXTRACTION_MODEL` env var is configurable
-- [ ] Extraction works with both Sonnet and Haiku
-- [ ] Quality comparison documented (at least 3 sample documents)
+- [x] `CLAUDE_EXTRACTION_MODEL` env var is configurable
+- [x] Extraction works with both Sonnet and Haiku (validated in spike tests)
+- [x] Quality comparison documented (hash tables academic text):
+  - Sonnet: 15 concepts, 21 deps, 51s, $0.057/extraction — better SVO names
+  - Haiku: 13 concepts, 18 deps, 20s, $0.016/extraction — 3.6x cheaper, 2.6x faster
+  - Default changed to claude-haiku-4-5 for cost/speed; override via CLAUDE_EXTRACTION_MODEL

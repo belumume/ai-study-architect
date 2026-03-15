@@ -1,19 +1,13 @@
 """Lead Tutor Agent - Orchestrates the learning experience with Redis caching"""
 
-import json
-from typing import Any, Dict, List, Optional
-from datetime import datetime, timedelta
-import logging
-
 import json as json_module
+import logging
+from typing import Any
+
 from pydantic import BaseModel, Field
 
-from app.agents.base import BaseAgent, AgentResponse, HumanMessage, AIMessage
-from app.models.user import User
-from app.models.study_session import StudySession
-from app.models.content import Content
-from app.schemas.study_session import StudyPlan, LearningObjective
-from app.core.cache import cached_ai_response, ai_cache
+from app.agents.base import AgentResponse, AIMessage, BaseAgent, HumanMessage
+from app.schemas.study_session import LearningObjective, StudyPlan
 
 logger = logging.getLogger(__name__)
 
@@ -21,12 +15,12 @@ logger = logging.getLogger(__name__)
 class LeadTutorState(BaseModel):
     """State specific to the Lead Tutor Agent"""
 
-    current_topic: Optional[str] = None
-    learning_style: Optional[str] = None
+    current_topic: str | None = None
+    learning_style: str | None = None
     difficulty_level: str = "intermediate"
-    session_goals: List[str] = Field(default_factory=list)
-    completed_objectives: List[str] = Field(default_factory=list)
-    current_plan: Optional[StudyPlan] = None
+    session_goals: list[str] = Field(default_factory=list)
+    completed_objectives: list[str] = Field(default_factory=list)
+    current_plan: StudyPlan | None = None
 
 
 class LeadTutorAgent(BaseAgent):
@@ -68,7 +62,7 @@ You should be:
 
 Always structure your responses clearly and provide actionable next steps."""
 
-    def process(self, input_data: Dict[str, Any]) -> AgentResponse:
+    def process(self, input_data: dict[str, Any]) -> AgentResponse:
         """
         Process student input and orchestrate the learning experience.
 
@@ -113,7 +107,7 @@ Always structure your responses clearly and provide actionable next steps."""
                 text = text.rstrip()[:-3]
         return json_module.loads(text)
 
-    def _create_study_plan(self, user_input: str, context: Dict[str, Any]) -> AgentResponse:
+    def _create_study_plan(self, user_input: str, context: dict[str, Any]) -> AgentResponse:
         """Create a personalized study plan based on student goals"""
 
         knowledge_level = context.get("knowledge_level", "beginner")
@@ -254,7 +248,7 @@ Format your response as a JSON object with the following structure:
                     metadata={"action": "create_plan", "agent_id": self.agent_id},
                 )
 
-    def _explain_concept(self, concept: str, context: Dict[str, Any]) -> AgentResponse:
+    def _explain_concept(self, concept: str, context: dict[str, Any]) -> AgentResponse:
         """Explain a concept in a way tailored to the student's learning style"""
 
         learning_style = context.get("learning_style", self.tutor_state.learning_style or "visual")
@@ -288,7 +282,7 @@ Format your response with clear sections and emphasis on important terms."""
             metadata={"action": "explain_concept", "agent_id": self.agent_id},
         )
 
-    def _check_understanding(self, topic: str, context: Dict[str, Any]) -> AgentResponse:
+    def _check_understanding(self, topic: str, context: dict[str, Any]) -> AgentResponse:
         """Generate questions to check student understanding"""
 
         check_prompt = f"""Create 3-5 questions to check understanding of: {topic}
@@ -330,7 +324,7 @@ Format as JSON:
         except Exception as e:
             return self.handle_error(e, "generating understanding check questions")
 
-    def _provide_feedback(self, context: Dict[str, Any]) -> AgentResponse:
+    def _provide_feedback(self, context: dict[str, Any]) -> AgentResponse:
         """Provide feedback on student performance"""
 
         performance_data = context.get("performance", {})
@@ -361,7 +355,7 @@ Be encouraging while identifying areas for improvement. Suggest specific next st
             metadata={"action": "provide_feedback", "agent_id": self.agent_id},
         )
 
-    def _general_interaction(self, user_input: str, context: Dict[str, Any]) -> AgentResponse:
+    def _general_interaction(self, user_input: str, context: dict[str, Any]) -> AgentResponse:
         """Handle general tutoring interactions"""
 
         # Use conversation history for context
@@ -386,7 +380,7 @@ Be encouraging while identifying areas for improvement. Suggest specific next st
             metadata={"action": "general", "agent_id": self.agent_id},
         )
 
-    def _generate_next_steps(self, performance_data: Dict[str, Any]) -> List[str]:
+    def _generate_next_steps(self, performance_data: dict[str, Any]) -> list[str]:
         """Generate recommended next steps based on performance"""
         accuracy = performance_data.get("correct", 0) / max(performance_data.get("total", 1), 1)
 
@@ -407,7 +401,7 @@ Be encouraging while identifying areas for improvement. Suggest specific next st
 
         return next_steps
 
-    def _extract_actionable_items(self, response: str) -> List[str]:
+    def _extract_actionable_items(self, response: str) -> list[str]:
         """Extract actionable items from a response"""
         actionable_keywords = [
             "try",
@@ -444,7 +438,7 @@ Be encouraging while identifying areas for improvement. Suggest specific next st
             elif self.tutor_state.difficulty_level == "intermediate":
                 self.tutor_state.difficulty_level = "beginner"
 
-    def get_progress_summary(self) -> Dict[str, Any]:
+    def get_progress_summary(self) -> dict[str, Any]:
         """Get a summary of the student's progress"""
         total_objectives = len(self.tutor_state.session_goals)
         completed = len(self.tutor_state.completed_objectives)

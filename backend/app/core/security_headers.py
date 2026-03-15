@@ -2,12 +2,11 @@
 Comprehensive security headers middleware for FastAPI
 """
 
+import base64
+import secrets
+
 from fastapi import Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware
-from typing import Dict, Optional
-import hashlib
-import secrets
-import base64
 
 
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
@@ -23,7 +22,7 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         app,
         is_debug: bool = False,
         nonce_enabled: bool = True,
-        report_uri: Optional[str] = None,
+        report_uri: str | None = None,
     ):
         super().__init__(app)
         self.is_debug = is_debug
@@ -49,7 +48,7 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         return response
 
     def _add_security_headers(
-        self, response: Response, nonce: Optional[str] = None, is_docs_endpoint: bool = False
+        self, response: Response, nonce: str | None = None, is_docs_endpoint: bool = False
     ) -> None:
         """Add comprehensive security headers to response"""
 
@@ -116,8 +115,8 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
                 del response.headers[header]
 
     def _get_csp_directives(
-        self, nonce: Optional[str] = None, is_docs_endpoint: bool = False
-    ) -> Dict[str, str]:
+        self, nonce: str | None = None, is_docs_endpoint: bool = False
+    ) -> dict[str, str]:
         """Get CSP directives based on environment"""
 
         # Special handling for documentation endpoints (Swagger/ReDoc)
@@ -189,6 +188,6 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
             }
 
 
-def get_csp_nonce(request: Request) -> Optional[str]:
+def get_csp_nonce(request: Request) -> str | None:
     """Get CSP nonce from request state"""
     return getattr(request.state, "csp_nonce", None)

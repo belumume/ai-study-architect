@@ -3,21 +3,20 @@ Common dependencies for API endpoints - Sync version
 Supports both Bearer tokens and httpOnly cookies for authentication
 """
 
-from typing import Optional
-from fastapi import Depends, HTTPException, status, Request
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from sqlalchemy.orm import Session
-from sqlalchemy import select
+
+from fastapi import Depends, HTTPException, Request, status
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError
+from sqlalchemy.orm import Session
 
 from app.core.database import get_db
-from app.core.security import verify_token
 from app.core.exceptions import (
-    InvalidTokenError,
-    UserNotFoundError,
     InactiveUserError,
+    InvalidTokenError,
     PermissionDeniedError,
+    UserNotFoundError,
 )
+from app.core.security import verify_token
 from app.models.user import User
 
 # Security scheme with auto_error=False to allow cookie fallback
@@ -26,7 +25,7 @@ security = HTTPBearer(auto_error=False)
 
 def get_current_user(
     request: Request,
-    credentials: Optional[HTTPAuthorizationCredentials] = Depends(security),
+    credentials: HTTPAuthorizationCredentials | None = Depends(security),
     db: Session = Depends(get_db),
 ) -> User:
     """
@@ -120,9 +119,9 @@ def get_current_superuser(current_user: User = Depends(get_current_user)) -> Use
 
 
 def get_optional_current_user(
-    credentials: Optional[HTTPAuthorizationCredentials] = Depends(HTTPBearer(auto_error=False)),
+    credentials: HTTPAuthorizationCredentials | None = Depends(HTTPBearer(auto_error=False)),
     db: Session = Depends(get_db),
-) -> Optional[User]:
+) -> User | None:
     """
     Get current user if authenticated, None otherwise.
 
@@ -149,7 +148,7 @@ def get_optional_current_user(
         return None
 
 
-async def get_current_user_ws(token: str, db: Session) -> Optional[User]:
+async def get_current_user_ws(token: str, db: Session) -> User | None:
     """
     Get current user from WebSocket token.
 

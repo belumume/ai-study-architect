@@ -2,15 +2,14 @@
 Subject CRUD endpoints
 """
 
-from typing import List
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
-from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import Session
 
 from app.api.dependencies import get_current_user, get_db
 from app.core.rate_limiter import limiter
-from app.models.subject import Subject, SUBJECT_COLORS
+from app.models.subject import SUBJECT_COLORS, Subject
 from app.models.user import User
 from app.schemas.subject import SubjectCreate, SubjectResponse, SubjectUpdate
 from app.utils.sanitization import sanitize_input
@@ -69,7 +68,7 @@ async def create_subject(
     return subject
 
 
-@router.get("/", response_model=List[SubjectResponse])
+@router.get("/", response_model=list[SubjectResponse])
 @limiter.limit("60/minute")
 async def list_subjects(
     request: Request,

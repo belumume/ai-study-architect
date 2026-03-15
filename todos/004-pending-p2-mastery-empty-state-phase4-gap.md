@@ -1,5 +1,5 @@
 ---
-status: pending
+status: complete
 priority: p2
 issue_id: "004"
 tags: [code-review, plan-review, ux, frontend]
@@ -38,7 +38,7 @@ The Subject Detail page will display a wall of 0% progress bars. The dashboard "
 
 ## Acceptance Criteria
 
-- [ ] Subject Detail page does not show a wall of "0%" that feels broken
-- [ ] Dashboard mastery section is informative even without practice data
-- [ ] Users understand that practice features are coming
-- [ ] The empty state clearly distinguishes "not yet practiced" from "mastered 0%"
+- [x] Subject Detail page does not show a wall of "0%" that feels broken
+- [x] Dashboard mastery section is informative even without practice data
+- [x] Users understand that practice features are coming
+- [x] The empty state clearly distinguishes "not yet practiced" from "mastered 0%"

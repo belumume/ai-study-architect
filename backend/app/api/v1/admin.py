@@ -2,22 +2,23 @@
 Admin API endpoints for system management
 """
 
-from fastapi import APIRouter, Depends, HTTPException, Request
-from sqlalchemy.orm import Session
-from pydantic import BaseModel
-from typing import Dict, Any, Optional
-
-from app.api.dependencies import get_db, get_current_user
-from app.models.user import User
-from app.core.rsa_keys import key_manager
-from app.core.exceptions import UnauthorizedError
-from app.core.security import rotate_jwt_keys, get_key_rotation_info
-from app.core.database import get_pool_status, test_database_connection
-from app.core.cache import redis_cache, ai_cache
-from app.core.agent_manager import agent_manager
-from app.core.rate_limiter import limiter
 import logging
 from datetime import datetime
+from typing import Any
+
+from fastapi import APIRouter, Depends, HTTPException, Request
+from pydantic import BaseModel
+from sqlalchemy.orm import Session
+
+from app.api.dependencies import get_current_user, get_db
+from app.core.agent_manager import agent_manager
+from app.core.cache import ai_cache, redis_cache
+from app.core.database import get_pool_status, test_database_connection
+from app.core.exceptions import UnauthorizedError
+from app.core.rate_limiter import limiter
+from app.core.rsa_keys import key_manager
+from app.core.security import get_key_rotation_info, rotate_jwt_keys
+from app.models.user import User
 
 logger = logging.getLogger(__name__)
 
@@ -36,9 +37,9 @@ class KeyRotationResponse(BaseModel):
 class KeyRotationInfoResponse(BaseModel):
     """Response for key rotation info"""
 
-    current_key: Dict[str, Any]
+    current_key: dict[str, Any]
     archived_keys_count: int
-    last_rotation: Optional[float]
+    last_rotation: float | None
     rotation_available: bool
 
 
@@ -75,7 +76,7 @@ class AgentManagerStatus(BaseModel):
     local_cache_size: int
     max_local_cache_size: int
     total_agents: int
-    agents_by_type: Dict[str, int]
+    agents_by_type: dict[str, int]
     default_ttl_hours: float
 
 
@@ -181,7 +182,7 @@ def get_keys_info(
 
 
 @router.get("/public-key")
-def get_public_key() -> Dict[str, str]:
+def get_public_key() -> dict[str, str]:
     """
     Get the current public key for JWT verification
 
@@ -203,7 +204,7 @@ def get_public_key() -> Dict[str, str]:
 @limiter.limit("10/minute")
 def detailed_health_check(
     request: Request, admin_user: User = Depends(verify_admin), db: Session = Depends(get_db)
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Detailed health check for administrators
 
@@ -564,7 +565,7 @@ def cleanup_expired_agents(request: Request, admin_user: User = Depends(verify_a
         cleaned_count = agent_manager.cleanup_expired_agents()
 
         return {
-            "message": f"Agent cleanup completed successfully",
+            "message": "Agent cleanup completed successfully",
             "cleaned_agents": cleaned_count,
             "cleanup_time": str(datetime.utcnow()),
         }
@@ -580,7 +581,7 @@ def delete_user_agent(
     request: Request,
     user_id: str,
     agent_type: str,
-    session_id: Optional[str] = None,
+    session_id: str | None = None,
     admin_user: User = Depends(verify_admin),
 ):
     """

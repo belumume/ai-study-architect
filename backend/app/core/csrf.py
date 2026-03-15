@@ -3,15 +3,13 @@ CSRF Protection for FastAPI
 Implements double-submit cookie pattern for CSRF protection
 """
 
-import secrets
-import time
-from typing import Optional, Dict, Any
-from fastapi import Request, Response, HTTPException, status, Depends
-from fastapi.security import HTTPBearer
-from pydantic import BaseModel
 import hashlib
 import hmac
-from datetime import datetime, timedelta
+import secrets
+import time
+
+from fastapi import HTTPException, Request, Response, status
+from pydantic import BaseModel
 
 from app.core.config import settings
 from app.core.exceptions import CSRFError
@@ -22,7 +20,7 @@ class CSRFToken(BaseModel):
 
     token: str
     created_at: float
-    user_id: Optional[str] = None
+    user_id: str | None = None
 
 
 class CSRFProtect:
@@ -54,7 +52,7 @@ class CSRFProtect:
         self.cookie_httponly = cookie_httponly
         self.cookie_samesite = cookie_samesite
 
-    def generate_csrf_token(self, user_id: Optional[str] = None) -> str:
+    def generate_csrf_token(self, user_id: str | None = None) -> str:
         """
         Generate a new CSRF token
 
@@ -89,9 +87,9 @@ class CSRFProtect:
 
     def validate_csrf_token(
         self,
-        cookie_token: Optional[str],
-        header_token: Optional[str],
-        user_id: Optional[str] = None,
+        cookie_token: str | None,
+        header_token: str | None,
+        user_id: str | None = None,
     ) -> bool:
         """
         Validate CSRF token from cookie matches header token
@@ -149,7 +147,7 @@ class CSRFProtect:
         except (ValueError, IndexError) as e:
             raise CSRFError(f"CSRF token validation failed: {str(e)}")
 
-    def set_csrf_cookie(self, response: Response, user_id: Optional[str] = None) -> str:
+    def set_csrf_cookie(self, response: Response, user_id: str | None = None) -> str:
         """
         Set CSRF token in response cookie
 
@@ -174,7 +172,7 @@ class CSRFProtect:
 
         return csrf_token
 
-    def get_csrf_token_from_request(self, request: Request) -> Dict[str, Optional[str]]:
+    def get_csrf_token_from_request(self, request: Request) -> dict[str, str | None]:
         """
         Extract CSRF tokens from request
 
@@ -195,7 +193,7 @@ class CSRFProtect:
 
         return {"cookie_token": cookie_token, "header_token": header_token}
 
-    def validate_request(self, request: Request, user_id: Optional[str] = None) -> bool:
+    def validate_request(self, request: Request, user_id: str | None = None) -> bool:
         """
         Validate CSRF token in request
 

@@ -76,18 +76,27 @@ export default function SubjectDetailPage() {
                   <p className="font-mono text-[10px] text-text-muted">
                     {content.concept_count > 0
                       ? `${content.concept_count} concepts`
-                      : content.processing_status === 'completed'
-                        ? 'Ready to extract'
-                        : content.processing_status}
+                      : content.extraction_status === 'extracting'
+                        ? 'Extracting concepts...'
+                        : content.extraction_status === 'completed_empty'
+                          ? 'No concepts found -- try re-extracting'
+                          : content.extraction_status === 'partial'
+                            ? 'Partial extraction -- some sections failed'
+                            : content.extraction_status === 'failed'
+                              ? 'Extraction failed'
+                              : content.processing_status === 'completed'
+                                ? 'Ready to extract'
+                                : content.processing_status}
                   </p>
                 </div>
-                {content.processing_status === 'completed' && (
-                  <ExtractionTrigger
-                    contentId={content.id}
-                    subjectId={id}
-                    hasExistingConcepts={content.concept_count > 0}
-                  />
-                )}
+                {content.processing_status === 'completed' &&
+                  content.extraction_status !== 'extracting' && (
+                    <ExtractionTrigger
+                      contentId={content.id}
+                      subjectId={id}
+                      hasExistingConcepts={content.concept_count > 0}
+                    />
+                  )}
               </div>
             ))}
           </div>

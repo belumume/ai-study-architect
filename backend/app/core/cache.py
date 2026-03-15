@@ -2,16 +2,14 @@
 Redis caching service for AI responses and agent storage
 """
 
-import json
 import hashlib
-import pickle  # existing usage for complex object serialization fallback
-import os
-from typing import Any, Optional, Dict, List, Union
-from datetime import timedelta
+import json
 import logging
-from functools import wraps
+import os
 
-from app.core.config import settings
+from datetime import timedelta
+from functools import wraps
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -46,7 +44,7 @@ class RedisCache:
 
     def __init__(self):
         """Initialize Redis connection"""
-        self._redis_client: Optional[Any] = None
+        self._redis_client: Any | None = None
         self._connected = False
 
     def _get_client(self):
@@ -95,7 +93,7 @@ class RedisCache:
 
         return f"{prefix}:{key_hash}"
 
-    def get(self, key: str) -> Optional[Any]:
+    def get(self, key: str) -> Any | None:
         """Get value from cache"""
         try:
             client = self._get_client()
@@ -103,30 +101,23 @@ class RedisCache:
             if value is None:
                 return None
 
-            # Try to deserialize JSON first, then pickle as fallback
+            # Deserialize JSON only (no unsafe deserialization)
             try:
                 return json.loads(value)
             except (json.JSONDecodeError, TypeError):
-                try:
-                    return pickle.loads(value.encode("latin-1"))
-                except Exception:
-                    return value
+                return value
 
         except Exception as e:
             logger.warning(f"Cache get failed for key {key}: {e}")
             return None
 
-    def set(self, key: str, value: Any, ttl: Optional[Union[int, timedelta]] = None) -> bool:
+    def set(self, key: str, value: Any, ttl: int | timedelta | None = None) -> bool:
         """Set value in cache with optional TTL"""
         try:
             client = self._get_client()
 
-            # Serialize value
-            try:
-                serialized_value = json.dumps(value, default=str)
-            except (TypeError, ValueError):
-                # Fallback to pickle for complex objects
-                serialized_value = pickle.dumps(value).decode("latin-1")
+            # Serialize as JSON only (no unsafe serialization)
+            serialized_value = json.dumps(value, default=str)
 
             # Set TTL
             if isinstance(ttl, timedelta):
@@ -169,7 +160,7 @@ class RedisCache:
             logger.warning(f"Cache clear pattern failed for {pattern}: {e}")
             return 0
 
-    def get_stats(self) -> Dict[str, Any]:
+    def get_stats(self) -> dict[str, Any]:
         """Get cache statistics"""
         try:
             client = self._get_client()
@@ -206,7 +197,7 @@ class AIResponseCache:
         self.cache = cache_client
         self.default_ttl = timedelta(hours=24)  # AI responses cached for 24 hours
 
-    def get_llm_response(self, model: str, prompt: str, **kwargs) -> Optional[Dict[str, Any]]:
+    def get_llm_response(self, model: str, prompt: str, **kwargs) -> dict[str, Any] | None:
         """Get cached LLM response"""
         cache_key = self.cache._generate_cache_key("llm_response", model, prompt, **kwargs)
 
@@ -216,8 +207,8 @@ class AIResponseCache:
         self,
         model: str,
         prompt: str,
-        response: Dict[str, Any],
-        ttl: Optional[timedelta] = None,
+        response: dict[str, Any],
+        ttl: timedelta | None = None,
         **kwargs,
     ) -> bool:
         """Cache LLM response"""
@@ -233,7 +224,7 @@ class AIResponseCache:
 
         return self.cache.set(cache_key, cached_response, ttl or self.default_ttl)
 
-    def get_embedding(self, model: str, text: str) -> Optional[List[float]]:
+    def get_embedding(self, model: str, text: str) -> list[float] | None:
         """Get cached text embedding"""
         cache_key = self.cache._generate_cache_key("embedding", model, text)
 
@@ -243,7 +234,7 @@ class AIResponseCache:
         return cached
 
     def set_embedding(
-        self, model: str, text: str, embedding: List[float], ttl: Optional[timedelta] = None
+        self, model: str, text: str, embedding: list[float], ttl: timedelta | None = None
     ) -> bool:
         """Cache text embedding"""
         cache_key = self.cache._generate_cache_key("embedding", model, text)
@@ -279,7 +270,7 @@ ai_cache = AIResponseCache(redis_cache)
 
 
 def cached_ai_response(
-    ttl: Optional[timedelta] = None, model_param: str = "model", prompt_param: str = "prompt"
+    ttl: timedelta | None = None, model_param: str = "model", prompt_param: str = "prompt"
 ):
     """
     Decorator to automatically cache AI responses

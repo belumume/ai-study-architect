@@ -1,7 +1,7 @@
 """R2/S3-compatible object storage service."""
 
 import logging
-from typing import Optional
+
 import boto3
 from botocore.exceptions import ClientError
 
@@ -41,7 +41,7 @@ def upload_file(key: str, data: bytes, content_type: str = "application/octet-st
         return False
 
 
-def download_file(key: str) -> Optional[bytes]:
+def download_file(key: str) -> bytes | None:
     """Download bytes from R2. Returns None on failure."""
     client = _get_s3_client()
     if not client:
@@ -67,7 +67,7 @@ def delete_file(key: str) -> bool:
         return False
 
 
-def generate_presigned_url(key: str, expires_in: int = 3600) -> Optional[str]:
+def generate_presigned_url(key: str, expires_in: int = 3600) -> str | None:
     """Generate a presigned download URL. Returns None on failure."""
     client = _get_s3_client()
     if not client:

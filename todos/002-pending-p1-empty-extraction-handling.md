@@ -1,5 +1,5 @@
 ---
-status: pending
+status: complete
 priority: p1
 issue_id: "002"
 tags: [code-review, plan-review, backend, edge-case]
@@ -43,7 +43,7 @@ Without explicit handling, `extraction_status` would be set to "completed" with 
 
 ## Acceptance Criteria
 
-- [ ] Extraction of empty/trivial content does not crash
-- [ ] User sees a helpful message explaining why 0 concepts were found
-- [ ] Status distinguishes "completed with concepts" from "completed empty"
-- [ ] Frontend empty state for Subject Detail works with 0 concepts
+- [x] Extraction of empty/trivial content does not crash
+- [x] User sees a helpful message explaining why 0 concepts were found
+- [x] Status distinguishes "completed with concepts" from "completed empty"
+- [x] Frontend empty state for Subject Detail works with 0 concepts

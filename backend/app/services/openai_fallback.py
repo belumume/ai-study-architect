@@ -2,10 +2,10 @@
 OpenAI fallback service for when Claude API is unavailable
 """
 
-import os
-import json
 import logging
-from typing import List, Dict, Any, Optional, AsyncIterator
+import os
+from typing import Any
+
 import httpx
 
 logger = logging.getLogger(__name__)
@@ -30,11 +30,11 @@ class OpenAIFallbackService:
 
     async def chat_completion(
         self,
-        messages: List[Dict[str, str]],
+        messages: list[dict[str, str]],
         temperature: float = 0.7,
-        max_tokens: Optional[int] = None,
+        max_tokens: int | None = None,
         stream: bool = False,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Chat completion using OpenAI API
         """
