@@ -379,7 +379,7 @@ Session 10 covered 5 major work phases, solving 36 distinct problems across 95 f
 16. **Production smoke test must be click-only**: Never type URLs after the login page. Direct URL navigation hides UX gaps (Focus page unreachable from empty dashboard was invisible until click-testing).
 17. **Credential exposure requires immediate acknowledgment**: `credentials.json` was dumped in-session with live tokens for 10+ services. Flag immediately, not 2 hours later. Add credential files to "never read directly" list.
 18. **Break infinite review loops with squash + fresh PR**: 7+ review runs re-flagging the same issues. Fix: squash all commits, close old PR, open fresh one. Limit to 3 review cycles per PR.
-19. **Test user lifecycle is atomic**: Create, test, delete in the same session. `uitest2026` leaked from session 9. `smoketest2026` leaked from session 10. An admin delete endpoint would prevent this.
+19. **Keep one persistent test account per project**: Reuse across sessions. Only delete test DATA (subjects, sessions, content) between runs, not the account itself. Test registration flow only when auth-related code changed. `smoketest2026` is the persistent account for ai-study-architect.
 20. **"Design choice" is not a valid dismissal without a decision record**: Focus page inaccessibility was called a "known design choice" — nobody decided it, it was an oversight.
 21. **Shared workflow callers must declare permissions**: First deploy to 46 repos failed because callers lacked `permissions:` blocks. Reusable workflows inherit, not escalate.
 22. **Verify reviewer claims from official sources, not training data**: "claude-sonnet-4-6 is invalid" was false. Exact deprecation dates need web verification.
@@ -505,7 +505,7 @@ Comprehensive browser + API test on https://aistudyarchitect.com after deploy.
 - Frontend: 86 passed, TypeScript clean
 - PR #29 squash-merged to main
 - Production smoke test: all routes functional, 4 bugs tracked
-- Test users: uitest2026 deleted, smoketest2026 needs Neon cleanup
+- Test users: uitest2026 deleted, smoketest2026 kept as persistent test account
 - PR lifecycle: #27 (closed), #28 (bait test, closed), #29 (merged)
 - 13 stale local branches cleaned up during session-complete
 - Session close sequence established: `/session-complete` -> `/ce:compound` -> `/export`
