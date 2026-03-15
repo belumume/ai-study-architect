@@ -82,7 +82,7 @@ cd worker && npx wrangler deploy               # Backend (CF Container)
 ```
 backend/app/
 ├── api/v1/
-│   ├── api.py              # Main router (11 sub-routers)
+│   ├── api.py              # Main router (12 sub-routers)
 │   ├── auth.py, chat.py, tutor.py, content.py
 │   ├── subjects.py         # Subject CRUD
 │   ├── study_sessions.py   # Session lifecycle (start/pause/resume/stop)
@@ -121,9 +121,10 @@ frontend/src/
 - `/study` — Chat/tutor (ProtectedRoute, AppShell)
 - `/focus` — Focus timer (ProtectedRoute, AppShell)
 - `/content` — Content management (ProtectedRoute, AppShell)
+- `/subjects/:id` — Subject Detail (ProtectedRoute, AppShell)
 
 ### Key Patterns
-- **Session state machine**: in_progress/paused/completed/abandoned, atomic transitions, partial unique index (one active per user)
+- **Session state machine**: in_progress/paused/completed/cancelled, atomic transitions, partial unique index (one active per user)
 - **Dashboard 3-query**: 28-day aggregation + active session check + streak calculation. Python timezone computation (not `func.timezone()` — crashes on Neon).
 - **AI fallback**: Claude available? → Claude stream. No? → OpenAI response. Runtime key validation.
 - **Rate limiter**: Single shared instance in `app/core/rate_limiter.py` (import as `limiter`, not `shared_limiter`)
@@ -183,12 +184,13 @@ frontend/src/
 
 ## Implementation Status
 
-**Complete**: Lead tutor + Socratic chat, multi-provider AI, file upload/processing, chat streaming, subject CRUD, session lifecycle (start/pause/resume/stop), dashboard summary API (3-query), dashboard UI (HeroMetrics, SubjectList, ContributionHeatmap, CTA), focus timer (Web Worker), Tailwind v4 foundation, auth forms restyled, Stitch v3 evolved designs.
+**Complete**: Lead tutor + Socratic chat, multi-provider AI, file upload/processing, chat streaming, subject CRUD, session lifecycle (start/pause/resume/stop), dashboard summary API, dashboard UI (HeroMetrics, SubjectList, ContributionHeatmap, CTA), focus timer (Web Worker), Tailwind v4 foundation, auth forms restyled, Stitch v3 evolved designs, concept extraction pipeline (Claude Structured Outputs + parallel chunks), Subject Detail page (MasteryRing, ConceptCard, ExtractionTrigger), per-subject mastery in dashboard, empty extraction UX, content deletion cascade warning, security hardening (session 10).
 
-**Phase 2 (next)**: Subject Detail page, concept extraction pipeline (Claude API), `concepts` + `user_concept_mastery` tables, real mastery %.
-**Phase 3**: Chat restyle (MUI → Tailwind), react-markdown integration, MUI removal.
+**Phase 2**: COMPLETE (PR #26 + PR #29 merged). 13 pending todos (009-024) for follow-up items.
+**Phase 3 (next)**: Chat restyle (MUI → Tailwind), react-markdown integration, MUI removal.
 **Phase 4**: Practice generation, attempt tracking, AI grading, real Active Focus.
 **Phase 5**: SM-2 scheduling, analytics page, recommendation engine, retention curves.
+**Phase 6**: Monetization (Stripe, usage tracking, tier enforcement). Strategy at `docs/brainstorms/2026-03-14-monetization-strategy-brainstorm.md`.
 
 See [docs/technical/IMPLEMENTATION_STATUS.md](docs/technical/IMPLEMENTATION_STATUS.md) for detailed status.
 
