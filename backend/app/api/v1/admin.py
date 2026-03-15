@@ -3,7 +3,6 @@ Admin API endpoints for system management
 """
 
 import logging
-from datetime import datetime
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Request
@@ -16,6 +15,7 @@ from app.core.cache import ai_cache, redis_cache
 from app.core.database import get_pool_status, test_database_connection
 from app.core.exceptions import UnauthorizedError
 from app.core.rate_limiter import limiter
+from app.core.utils import utcnow
 from app.core.rsa_keys import key_manager
 from app.core.security import get_key_rotation_info, rotate_jwt_keys
 from app.models.user import User
@@ -567,7 +567,7 @@ def cleanup_expired_agents(request: Request, admin_user: User = Depends(verify_a
         return {
             "message": "Agent cleanup completed successfully",
             "cleaned_agents": cleaned_count,
-            "cleanup_time": str(datetime.utcnow()),
+            "cleanup_time": str(utcnow()),
         }
 
     except Exception as e:

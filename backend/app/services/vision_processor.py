@@ -14,14 +14,6 @@ from PIL import Image
 
 from app.services.claude_service import claude_service
 
-# OpenAI service will be imported only if needed
-try:
-    from app.services.openai_service import openai_service
-
-    HAS_OPENAI = True
-except ImportError:
-    HAS_OPENAI = False
-    openai_service = None
 
 logger = logging.getLogger(__name__)
 
@@ -163,139 +155,42 @@ DESCRIPTION:
             logger.error(f"Claude Vision extraction failed: {e}")
             return {"success": False, "text": "", "error": str(e), "processor": "claude_vision"}
 
-    async def extract_with_openai(
-        self, image_data: bytes, prompt: str | None = None
-    ) -> dict[str, Any]:
-        """
-        Extract content using OpenAI Vision (GPT-4V)
-
-        Args:
-            image_data: Image bytes
-            prompt: Optional specific extraction prompt
-
-        Returns:
-            Extracted content and metadata
-        """
-        try:
-            # Prepare image
-            processed_image, _ = self.prepare_image(image_data)
-
-            # Encode to base64
-            image_base64 = base64.b64encode(processed_image).decode("utf-8")
-
-            # Build prompt
-            if not prompt:
-                prompt = """Analyze this image and extract:
-1. ALL visible text
-2. Mathematical formulas (in LaTeX)
-3. Tables (formatted clearly)
-4. Diagram descriptions
-Return: extracted text, content type, and brief description."""
-
-            # Call OpenAI Vision API
-            messages = [
-                {
-                    "role": "user",
-                    "content": [
-                        {"type": "text", "text": prompt},
-                        {
-                            "type": "image_url",
-                            "image_url": {"url": f"data:image/png;base64,{image_base64}"},
-                        },
-                    ],
-                }
-            ]
-
-            response = await openai_service.create_completion(
-                messages=messages, model=os.getenv("OPENAI_MODEL", "gpt-5.4"), max_tokens=2000
-            )
-
-            content = response.choices[0].message.content
-
-            return {
-                "success": True,
-                "text": content,
-                "content_type": "extracted",
-                "description": "OpenAI Vision extraction",
-                "processor": "openai_vision",
-            }
-
-        except Exception as e:
-            logger.error(f"OpenAI Vision extraction failed: {e}")
-            return {"success": False, "text": "", "error": str(e), "processor": "openai_vision"}
-
-    async def extract_from_image(
-        self, image_data: bytes, use_fallback: bool = True
-    ) -> dict[str, Any]:
-        """
-        Extract content from image using available vision APIs
-
-        Args:
-            image_data: Image bytes
-            use_fallback: Try OpenAI if Claude fails
-
-        Returns:
-            Extracted content and metadata
-        """
-        # Try Claude first (better for educational content)
+    async def extract_from_image(self, image_data: bytes) -> dict[str, Any]:
+        """Extract content from image using Claude Vision API."""
         anthropic_key = os.getenv("ANTHROPIC_API_KEY")
         if anthropic_key:
             result = await self.extract_with_claude(image_data)
             if result["success"]:
                 return result
 
-        # Fallback to OpenAI
-        openai_key = os.getenv("OPENAI_API_KEY")
-        if use_fallback and HAS_OPENAI and openai_key:
-            result = await self.extract_with_openai(image_data)
-            if result["success"]:
-                return result
-
-        # No vision API available or all failed
         return {
             "success": False,
-            "text": "Vision-based text extraction not available. Please ensure AI API keys are configured.",
+            "text": "Vision-based text extraction not available. Please ensure ANTHROPIC_API_KEY is configured.",
             "content_type": "error",
             "description": "No vision API available",
             "processor": "none",
         }
 
-    def extract_from_image_sync(
-        self, image_data: bytes, use_fallback: bool = True
-    ) -> dict[str, Any]:
-        """
-        Synchronous wrapper for extract_from_image
-        Safe to call from sync contexts like content_processor
-
-        Args:
-            image_data: Image bytes
-            use_fallback: Try OpenAI if Claude fails
-
-        Returns:
-            Extracted content and metadata
+    def extract_from_image_sync(self, image_data: bytes) -> dict[str, Any]:
+        """Synchronous wrapper for extract_from_image.
+        Safe to call from sync contexts like content_processor.
         """
         import asyncio
 
         import nest_asyncio
 
-        # Allow nested event loops (for FastAPI compatibility)
         nest_asyncio.apply()
 
         try:
-            # Try to get existing event loop
             try:
                 loop = asyncio.get_running_loop()
-                # We're in an async context, create a new loop in thread
                 import concurrent.futures
 
                 with concurrent.futures.ThreadPoolExecutor() as executor:
-                    future = executor.submit(
-                        asyncio.run, self.extract_from_image(image_data, use_fallback)
-                    )
+                    future = executor.submit(asyncio.run, self.extract_from_image(image_data))
                     return future.result()
             except RuntimeError:
-                # No event loop running, we can run directly
-                return asyncio.run(self.extract_from_image(image_data, use_fallback))
+                return asyncio.run(self.extract_from_image(image_data))
         except Exception as e:
             logger.error(f"Sync extraction failed: {e}")
             return {

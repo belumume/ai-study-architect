@@ -2,7 +2,6 @@
 Authentication endpoints - Sync version
 """
 
-from datetime import datetime
 from typing import Any
 
 from fastapi import APIRouter, Depends, Form, Request, Response, status
@@ -20,6 +19,7 @@ from app.core.exceptions import (
     UserNotFoundError,
 )
 from app.core.rate_limiter import limiter
+from app.core.utils import utcnow
 from app.core.security import (
     create_access_token,
     create_refresh_token,
@@ -126,7 +126,7 @@ def login(
         raise InactiveUserError()
 
     # Update last login
-    user.last_login_at = datetime.utcnow()
+    user.last_login_at = utcnow()
     db.commit()
 
     # Create tokens
