@@ -1,6 +1,6 @@
 # AI Study Architect - Complete Backup System Documentation
 
-## 🚀 Overview
+## Overview
 
 The AI Study Architect implements a **dual-provider backup strategy** for maximum reliability:
 
@@ -9,90 +9,40 @@ The AI Study Architect implements a **dual-provider backup strategy** for maximu
 | **Cloudflare R2** (Primary) | Daily at 2 AM UTC | 30 days, min 7 backups | Cost-effective daily backups |
 | **AWS S3** (Secondary) | Weekly (Sundays) at 3 AM UTC | 14 days, min 3 backups | Redundant weekly snapshots |
 
-## 🔑 Required Environment Variables in Render
+## Secrets Configuration
 
-### Core Configuration (Already Set ✅)
-```bash
-BACKUP_TOKEN=<your-secure-token>              # Used everywhere (GitHub & manual)
-BACKUP_ENCRYPTION_KEY=<your-encryption-key>   # Already configured - DO NOT CHANGE
-DATABASE_URL=postgresql://...                 # Auto-configured by Render
+All backup secrets are stored in **GitHub Actions Secrets** (not in code or .env files).
+
+### GitHub Actions Secrets Required
+```
+BACKUP_TOKEN              # Auth token for backup endpoints
+BACKUP_ENCRYPTION_KEY     # Fernet key for backup encryption - DO NOT CHANGE
 ```
 
-### AWS S3 Configuration (Already Working ✅)
-```bash
-AWS_ACCESS_KEY_ID=<your-aws-key>             # Already configured
-AWS_SECRET_ACCESS_KEY=<your-aws-secret>      # Already configured  
-AWS_BACKUP_BUCKET=ai-study-architect-backup-2025  # Already configured
-AWS_REGION=us-west-2                         # Optional, defaults to us-west-2
+### AWS S3 Secrets
+```
+AWS_ACCESS_KEY_ID         # IAM user: ai-study-architect-user
+AWS_SECRET_ACCESS_KEY     # Rotated March 2026
+AWS_BACKUP_BUCKET         # ai-study-architect-backup-2025
+AWS_REGION                # us-west-2 (default)
 ```
 
-### Cloudflare R2 Configuration (Add These Now 🔴)
-```bash
-R2_ACCOUNT_ID=<your-cloudflare-account-id>      # Your Cloudflare Account ID
-R2_ACCESS_KEY=<from-cloudflare-dashboard>       # From R2 API token creation
-R2_SECRET_KEY=<from-cloudflare-dashboard>       # From R2 API token creation
-R2_BUCKET=ai-study-architect-backups            # Your R2 bucket name
+### Cloudflare R2 Secrets
+```
+R2_ACCOUNT_ID             # Cloudflare Account ID
+R2_ACCESS_KEY             # From R2 API token
+R2_SECRET_KEY             # From R2 API token
+R2_BUCKET                 # ai-study-architect-backups
 ```
 
-## 📋 Step-by-Step R2 Setup
-
-### Step 1: Add R2 Credentials to Render
-
-1. Go to [Render Dashboard](https://dashboard.render.com/web/srv-ctgfttbtq21c73b0pd60/env)
-2. Click **Add Environment Variable** for each:
-   - `R2_ACCOUNT_ID` = (your actual Cloudflare Account ID)
-   - `R2_ACCESS_KEY` = (from your Cloudflare R2 API token)
-   - `R2_SECRET_KEY` = (from your Cloudflare R2 API token)  
-   - `R2_BUCKET` = `ai-study-architect-backups`
-3. Click **Save Changes**
-4. Wait for automatic redeploy (takes ~2-3 minutes)
-
-### Step 2: Test R2 Configuration
-
-After Render redeploys, test the configuration:
-
-```bash
-# Test configuration (checks if all settings are correct)
-curl -X POST -H "X-Backup-Token: YOUR_BACKUP_TOKEN" \
-  https://ai-study-architect.onrender.com/api/v1/backup/test
-
-# Check backup status
-curl -X GET -H "X-Backup-Token: YOUR_BACKUP_TOKEN" \
-  https://ai-study-architect.onrender.com/api/v1/backup/status
+### Backend (CF Container) Secrets
+```
+DATABASE_URL              # Neon PostgreSQL connection string (used by backup script)
 ```
 
-Expected response should show:
-```json
-{
-  "r2_configured": true,
-  "r2_client_creation": "success",
-  "aws_configured": true
-}
-```
+## Automated Backup Schedule
 
-### Step 3: Test Manual R2 Backup
-
-```bash
-# Trigger R2 backup manually
-curl -X POST -H "X-Backup-Token: YOUR_BACKUP_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"provider": "r2"}' \
-  https://ai-study-architect.onrender.com/api/v1/backup/trigger
-```
-
-### Step 4: Test Both Providers
-
-```bash
-# Trigger both providers simultaneously
-curl -X POST -H "X-Backup-Token: YOUR_BACKUP_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"provider": "both"}' \
-  https://ai-study-architect.onrender.com/api/v1/backup/trigger
-```
-
-## 🔄 Automated Backup Schedule
-
-GitHub Actions automatically triggers backups:
+GitHub Actions (`.github/workflows/backup.yml`) automatically triggers backups:
 
 | Time | Day | Provider | Frequency |
 |------|-----|----------|-----------|
@@ -100,60 +50,93 @@ GitHub Actions automatically triggers backups:
 | 2:00 AM UTC | Sunday | R2 | Daily |
 | 3:00 AM UTC | Sunday | S3 | Weekly |
 
-**Note**: Manual backup triggers are rate-limited to once per hour for security.
+## Manual Backup Triggers
 
-## 🔍 Monitoring Backups
+```bash
+# Trigger R2 backup
+gh workflow run backup.yml --field provider=r2
+
+# Trigger S3 backup
+gh workflow run backup.yml --field provider=s3
+
+# Trigger both providers
+gh workflow run backup.yml --field provider=both
+
+# Check recent backup runs
+gh run list --workflow=backup.yml --limit=5
+```
+
+Or via the backup API endpoint:
+```bash
+# Test configuration
+curl -X POST -H "X-Backup-Token: YOUR_BACKUP_TOKEN" \
+  https://aistudyarchitect.com/api/v1/backup/test
+
+# Check backup status
+curl -X GET -H "X-Backup-Token: YOUR_BACKUP_TOKEN" \
+  https://aistudyarchitect.com/api/v1/backup/status
+
+# Trigger manual backup (rate-limited to 1/hour)
+curl -X POST -H "X-Backup-Token: YOUR_BACKUP_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"provider": "r2"}' \
+  https://aistudyarchitect.com/api/v1/backup/trigger
+```
+
+## Monitoring Backups
 
 ### View Recent Backup Logs
 
 1. **GitHub Actions**: [View Workflow Runs](https://github.com/belumume/ai-study-architect/actions/workflows/backup.yml)
-2. **Render Logs**: Dashboard → ai-study-architect → Logs
+2. **Container logs**: `npx wrangler logs --deployment-id <id>` or Cloudflare Dashboard
 
 ### Check Backup Files
 
 **Cloudflare R2:**
 1. Go to [Cloudflare R2 Dashboard](https://dash.cloudflare.com/?to=/:account/r2/buckets)
 2. Click on `ai-study-architect-backups` bucket
-3. Files are organized by date: `backup_20250113_020000.sql.enc`
+3. Files are organized by date: `backup_20260315_020000.sql.enc`
 
 **AWS S3:**
 1. Go to [AWS S3 Console](https://s3.console.aws.amazon.com/s3/buckets)
 2. Click on `ai-study-architect-backup-2025` bucket
-3. Files are organized by date: `backup_20250113_030000.sql.enc`
+3. Files are organized by date: `backup_20260316_030000.sql.enc`
 
-## 🔐 Security Features
+## Security Features
 
-- ✅ **Token Authentication**: All backup endpoints require `X-Backup-Token` header
-- ✅ **Fernet Encryption (AES-128 + HMAC)**: All backups encrypted AND authenticated before upload
-- ✅ **Rate Limiting**: 1-hour cooldown for manual triggers for security
-- ✅ **Automatic Cleanup**: Old backups deleted based on retention policy
-- ✅ **Private Buckets**: Both R2 and S3 buckets are private, no public access
+- **Token Authentication**: All backup endpoints require `X-Backup-Token` header
+- **Fernet Encryption (AES-128 + HMAC)**: All backups encrypted AND authenticated before upload
+- **Rate Limiting**: 1-hour cooldown for manual triggers
+- **Automatic Cleanup**: Old backups deleted based on retention policy
+- **Private Buckets**: Both R2 and S3 buckets are private, no public access
+- **S3 credential guard**: backup.yml skips S3 step if `AWS_ACCESS_KEY_ID` secret is not set
 
-## 🛠️ Troubleshooting
+## Troubleshooting
 
 ### Common Issues
 
 | Issue | Solution |
 |-------|----------|
-| "R2 not configured" | Add R2 environment variables to Render |
-| "Invalid credentials" | Check R2_ACCESS_KEY and R2_SECRET_KEY are correct |
+| "R2 not configured" | Check R2 secrets in GitHub Actions |
+| "Invalid credentials" | Verify R2_ACCESS_KEY and R2_SECRET_KEY |
 | "Bucket not found" | Ensure R2_BUCKET matches your Cloudflare bucket name |
 | "Rate limit exceeded" | Wait 1 hour between manual backups |
-| "Backup failed" | Check Render logs for detailed error messages |
+| "Backup failed" | Check GitHub Actions logs or container logs |
+| S3 step skipped | Verify AWS_ACCESS_KEY_ID is set in GitHub Secrets |
 
 ### Debug Commands
 
 ```bash
 # Detailed configuration test
 curl -X POST -H "X-Backup-Token: YOUR_BACKUP_TOKEN" \
-  https://ai-study-architect.onrender.com/api/v1/backup/debug
+  https://aistudyarchitect.com/api/v1/backup/debug
 
 # Check which backup script locations exist
 curl -X POST -H "X-Backup-Token: YOUR_BACKUP_TOKEN" \
-  https://ai-study-architect.onrender.com/api/v1/backup/test
+  https://aistudyarchitect.com/api/v1/backup/test
 ```
 
-## 🔄 Backup Retention Policies
+## Backup Retention Policies
 
 ### Cloudflare R2 (Primary)
 - **Retention**: 30 days
@@ -161,7 +144,7 @@ curl -X POST -H "X-Backup-Token: YOUR_BACKUP_TOKEN" \
 - **Storage cost**: ~$0.015/GB/month
 - **Frequency**: Daily
 
-### AWS S3 (Secondary)  
+### AWS S3 (Secondary)
 - **Retention**: 14 days
 - **Minimum backups**: 3
 - **Storage cost**: ~$0.023/GB/month (S3 Standard)
@@ -172,7 +155,7 @@ The backup script automatically deletes old backups when:
 1. Backup is older than retention period AND
 2. More than minimum number of backups exist
 
-## 📊 Cost Estimation
+## Cost Estimation
 
 For a 100MB database:
 
@@ -183,7 +166,7 @@ For a 100MB database:
 
 **Total monthly cost**: ~$0.13 for dual-provider redundancy
 
-## 🚨 Manual Recovery Process
+## Manual Recovery Process
 
 If you need to restore from backup:
 
@@ -194,7 +177,7 @@ aws s3 ls s3://ai-study-architect-backup-2025/
 aws s3 ls s3://ai-study-architect-backups/ --endpoint-url https://YOUR_ACCOUNT_ID.r2.cloudflarestorage.com
 
 # 2. Download backup
-aws s3 cp s3://bucket-name/backup_20250113_020000.sql.enc backup.sql.enc
+aws s3 cp s3://bucket-name/backup_20260315_020000.sql.enc backup.sql.enc
 
 # 3. Decrypt backup
 python -c "
@@ -214,7 +197,7 @@ print('Decrypted successfully')
 psql YOUR_DATABASE_URL < backup.sql
 ```
 
-## 📈 Future Enhancements
+## Future Enhancements
 
 - [ ] Slack/Discord notifications on backup failure
 - [ ] Prometheus metrics for backup monitoring
@@ -222,15 +205,16 @@ psql YOUR_DATABASE_URL < backup.sql
 - [ ] Cross-region replication for R2/S3
 - [ ] Automated restore testing
 
-## 💡 Best Practices
+## Best Practices
 
 1. **Never change BACKUP_ENCRYPTION_KEY** - You'll lose ability to decrypt old backups
 2. **Test recovery process quarterly** - Ensure backups are actually restorable
 3. **Monitor GitHub Actions** - Set up email alerts for workflow failures
-4. **Keep credentials secure** - Use GitHub Secrets and Render environment variables
-5. **Document everything** - Update this file when making changes
+4. **Keep credentials secure** - Use GitHub Secrets only (never in code or .env)
+5. **Rotate AWS keys periodically** - Last rotation: March 2026
+6. **Document everything** - Update this file when making changes
 
 ---
 
-*Last updated: January 2025*
-*Backup system version: 2.0 (Dual-provider with R2 + S3)*
+*Last updated: March 2026*
+*Backup system version: 3.0 (CF Container + GitHub Actions, dual-provider R2 + S3)*
