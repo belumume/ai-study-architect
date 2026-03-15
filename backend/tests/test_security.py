@@ -283,9 +283,12 @@ class TestRSAKeyEnvLoading:
         mgr = RSAKeyManager()
         assert mgr._load_keys_from_env() is None
 
-    def test_env_keys_used_for_jwt_roundtrip(self, monkeypatch):
-        """Tokens created with env-loaded keys should verify correctly"""
+    def test_env_keys_jwt_create_and_verify_roundtrip(self, monkeypatch):
+        """Full JWT roundtrip: create token with env-loaded keys, verify it"""
         import base64
+
+        from jose import jwt as jose_jwt
+
         from app.core.rsa_keys import RSAKeyManager
 
         mgr = RSAKeyManager()
@@ -297,10 +300,16 @@ class TestRSAKeyEnvLoading:
         monkeypatch.setattr("app.core.config.settings.RSA_PRIVATE_KEY", private_b64)
         monkeypatch.setattr("app.core.config.settings.RSA_PUBLIC_KEY", public_b64)
 
-        result = mgr._load_keys_from_env()
-        assert result is not None
-        assert "BEGIN RSA PRIVATE KEY" in result[0] or "BEGIN PRIVATE KEY" in result[0]
-        assert "BEGIN PUBLIC KEY" in result[0] or "BEGIN PUBLIC KEY" in result[1]
+        loaded_private, loaded_public = mgr._load_keys_from_env()
+
+        # Create a JWT with the env-loaded private key
+        payload = {"sub": "test-user-123", "type": "access"}
+        token = jose_jwt.encode(payload, loaded_private, algorithm="RS256")
+
+        # Verify with the env-loaded public key
+        decoded = jose_jwt.decode(token, loaded_public, algorithms=["RS256"])
+        assert decoded["sub"] == "test-user-123"
+        assert decoded["type"] == "access"
 
 
 class TestSecurityEdgeCases:
