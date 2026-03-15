@@ -1,15 +1,19 @@
-"""Add partial unique index for one active session per user
+"""Replace broken partial unique index for one active session per user
 
 Revision ID: c1d2e3f4a5b6
 Revises: f8a1b2c3d4e5
 Create Date: 2026-03-15
 
-Ensures at most one active (in_progress or paused) session exists per user
-at the database level, preventing race conditions in the application layer.
+Migration 942421c3cadb created idx_one_active_session_per_user using sa.text()
+which failed on Neon production (status column is VARCHAR storing lowercase
+values, not a PG enum). This migration drops the broken index and recreates
+it with plain string comparison matching the initial migration's String(11)
+column definition.
 """
 
 from typing import Sequence, Union
 
+import sqlalchemy as sa
 from alembic import op
 
 # revision identifiers, used by Alembic.
@@ -20,13 +24,34 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    # status is a PostgreSQL enum with uppercase labels (IN_PROGRESS, PAUSED)
+    conn = op.get_bind()
+
+    # Drop the broken index from migration 942421c3cadb if it exists
+    existing = conn.execute(
+        sa.text("SELECT 1 FROM pg_indexes WHERE indexname = 'idx_one_active_session_per_user'")
+    ).scalar()
+    if existing:
+        op.drop_index("idx_one_active_session_per_user", table_name="study_sessions")
+
+    # Drop our own index if re-running (idempotent)
+    existing_new = conn.execute(
+        sa.text("SELECT 1 FROM pg_indexes WHERE indexname = 'ix_one_active_session'")
+    ).scalar()
+    if existing_new:
+        op.drop_index("ix_one_active_session", table_name="study_sessions")
+
+    # Status is VARCHAR per initial migration (String(11)), storing lowercase values
     op.execute(
         "CREATE UNIQUE INDEX ix_one_active_session "
         "ON study_sessions (user_id) "
-        "WHERE status IN ('IN_PROGRESS'::sessionstatus, 'PAUSED'::sessionstatus)"
+        "WHERE status IN ('in_progress', 'paused')"
     )
 
 
 def downgrade() -> None:
     op.drop_index("ix_one_active_session", table_name="study_sessions")
+    op.execute(
+        "CREATE UNIQUE INDEX idx_one_active_session_per_user "
+        "ON study_sessions (user_id) "
+        "WHERE status IN ('in_progress', 'paused')"
+    )
