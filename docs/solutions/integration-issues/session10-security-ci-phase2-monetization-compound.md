@@ -429,6 +429,9 @@ Session 10 covered 5 major work phases, solving 36 distinct problems across 95 f
 - `~/.claude/commands/setup-claude-repo.md` -- Repo setup slash command
 - `~/.claude/commands/refresh-claude-token.md` -- Token refresh slash command
 - `~/.claude/commands/audit-staleness.md` -- Staleness audit slash command
+- `~/.claude/commands/session-complete.md` -- 7-check session completion checklist command
+- `~/.claude/commands/smoke-test-production.md` -- Full production smoke test (extracted from session-complete)
+- `~/.claude/rules/session-completion-checklist.md` -- Rule enforcing 7 checks before session close
 - `~/.claude/rules/claude-github-actions.md` -- Actions configuration rule
 - `~/.claude/rules/no-shortcuts.md` -- Updated: override context budget checks unconditionally
 - `~/.claude/rules/pass-cli.md` -- Updated: performance patterns, Pass-Query recommendation
@@ -498,15 +501,18 @@ Comprehensive browser + API test on https://aistudyarchitect.com after deploy.
 
 ## Test Results
 
-- Backend: 421 passed, 53.9% coverage
+- Backend: 422 passed, 53.98% coverage
 - Frontend: 86 passed, TypeScript clean
 - PR #29 squash-merged to main
 - Production smoke test: all routes functional, 4 bugs tracked
 - Test users: uitest2026 deleted, smoketest2026 needs Neon cleanup
 - PR lifecycle: #27 (closed), #28 (bait test, closed), #29 (merged)
+- 13 stale local branches cleaned up during session-complete
+- Session close sequence established: `/session-complete` -> `/ce:compound` -> `/export`
 
 ## Session Exports
 
 - `~/.claude/exports/ai-study-architect/2026-03-15-session10-phase2-followup-security-actions-monetization.txt` (mid-session)
 - `~/.claude/exports/ai-study-architect/2026-03-15-session10-final-export.txt` (post-merge)
-- `~/.claude/exports/ai-study-architect/2026-03-15-session10-absolute-final-export.txt` (absolute final)
+- `~/.claude/exports/ai-study-architect/2026-03-15-session10-absolute-final-export.txt` (post-staleness-audit)
+- `~/.claude/exports/ai-study-architect/2026-03-15-session10-pre-final-compound-export.txt` (pre-session-complete)
