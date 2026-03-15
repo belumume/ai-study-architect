@@ -52,8 +52,12 @@ export function DashboardPage() {
     )
   }
 
-  // Empty state (new user, no dashboard data yet or API not connected)
-  if (!dashboard || (dashboard.subjects.length === 0 && dashboard.today_minutes === 0)) {
+  // Empty state (new user, no data, API unreachable, or non-JSON response from wrong origin)
+  if (
+    !dashboard ||
+    !Array.isArray(dashboard.subjects) ||
+    (dashboard.subjects.length === 0 && dashboard.today_minutes === 0)
+  ) {
     return (
       <div className="space-y-6">
         <div>
