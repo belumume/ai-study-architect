@@ -24,8 +24,9 @@ The search endpoint uses `func.lower()` and `.like()` on Content columns. Possib
 
 ```bash
 TOKEN=$(curl -s -X POST https://aistudyarchitect.com/api/v1/auth/login ...)
-curl -sv "https://aistudyarchitect.com/api/v1/content/search?q=test" -H "Authorization: Bearer $TOKEN" 2>&1
-# Returns: HTTP 500, body: "Internal Server Error" (no detail exposed)
+curl -s -w "\nHTTP %{http_code}" "https://aistudyarchitect.com/api/v1/content/search?q=test" -H "Authorization: Bearer $TOKEN"
+# Returns: Internal Server Error HTTP 500 (no detail exposed)
+# NOTE: avoid -v flag — it prints Authorization header to stderr (token leak)
 ```
 
 ## Acceptance Criteria
