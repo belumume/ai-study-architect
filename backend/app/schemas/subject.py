@@ -2,12 +2,11 @@
 Subject Pydantic schemas
 """
 
+import unicodedata
 import uuid
 from datetime import datetime
-from typing import Optional
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
-import unicodedata
 
 
 class SubjectBase(BaseModel):
@@ -32,14 +31,14 @@ class SubjectCreate(SubjectBase):
 
 
 class SubjectUpdate(BaseModel):
-    name: Optional[str] = Field(None, min_length=1, max_length=255)
-    color: Optional[str] = Field(None, pattern=r"^#[0-9a-fA-F]{6}$")
-    weekly_goal_minutes: Optional[int] = Field(None, ge=0, le=2520)
-    is_active: Optional[bool] = None
+    name: str | None = Field(None, min_length=1, max_length=255)
+    color: str | None = Field(None, pattern=r"^#[0-9a-fA-F]{6}$")
+    weekly_goal_minutes: int | None = Field(None, ge=0, le=2520)
+    is_active: bool | None = None
 
     @field_validator("name")
     @classmethod
-    def validate_name(cls, v: Optional[str]) -> Optional[str]:
+    def validate_name(cls, v: str | None) -> str | None:
         if v is None:
             return v
         v = v.strip()

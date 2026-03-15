@@ -87,7 +87,12 @@ async def extract_concepts(
             current_user.id,
             db,
         )
-        content.extraction_status = "completed" if not result.chunks_failed else "partial"
+        if result.chunks_failed:
+            content.extraction_status = "partial"
+        elif result.created_concepts == 0:
+            content.extraction_status = "completed_empty"
+        else:
+            content.extraction_status = "completed"
         content.extraction_error = None
         # Update legacy key_concepts field with extracted concept names
         extracted = db.query(Concept.name).filter(Concept.content_id == content.id).all()

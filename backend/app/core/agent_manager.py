@@ -2,17 +2,14 @@
 Agent Manager with Redis-backed storage for persistent agent instances
 """
 
-import json
-import pickle
-from typing import Dict, List, Optional, Type, Any
-from datetime import datetime, timedelta
 import logging
-from dataclasses import asdict
 import threading
+from datetime import datetime, timedelta
+from typing import Any
 
-from app.core.cache import redis_cache
 from app.agents.base import BaseAgent
 from app.agents.lead_tutor import LeadTutorAgent
+from app.core.cache import redis_cache
 
 logger = logging.getLogger(__name__)
 
@@ -30,7 +27,7 @@ class AgentManager:
     """
 
     def __init__(self):
-        self._local_cache: Dict[str, BaseAgent] = {}
+        self._local_cache: dict[str, BaseAgent] = {}
         self._cache_lock = threading.RLock()
         self.default_agent_ttl = timedelta(hours=2)  # Agents expire after 2 hours of inactivity
         self.max_local_cache_size = 50  # Keep max 50 agents in memory
@@ -41,15 +38,15 @@ class AgentManager:
             # Add more agent types here as they're implemented
         }
 
-    def get_agent_key(self, user_id: str, agent_type: str, session_id: Optional[str] = None) -> str:
+    def get_agent_key(self, user_id: str, agent_type: str, session_id: str | None = None) -> str:
         """Generate Redis key for agent storage"""
         if session_id:
             return f"agent:{agent_type}:{user_id}:{session_id}"
         return f"agent:{agent_type}:{user_id}"
 
     def create_agent(
-        self, user_id: str, agent_type: str, session_id: Optional[str] = None, **agent_kwargs
-    ) -> Optional[BaseAgent]:
+        self, user_id: str, agent_type: str, session_id: str | None = None, **agent_kwargs
+    ) -> BaseAgent | None:
         """
         Create a new agent instance
 
@@ -95,10 +92,10 @@ class AgentManager:
         self,
         user_id: str,
         agent_type: str,
-        session_id: Optional[str] = None,
+        session_id: str | None = None,
         create_if_missing: bool = True,
         **agent_kwargs,
-    ) -> Optional[BaseAgent]:
+    ) -> BaseAgent | None:
         """
         Retrieve an existing agent or create one if it doesn't exist
 
@@ -137,7 +134,7 @@ class AgentManager:
             return None
 
     def save_agent(
-        self, user_id: str, agent_type: str, agent: BaseAgent, session_id: Optional[str] = None
+        self, user_id: str, agent_type: str, agent: BaseAgent, session_id: str | None = None
     ) -> bool:
         """
         Save agent state to Redis
@@ -157,7 +154,7 @@ class AgentManager:
             logger.error(f"Failed to save agent {agent.agent_id}: {e}")
             return False
 
-    def delete_agent(self, user_id: str, agent_type: str, session_id: Optional[str] = None) -> bool:
+    def delete_agent(self, user_id: str, agent_type: str, session_id: str | None = None) -> bool:
         """
         Delete an agent from storage
 
@@ -185,7 +182,7 @@ class AgentManager:
                 logger.error(f"Failed to delete agent {cache_key}: {e}")
                 return False
 
-    def list_user_agents(self, user_id: str) -> List[Dict[str, Any]]:
+    def list_user_agents(self, user_id: str) -> list[dict[str, Any]]:
         """
         List all agents for a specific user
 
@@ -259,7 +256,7 @@ class AgentManager:
             logger.error(f"Failed to cleanup expired agents: {e}")
             return 0
 
-    def get_stats(self) -> Dict[str, Any]:
+    def get_stats(self) -> dict[str, Any]:
         """Get agent manager statistics"""
         try:
             if not redis_cache.is_connected:
@@ -296,7 +293,7 @@ class AgentManager:
             return {"error": str(e)}
 
     def _store_agent(
-        self, user_id: str, agent_type: str, agent: BaseAgent, session_id: Optional[str] = None
+        self, user_id: str, agent_type: str, agent: BaseAgent, session_id: str | None = None
     ) -> bool:
         """Store agent in Redis and local cache"""
         cache_key = self.get_agent_key(user_id, agent_type, session_id)
@@ -335,7 +332,7 @@ class AgentManager:
             logger.error(f"Failed to store agent {cache_key}: {e}")
             return False
 
-    def _load_agent_from_redis(self, cache_key: str) -> Optional[BaseAgent]:
+    def _load_agent_from_redis(self, cache_key: str) -> BaseAgent | None:
         """Load agent from Redis storage"""
         try:
             agent_data = redis_cache.get(cache_key)
@@ -358,7 +355,7 @@ class AgentManager:
             )
 
             # Restore memory
-            from app.agents.base import HumanMessage, AIMessage, SystemMessage
+            from app.agents.base import AIMessage, HumanMessage, SystemMessage
 
             message_types = {
                 "human": HumanMessage,
@@ -395,7 +392,7 @@ class AgentManager:
         """Update agent's last activity timestamp"""
         agent.update_state(last_activity=datetime.utcnow())
 
-    def _get_agent_last_activity(self, redis_key: str) -> Optional[datetime]:
+    def _get_agent_last_activity(self, redis_key: str) -> datetime | None:
         """Get agent's last activity from Redis"""
         try:
             agent_data = redis_cache.get(redis_key)
