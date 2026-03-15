@@ -16,7 +16,7 @@ Access tokens expire after 30 minutes (JWT_ACCESS_TOKEN_EXPIRE_MINUTES=30). Refr
 
 Playwright session logged in at ~20:42 UTC. Navigated at ~21:32 UTC (50 min later). Console showed:
 - `/api/v1/auth/me` → 401 (access token expired — expected)
-- `/api/v1/auth/refresh` → failed (unexpected — refresh token should work for 30 days)
+- `/api/v1/auth/refresh` → 401 (unexpected — refresh token should work for 30 days, check if token was stored/sent)
 
 Redirected to login page.
 
