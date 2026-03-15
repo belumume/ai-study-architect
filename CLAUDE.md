@@ -187,7 +187,7 @@ frontend/src/
 
 **Complete**: Lead tutor + Socratic chat, multi-provider AI, file upload/processing, chat streaming, subject CRUD, session lifecycle (start/pause/resume/stop), dashboard summary API, dashboard UI (HeroMetrics, SubjectList, ContributionHeatmap, CTA), focus timer (Web Worker), Tailwind v4 foundation, auth forms restyled, Stitch v3 evolved designs, concept extraction pipeline (Claude Structured Outputs + parallel chunks), Subject Detail page (MasteryRing, ConceptCard, ExtractionTrigger), per-subject mastery in dashboard, empty extraction UX, content deletion cascade warning, security hardening (session 10).
 
-**Phase 2**: COMPLETE (PR #26 + PR #29 merged). 14 pending todos (009-024) for follow-up items.
+**Phase 2**: COMPLETE (PR #26 + PR #29 + PR #31 merged). All follow-up todos (009-024) resolved in PR #31.
 **Phase 3 (next)**: Chat restyle (MUI → Tailwind), react-markdown integration, MUI removal.
 **Phase 4**: Practice generation, attempt tracking, AI grading, real Active Focus.
 **Phase 5**: SM-2 scheduling, analytics page, recommendation engine, retention curves.
