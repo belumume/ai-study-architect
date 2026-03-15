@@ -52,14 +52,16 @@ export function SubjectList({ subjects }: SubjectListProps) {
                 </div>
               </div>
               <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-border">
-                <div
-                  className="h-full rounded-full transition-all duration-500"
-                  style={{
-                    width: `${progress}%`,
-                    backgroundColor: subject.color,
-                    boxShadow: progress > 80 ? `0 0 10px ${subject.color}40` : undefined,
-                  }}
-                />
+                {progress > 0 && (
+                  <div
+                    className="h-full rounded-full transition-all duration-500"
+                    style={{
+                      width: `${progress}%`,
+                      backgroundColor: subject.color,
+                      boxShadow: progress > 80 ? `0 0 10px ${subject.color}40` : undefined,
+                    }}
+                  />
+                )}
               </div>
             </Link>
           )

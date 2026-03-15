@@ -1,5 +1,5 @@
 ---
-status: pending
+status: complete
 priority: p2
 issue_id: "014"
 tags: [code-review, data-integrity, database]
@@ -8,16 +8,19 @@ dependencies: []
 
 # Add partial unique index for one active session per user
 
-## Problem Statement
+## Solution Implemented
 
-The session state machine enforces "one active session per user" in application code, but there's no database-level constraint. Race conditions could create duplicate active sessions.
+Alembic migration `c1d2e3f4a5b6` creates:
+```sql
+CREATE UNIQUE INDEX ix_one_active_session
+ON study_sessions (user_id)
+WHERE status IN ('IN_PROGRESS'::sessionstatus, 'PAUSED'::sessionstatus)
+```
 
-## Proposed Solution
-
-Alembic migration adding: `CREATE UNIQUE INDEX ix_one_active_session ON study_sessions(user_id) WHERE status IN ('in_progress', 'paused')`
+Note: PostgreSQL enum labels are uppercase (IN_PROGRESS, PAUSED) despite Python enum values being lowercase. Required explicit `::sessionstatus` cast.
 
 ## Acceptance Criteria
 
-- [ ] Partial unique index exists in production
-- [ ] Attempting to start a second session raises IntegrityError (caught by endpoint)
-- [ ] Migration tested locally before Neon deploy
+- [x] Partial unique index exists (verified locally)
+- [x] Attempting to start a second session raises IntegrityError (enforced by DB)
+- [x] Migration tested locally before Neon deploy

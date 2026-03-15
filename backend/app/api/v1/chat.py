@@ -12,6 +12,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from app.api.dependencies import get_current_active_user, get_db
+from app.core.utils import utcnow
 from app.core.cache import redis_cache
 from app.models.chat_message import ChatMessage as ChatMessageModel
 from app.models.content import Content
@@ -399,7 +400,7 @@ NEVER:
             "message": {
                 "role": "assistant",
                 "content": full_response,
-                "timestamp": datetime.utcnow().isoformat(),
+                "timestamp": utcnow().isoformat(),
             },
             "usage": {
                 "prompt_tokens": sum(len(m.content.split()) for m in request.messages),
@@ -415,7 +416,7 @@ NEVER:
         conversation = {
             "user_id": str(user.id),
             "messages": [m.model_dump() for m in request.messages] + [complete_data["message"]],
-            "created_at": datetime.utcnow().isoformat(),
+            "created_at": utcnow().isoformat(),
         }
         redis_cache.set(cache_key, conversation, 3600)  # 1 hour cache
 
@@ -672,14 +673,14 @@ NEVER:
         else:
             response_text = response_data.get("response", "I couldn't generate a response.")
 
-        message = ChatMessage(role="assistant", content=response_text, timestamp=datetime.utcnow())
+        message = ChatMessage(role="assistant", content=response_text, timestamp=utcnow())
 
         # Cache the conversation
         cache_key = f"chat:session:{session_id}"
         conversation = {
             "user_id": str(current_user.id),
             "messages": [m.model_dump() for m in request.messages] + [message.model_dump()],
-            "created_at": datetime.utcnow().isoformat(),
+            "created_at": utcnow().isoformat(),
         }
         redis_cache.set(cache_key, conversation, 3600)  # 1 hour cache
 

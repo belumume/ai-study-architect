@@ -4,8 +4,6 @@ Practice Session model for AI-generated practice problems
 
 import enum
 import uuid
-from datetime import datetime
-
 from sqlalchemy import (
     JSON,
     Column,
@@ -21,10 +19,12 @@ from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 
 from app.core.database import Base
+from app.core.utils import utcnow
 
 
 class ProblemType(str, enum.Enum):
     """Types of practice problems"""
+
     MULTIPLE_CHOICE = "multiple_choice"
     SHORT_ANSWER = "short_answer"
     ESSAY = "essay"
@@ -36,6 +36,7 @@ class ProblemType(str, enum.Enum):
 
 class DifficultyLevel(str, enum.Enum):
     """Problem difficulty levels"""
+
     BEGINNER = "beginner"
     EASY = "easy"
     MEDIUM = "medium"
@@ -89,8 +90,13 @@ class PracticeSession(Base):
     recommendations = Column(Text, nullable=True)  # AI recommendations
 
     # Timestamps
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=utcnow, nullable=False)
+    updated_at = Column(
+        DateTime,
+        default=utcnow,
+        onupdate=utcnow,
+        nullable=False,
+    )
 
     # Relationships
     user = relationship("User", back_populates="practice_sessions")
@@ -134,8 +140,13 @@ class Problem(Base):
     flagged_count = Column(Integer, default=0, nullable=False)
 
     # Timestamps
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=utcnow, nullable=False)
+    updated_at = Column(
+        DateTime,
+        default=utcnow,
+        onupdate=utcnow,
+        nullable=False,
+    )
 
     def __repr__(self) -> str:
         return f"<Problem {self.problem_type.value} - {self.topic}>"

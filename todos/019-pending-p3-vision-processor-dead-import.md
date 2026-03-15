@@ -1,5 +1,5 @@
 ---
-status: pending
+status: complete
 priority: p3
 issue_id: "019"
 tags: [code-review, pre-existing, dead-code]
@@ -8,15 +8,16 @@ dependencies: []
 
 # Fix or remove dead openai_service import in vision_processor
 
-## Problem Statement
+## Solution Implemented
 
-`vision_processor.py` imports from `app.services.openai_service` which doesn't exist. Import fails silently (`HAS_OPENAI = False`), so OpenAI vision path is permanently dead. The fallback to Claude vision works, but the OpenAI code path is unreachable.
-
-## Proposed Solution
-
-Either remove the OpenAI vision code path entirely, or wire it to the actual `openai_fallback` service.
+Removed the entire dead OpenAI vision code path:
+- Removed `try/except ImportError` block for `openai_service` import
+- Removed `extract_with_openai()` method (was permanently unreachable)
+- Removed `HAS_OPENAI` flag and OpenAI fallback logic from `extract_from_image()`
+- Cleaned `extract_from_image_sync()` to remove `use_fallback` parameter
+- Vision processing now exclusively uses Claude (the only working path)
 
 ## Acceptance Criteria
 
-- [ ] No dead import / unreachable code path
-- [ ] Vision processing still works via Claude
+- [x] No dead import / unreachable code path
+- [x] Vision processing still works via Claude
