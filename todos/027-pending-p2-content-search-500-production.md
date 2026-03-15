@@ -15,9 +15,10 @@ dependencies: []
 ## Likely Cause
 
 The search endpoint uses `func.lower()` and `.like()` on Content columns. Possible issues:
-- `func.case()` for relevance scoring may not be compatible with Neon's PostgreSQL version
-- Missing columns referenced in the query (description, extracted_text may be NULL)
-- OR operator syntax difference between local PG and Neon
+- `func.case()` for relevance scoring may generate incompatible SQL
+- NULL handling in description/extracted_text columns (LIKE on NULL crashes)
+- Collation or locale differences between local PG and Neon
+- Check generated SQL via SQLAlchemy echo or Neon query logs
 
 ## Reproduction
 
