@@ -104,14 +104,14 @@ Added `pointer-events-none` to decorative SVG timer ring overlay on Focus page.
 
 ---
 
-## Bugs Found During Session
+## New Issues Identified This Session
 
-| Bug | Severity | Status |
-|-----|----------|--------|
-| Content search 500 on Neon | P2 | Todo 027 |
-| Refresh token flow broken (30min logout) | P2 | Todo 028 |
-| Pre-existing lint errors (ESLint + ruff) | P3 | Todo 026 |
-| Concurrency integration tests needed | P3 | Todo 025 |
+| Issue | Type | Severity | Status |
+|-------|------|----------|--------|
+| Content search 500 on Neon | Bug (smoke test) | P2 | Todo 027 |
+| Refresh token flow broken (30min logout) | Bug (smoke test) | P2 | Todo 028 |
+| Pre-existing lint errors (ESLint + ruff) | Debt (pre-existing) | P3 | Todo 026 |
+| Concurrency integration tests needed | Gap (review recommendation) | P3 | Todo 025 |
 
 ---
 
