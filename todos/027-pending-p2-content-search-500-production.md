@@ -16,7 +16,7 @@ dependencies: []
 
 The search endpoint uses `func.lower()` and `.like()` on Content columns. Possible issues:
 - `func.case()` for relevance scoring may generate incompatible SQL
-- NULL handling in description/extracted_text columns (LIKE on NULL crashes)
+- NULL columns combined with OR/LIKE may produce unexpected query behavior
 - Collation or locale differences between local PG and Neon
 - Check generated SQL via SQLAlchemy echo or Neon query logs
 
