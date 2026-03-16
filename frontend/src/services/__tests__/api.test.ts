@@ -11,7 +11,8 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 // vi.hoisted runs before vi.mock hoisting — safe to reference in mock factories
 const { requestInterceptors, responseInterceptors, mockAxiosInstance, mockClearLegacyTokens } =
   vi.hoisted(() => {
-    type InterceptorFn = (...args: unknown[]) => unknown
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    type InterceptorFn = (...args: any[]) => any
     const requestInterceptors: Array<{ fulfilled: InterceptorFn; rejected?: InterceptorFn }> = []
     const responseInterceptors: Array<{ fulfilled: InterceptorFn; rejected?: InterceptorFn }> = []
 
