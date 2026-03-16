@@ -41,7 +41,7 @@ Where the plan body contradicts the deepening summary or earlier versions, this 
 
 Phase 2 of the Study Architect product build. When users upload study materials, Claude API extracts atomic learning concepts structured as Subject-Verb-Object (SVO) learning objectives, stores them with prerequisite relationships in a knowledge graph, and begins tracking per-user mastery. This is the feature that transforms Study Architect from "time tracker with AI chat" into "mastery-based study companion that proves you learned it."
 
-**What ships:** Concept extraction service, concept CRUD API, `user_concept_mastery` table, Subject Detail page, dashboard mastery integration.
+**What shipped:** Concept extraction service (3 endpoints: extract, subject detail, dashboard extension), `user_concept_mastery` table, Subject Detail page, dashboard mastery integration. Concept CRUD endpoints deferred (no UI consumers).
 
 **What this enables (future phases):** Practice question generation (Phase 4), SM-2 spaced repetition scheduling (Phase 5), retention curves and analytics (Phase 5).
 

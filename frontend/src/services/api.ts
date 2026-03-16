@@ -36,7 +36,9 @@ let isRefreshing = false
 let refreshSubscribers: ((success: boolean) => void)[] = []
 
 function onRefreshComplete(success: boolean) {
-  refreshSubscribers.forEach((callback) => callback(success))
+  for (const callback of refreshSubscribers) {
+    callback(success)
+  }
   refreshSubscribers = []
 }
 
@@ -106,6 +108,11 @@ api.interceptors.response.use(
       try {
         // Refresh using httpOnly cookie (sent automatically with withCredentials)
         await api.post('/api/v1/auth/refresh')
+
+        // Clear any stale Bearer tokens from sessionStorage (migrated from
+        // old localStorage auth). Server checks Bearer before cookies, so
+        // a stale Bearer would override the fresh cookie and cause 401.
+        tokenStorage.clearTokens()
 
         // Notify all queued requests that refresh succeeded
         onRefreshComplete(true)
