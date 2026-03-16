@@ -162,7 +162,7 @@ The dashboard answers five questions at a glance — ALL with real data:
 | Category | Choice | Notes |
 |----------|--------|-------|
 | Tailwind class sorting | prettier-plugin-tailwindcss | Official Tailwind Labs, requires `tailwindStylesheet` for v4 |
-| Tailwind linting | @poupe/eslint-plugin-tailwindcss | Full v4 support (original plugin stuck in rewrite) |
+| Tailwind linting | ~~@poupe/eslint-plugin-tailwindcss~~ | (evaluated, not needed — prettier-plugin-tailwindcss + @tailwindcss/vite sufficient) |
 | Pre-commit hooks | husky + lint-staged | Frontend linting on commit (ruff handles Python) |
 | Visual regression | Playwright `toHaveScreenshot()` | Free, built into existing devDeps |
 | Performance gating | Lighthouse CI (GitHub Actions) | Free, gates on every commit |
