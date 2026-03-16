@@ -4,6 +4,7 @@ Content model for user-uploaded study materials
 
 import enum
 import uuid
+import sqlalchemy as sa
 from sqlalchemy import (
     JSON,
     CheckConstraint,
@@ -17,6 +18,7 @@ from sqlalchemy import (
     Text,
 )
 from sqlalchemy.dialects.postgresql import TSVECTOR
+from sqlalchemy import event
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 
@@ -146,3 +148,36 @@ class Content(Base):
 
     def __repr__(self) -> str:
         return f"<Content {self.title} ({self.content_type})>"
+
+
+@event.listens_for(Content.__table__, "after_create")
+def _create_search_trigger(target, connection, **kw):
+    """Create tsvector trigger + GIN index for create_all() environments (tests, init_db)."""
+    connection.execute(
+        sa.text("""
+            CREATE OR REPLACE FUNCTION content_search_vector_update() RETURNS trigger AS $$
+            BEGIN
+                NEW.search_vector :=
+                    setweight(to_tsvector('english', coalesce(NEW.title, '')), 'A') ||
+                    setweight(to_tsvector('english', coalesce(NEW.description, '')), 'B') ||
+                    setweight(to_tsvector('english', coalesce(NEW.extracted_text, '')), 'C');
+                RETURN NEW;
+            END;
+            $$ LANGUAGE plpgsql;
+        """)
+    )
+    connection.execute(
+        sa.text("""
+            CREATE TRIGGER content_search_vector_trigger
+            BEFORE INSERT OR UPDATE OF title, description, extracted_text
+            ON content
+            FOR EACH ROW
+            EXECUTE FUNCTION content_search_vector_update();
+        """)
+    )
+    connection.execute(
+        sa.text(
+            "CREATE INDEX IF NOT EXISTS idx_content_search_vector "
+            "ON content USING GIN (search_vector)"
+        )
+    )
