@@ -151,7 +151,7 @@ class Content(Base):
 
 
 @event.listens_for(Content.__table__, "after_create")
-def _create_search_trigger(target, connection, **kw):
+def _create_search_trigger(_target: sa.Table, connection: sa.Connection, **_kw: object) -> None:
     """Create tsvector trigger + GIN index for create_all() environments (tests, init_db)."""
     connection.execute(
         sa.text("""
