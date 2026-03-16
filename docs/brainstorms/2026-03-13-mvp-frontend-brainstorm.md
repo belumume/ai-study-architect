@@ -55,7 +55,7 @@ MUI's Material Design DNA actively fights this aesthetic. Every neon glow, every
 **Research confirmed (March 2026)**: Tailwind v4 stable since Jan 2025, 3.78x faster builds. `@tailwindcss/vite` is the official Vite approach. shadcn/ui fully supports Tailwind v4. shadcn now offers Base UI (MUI team, v1.0 stable Dec 2025) as alternative backend to Radix — useful fallback if Radix maintenance degrades (slowed post-WorkOS acquisition). We start with Radix (more examples/community) knowing Base UI is a drop-in swap.
 
 **What gets removed**: `@mui/material`, `@mui/icons-material`, `@emotion/react`, `@emotion/styled`
-**What gets added**: See full Technology Stack section below (tailwindcss v4, shadcn/ui, visx, Framer Motion, Zustand, CVA, @fontsource, lucide-react, react-markdown, prettier-plugin-tailwindcss, and more)
+**What gets added**: See full Technology Stack section below (tailwindcss v4, shadcn/ui, visx, ~~Framer Motion~~ [REMOVED: YAGNI — CSS handles animations, see Resolved Questions], Zustand, CVA, @fontsource, lucide-react, react-markdown, prettier-plugin-tailwindcss, and more)
 
 ### 2. visx for Data Visualization (not Recharts, not Chart.js)
 
@@ -261,22 +261,22 @@ Figma Variables (source of truth)
 | **Edit screens** | Stitch MCP (`edit_screens`) | Modify existing screens (remove gamification, add mastery metrics) |
 | **Explore variants** | Stitch MCP (`generate_variants`) | Generate 1-5 variants with REFINE/EXPLORE/REIMAGINE creative range |
 | **Optimize prompts** | `enhance-prompt` skill | Structures prompts with DESIGN.md tokens for consistent Stitch output |
-| **Import to Figma** | Stitch native export | Stitch exports to Figma natively. Import for refinement + token governance. |
-| **Refine + manage tokens** | Figma + Figma Variables | Source of truth for design tokens. Visual refinement of layouts. |
-| **Extract design data** | Figma MCP (`get_design_context`, `get_screenshot`) | Structured data: exact px, token refs, component hierarchy, auto layout |
-| **Implement from Figma** | `figma:implement-design` skill | Structured workflow: fetch context → screenshot → implement → validate |
-| **Generate design rules** | `figma:create-design-system-rules` skill | Generates CLAUDE.md rules for consistent Figma-to-code implementation |
+| **Import to Figma** | Stitch native export | Stitch exports to Figma natively. Import for refinement + token governance. [DEFERRED: plan review decision — tokens-as-code sufficient for solo dev] |
+| **Refine + manage tokens** | Figma + Figma Variables | Source of truth for design tokens. Visual refinement of layouts. [DEFERRED: plan review decision] |
+| **Extract design data** | Figma MCP (`get_design_context`, `get_screenshot`) | Structured data: exact px, token refs, component hierarchy, auto layout [DEFERRED: plan review decision] |
+| **Implement from Figma** | `figma:implement-design` skill | Structured workflow: fetch context → screenshot → implement → validate [DEFERRED: plan review decision] |
+| **Generate design rules** | `figma:create-design-system-rules` skill | Generates CLAUDE.md rules for consistent Figma-to-code implementation [DEFERRED: plan review decision] |
 | **Convert to React** | `react-components` skill | Stitch HTML → modular React + TypeScript + hooks + data layer |
 | **Automate iteration** | `stitch-loop` skill | Autonomous design→code→screenshot→compare→iterate (optional, Phase 1-4) |
 | **Validate visuals** | Playwright `toHaveScreenshot()` | Free visual regression testing, built into existing devDeps |
 | **Gate performance** | Lighthouse CI (GitHub Actions) | Performance gating on every commit (free) |
 | **Audit accessibility** | axe + Playwright `checkA11y` | Dark theme contrast ratios are critical (free) |
 
-### Why Stitch + Figma (Complementary, Both From Start)
+### Why Stitch + Figma (Complementary, ~~Both From Start~~ Figma Deferred)
 
 **Stitch MCP**: Rapid design generation from text. MCP integrated — zero context switching. Text → design + Tailwind HTML in seconds. Best for ideation and initial screen creation.
 
-**Figma MCP**: Design refinement, token governance (Figma Variables as source of truth), pixel-perfect implementation via `get_design_context` (structured data: exact px, token refs, component hierarchy, auto layout). Best for precision and consistency. Integrated from Phase 0.
+**Figma MCP**: Design refinement, token governance (Figma Variables as source of truth), pixel-perfect implementation via `get_design_context` (structured data: exact px, token refs, component hierarchy, auto layout). Best for precision and consistency. ~~Integrated from Phase 0.~~ [DEFERRED: plan review decision — DESIGN.md tokens-as-code via Tailwind @theme is the direct path for solo dev. Figma plugs in later if team grows.]
 
 **Pipeline**: Stitch generates → exports to Figma → Figma refines + manages tokens → Figma MCP extracts structured data → `react-components` converts to React → customize. Both tools MCP-integrated, zero platform switching.
 

@@ -9,14 +9,14 @@ Status: Active — see CLAUDE.md for canonical status
 Purpose: Single source of truth for implementation progress
 ---
 
-## Last Updated: March 2026 (Session 12)
+## Last Updated: March 2026 (Session 14)
 
 This document tracks the current implementation status of AI Study Architect. For the vision and architecture, see the vision documents. This is about what exists today.
 
 ## Overall Progress
 
-**Project Stage**: MVP with Concept Extraction + Dashboard
-**Completion**: ~45-50% of full vision
+**Project Stage**: MVP with Concept Extraction + Dashboard + Auth Hardening
+**Completion**: ~50% of full vision
 **Focus**: Socratic tutoring, concept extraction, mastery tracking, dashboard
 **Deployment**: Production on Cloudflare (CF Worker + CF Container) + Vercel
 

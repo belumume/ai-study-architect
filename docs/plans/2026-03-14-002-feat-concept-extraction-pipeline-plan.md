@@ -654,9 +654,9 @@ class ExtractionError(Exception):
 
 **Deliverables:**
 - [x] `backend/app/services/concept_extraction.py` — extraction service with Claude prompt, chunking, dedup, dependency resolution (includes `ExtractionError` as plain Exception — NOT in core/exceptions.py)
-- [ ] `backend/app/core/exceptions.py` — add `ConceptNotFoundError` only (ExtractionError lives in the service module)
+- [x] `backend/app/core/exceptions.py` — add `ConceptNotFoundError` only (ExtractionError lives in the service module) [NOT NEEDED: concepts use standard 404 via FastAPI HTTPException]
 - [x] Tests: `backend/tests/test_concept_extraction.py` — unit tests with mocked Claude responses
-- [ ] Tests: `backend/tests/test_concept_extraction_integration.py` — integration tests with real (small) content
+- [ ] Tests: `backend/tests/test_concept_extraction_integration.py` — integration tests with real (small) content [TRACKED: todo 041]
 
 ---
 
@@ -927,15 +927,15 @@ const extractMutation = useMutation({
 - [x] `frontend/src/types/concept.ts` — TypeScript interfaces with union literal types (not bare string)
 - [x] `frontend/src/pages/SubjectDetailPage.tsx` — with `useParams` validation + 404 state
 - [x] `frontend/src/components/subject-detail/SubjectMasteryOverview.tsx` — includes custom SVG mastery ring (circular progress — not available from shadcn)
-- [ ] `frontend/src/components/subject-detail/SubjectConceptList.tsx` — with CSS-only mastery bars (not shadcn `<Progress>`)
+- [x] `frontend/src/components/subject-detail/SubjectConceptList.tsx` — with CSS-only mastery bars (not shadcn `<Progress>`) [RENAMED: ConceptCard.tsx — see below]
 - [x] `frontend/src/components/subject-detail/ConceptCard.tsx` — mastery-to-color mapping: mastered=primary, learning=secondary, not_started=muted
 - [x] `frontend/src/components/subject-detail/ExtractionTrigger.tsx` — with `isPending` loading state, disabled during extraction, `AxiosError.response?.data?.detail` for errors
-- [ ] `frontend/src/components/subject-detail/ContentExtractionStatus.tsx`
-- [ ] `frontend/src/components/subject-detail/index.ts` — barrel export
+- [x] `frontend/src/components/subject-detail/ContentExtractionStatus.tsx` [RENAMED: ExtractionTrigger.tsx — see above]
+- [x] `frontend/src/components/subject-detail/index.ts` — barrel export [NOT NEEDED: direct imports used throughout]
 - [x] Route: `/subjects/:id` in App.tsx with `useParams` + undefined guard
 - [x] SubjectList cards link to Subject Detail
 - [x] Add shadcn components one at a time: badge, tooltip (drop separator — use spacing per dashboard pattern)
-- [ ] Responsive layout (desktop-first, readable on mobile)
+- [ ] Responsive layout (desktop-first, readable on mobile) [DEFERRED: Phase 3 mobile nav]
 - [x] Backend: `GET /api/v1/subjects/{id}/detail` — consolidated endpoint returning subject + concepts with mastery + summary
 
 ---
@@ -980,10 +980,10 @@ mastery_index = (
 
 **Deliverables:**
 - [x] `backend/app/api/v1/dashboard.py` — add mastery query (4th query)
-- [ ] `backend/app/schemas/dashboard.py` — add mastery fields to response
+- [x] `backend/app/schemas/dashboard.py` — add mastery fields to response [DONE: fields in dashboard.py directly, no separate schema file needed]
 - [x] `frontend/src/components/dashboard/HeroMetrics.tsx` — wire real mastery data
-- [ ] `frontend/src/components/dashboard/SubjectList.tsx` — show mastery % per subject
-- [ ] Test: dashboard still works with 0 concepts (graceful empty state)
+- [x] `frontend/src/components/dashboard/SubjectList.tsx` — show mastery % per subject [DONE: masteryPercentage prop wired]
+- [x] Test: dashboard still works with 0 concepts (graceful empty state) [DONE: test_dashboard_with_subjects_zero_concepts]
 
 ---
 
@@ -1013,9 +1013,9 @@ class ContentUpdate(BaseModel):
 
 **Deliverables:**
 - [x] `backend/app/schemas/content.py` — add `subject_id` to ContentUpdate
-- [ ] `backend/app/api/v1/content.py` — handle `subject_id` in upload and update
-- [ ] Frontend: subject selector in content upload (minimal, MUI-compatible for now)
-- [ ] Frontend: "Link Content" action on Subject Detail page
+- [ ] `backend/app/api/v1/content.py` — handle `subject_id` in upload and update [DEFERRED: Phase 3 content restyle]
+- [ ] Frontend: subject selector in content upload (minimal, MUI-compatible for now) [DEFERRED: Phase 3 content restyle]
+- [ ] Frontend: "Link Content" action on Subject Detail page [DEFERRED: Phase 3 content restyle]
 
 ---
 
@@ -1137,9 +1137,9 @@ New endpoints follow existing patterns:
 - [x] Backend tests: concept API endpoint tests (CRUD + extraction)
 - [x] Backend tests: dashboard mastery query tests (with and without concepts)
 - [x] Frontend: Subject Detail page renders with 0 concepts (empty state)
-- [ ] Frontend: Subject Detail page renders with 50+ concepts (performance) — not formally tested
+- [ ] Frontend: Subject Detail page renders with 50+ concepts (performance) — not formally tested [TRACKED: todo 040]
 - [x] Migration tested on local PostgreSQL AND Neon production
-- [ ] `ruff check app/` passes — pre-existing lint errors (todo 026), mostly ARG001 false positives (request param required by rate limiter)
+- [ ] `ruff check app/` passes — pre-existing lint errors (todo 026), mostly ARG001 false positives (request param required by rate limiter) [TRACKED: todo 026]
 - [x] `npm run typecheck && npm run lint` passes
 - [x] All existing tests still pass (no regressions)
 
@@ -1191,8 +1191,8 @@ New endpoints follow existing patterns:
 ## Documentation Plan
 
 After implementation:
-- [ ] Update `docs/technical/IMPLEMENTATION_STATUS.md` — mark Phase 2 as complete
-- [ ] Update CLAUDE.md — add concept endpoints, new patterns
+- [x] Update `docs/technical/IMPLEMENTATION_STATUS.md` — mark Phase 2 as complete [DONE: updated session 12]
+- [x] Update CLAUDE.md — add concept endpoints, new patterns [DONE: updated session 11]
 - [x] Update project MEMORY.md — record Phase 2 completion
 - [x] Compound document if novel patterns discovered
 

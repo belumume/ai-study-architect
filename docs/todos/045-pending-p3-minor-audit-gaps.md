@@ -1,5 +1,5 @@
 ---
-status: pending
+status: resolved
 priority: p3
 issue_id: "045"
 tags: [documentation, code-review]
@@ -12,8 +12,11 @@ Session 13 roadmap audit found minor gaps not worth individual todos:
 2. **Stitch implementation rules file**: Plan 001 task 0.8 specified creating `.claude/rules/stitch-implementation.md`. Verify if it exists; if not, decide if still needed.
 3. **ConceptNotFoundError**: Plan 002 Phase 2b specified adding to `core/exceptions.py`. Not created. May not be needed if concepts use standard 404 patterns — verify.
 
-## Proposed Solution
-Address each when touching the related area. No immediate action required.
+## Resolution (Session 14)
+
+1. **@poupe/eslint-plugin-tailwindcss**: Not installed. Tailwind v4 uses `@tailwindcss/vite` plugin and `prettier-plugin-tailwindcss` for class sorting. The eslint plugin was for Tailwind v3 class validation — v4's CSS-first approach makes it less relevant. **Decision: skip, not needed.**
+2. **Stitch implementation rules file**: EXISTS at `.claude/rules/stitch-implementation.md` with `paths: ["frontend/src/**"]` scoping. **Already done.**
+3. **ConceptNotFoundError**: Concepts use standard 404 via `HTTPException(status_code=404)`. No custom exception class needed. **Annotated in plan 002 as NOT NEEDED.**
 
 ## Effort Estimate
 Small (each item is a quick check/decision)
