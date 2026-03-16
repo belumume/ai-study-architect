@@ -124,6 +124,7 @@ async def authenticated_client(client: AsyncClient, db_session: Session):
     # Tokens are now in httpOnly cookies only (not in response body).
     # Extract access_token from Set-Cookie header for Bearer auth in tests.
     access_token = response.cookies.get("access_token")
+    assert access_token, "Login did not set access_token cookie"
     client.headers["Authorization"] = f"Bearer {access_token}"
 
     user_data = {

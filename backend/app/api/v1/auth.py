@@ -67,10 +67,13 @@ def _store_refresh_family(family_id: str, token_hash: str) -> None:
     )
 
 
-def _invalidate_family(family_id: str) -> None:
-    """Invalidate an entire token family (theft detected or logout)."""
+def _invalidate_family(family_id: str, reason: str = "theft") -> None:
+    """Invalidate an entire token family."""
     redis_cache.delete(f"{_FAMILY_KEY_PREFIX}{family_id}")
-    logger.warning("Refresh token family invalidated (potential theft): %s", family_id)
+    if reason == "theft":
+        logger.warning("Refresh token family invalidated (potential theft): %s", family_id)
+    else:
+        logger.info("Refresh token family invalidated (%s): %s", reason, family_id)
 
 
 class OAuth2PasswordRequestFormWithRememberMe:
@@ -166,13 +169,21 @@ def login(
     user.last_login_at = utcnow()
     db.commit()
 
-    # Create token family for rotation tracking
-    family_id = uuid.uuid4().hex
+    # Create token family for rotation tracking.
+    # Only embed family_id if Redis is available — otherwise the refresh endpoint
+    # would find no stored hash and incorrectly treat the token as stolen.
+    family_id = None
+    try:
+        redis_cache._get_client()
+        family_id = uuid.uuid4().hex
+    except Exception:
+        logger.info("Redis unavailable at login — issuing tokens without family tracking")
+
     access_token = create_access_token(subject=str(user.id), family_id=family_id)
     refresh_token = create_refresh_token(subject=str(user.id), family_id=family_id)
 
-    # Store current refresh token hash in Redis for rotation validation
-    _store_refresh_family(family_id, _hash_token(refresh_token))
+    if family_id:
+        _store_refresh_family(family_id, _hash_token(refresh_token))
 
     # Store user_id for CSRF cookie
     request.state.user_id = str(user.id)
@@ -337,7 +348,7 @@ def logout(
     if raw_refresh:
         claims = verify_token_claims(raw_refresh, token_type="refresh")
         if claims and claims.get("fid"):
-            _invalidate_family(claims["fid"])
+            _invalidate_family(claims["fid"], reason="logout")
 
     # Clear httpOnly cookies
     response.delete_cookie(key="access_token", path="/", secure=not settings.DEBUG, samesite="lax")

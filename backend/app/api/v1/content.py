@@ -56,13 +56,19 @@ def _increment_view_count(content_id: uuid.UUID) -> None:
     try:
         client = redis_cache._get_client()
         key = f"{VIEW_COUNT_PREFIX}{content_id}"
-        client.set(key, (redis_cache.get(key) or 0) + 1, ex=86400)
+        client.incr(key)
+        client.expire(key, 86400)
     except Exception as e:
         logger.debug(f"View count buffer failed for {content_id}: {e}")
 
 
 def flush_view_counts(db: Session) -> int:
-    """Flush buffered view counts from Redis to the database. Returns number flushed."""
+    """Flush buffered view counts from Redis to the database.
+
+    Must be called periodically by an external scheduler (cron, background task).
+    Not called automatically — view counts accumulate in Redis until flushed.
+    Returns number of content items flushed.
+    """
     try:
         client = redis_cache._get_client()
         keys = client.keys(f"{VIEW_COUNT_PREFIX}*")
@@ -94,11 +100,13 @@ def flush_view_counts(db: Session) -> int:
                 {Content.view_count: Content.view_count + count},
                 synchronize_session=False,
             )
-            redis_cache.delete(key)
             flushed += 1
 
         if flushed:
             db.commit()
+            # Delete Redis keys only after successful commit
+            for key in keys:
+                redis_cache.delete(key)
         return flushed
     except Exception as e:
         logger.warning(f"View count flush failed: {e}")

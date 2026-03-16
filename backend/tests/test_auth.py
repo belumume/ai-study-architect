@@ -453,20 +453,32 @@ class TestTokenRefresh:
         )
         assert login_resp.status_code == 200
 
-        # Verify access token has fid claim
-        access_cookie = login_resp.cookies.get("access_token")
-        access_claims = verify_token_claims(access_cookie, token_type="access")
-        assert access_claims is not None
-        assert "fid" in access_claims
+        # Verify login tokens have fid claim
+        login_access = login_resp.cookies.get("access_token")
+        login_access_claims = verify_token_claims(login_access, token_type="access")
+        assert login_access_claims is not None
+        assert "fid" in login_access_claims
 
-        # Verify refresh token has fid claim
-        refresh_cookie = login_resp.cookies.get("refresh_token")
-        refresh_claims = verify_token_claims(refresh_cookie, token_type="refresh")
-        assert refresh_claims is not None
-        assert "fid" in refresh_claims
+        login_refresh = login_resp.cookies.get("refresh_token")
+        login_refresh_claims = verify_token_claims(login_refresh, token_type="refresh")
+        assert login_refresh_claims is not None
+        assert "fid" in login_refresh_claims
 
-        # Both should share the same family
-        assert access_claims["fid"] == refresh_claims["fid"]
+        # Both login tokens share the same family
+        original_fid = login_access_claims["fid"]
+        assert login_refresh_claims["fid"] == original_fid
+
+        # Now actually call /auth/refresh and verify rotated tokens keep the family
+        client.cookies.set("refresh_token", login_refresh)
+        refresh_resp = await client.post("/api/v1/auth/refresh")
+        assert refresh_resp.status_code == 200
+
+        # Refreshed tokens should have fid matching original family
+        new_access = refresh_resp.cookies.get("access_token")
+        if new_access:
+            new_access_claims = verify_token_claims(new_access, token_type="access")
+            assert new_access_claims is not None
+            assert new_access_claims.get("fid") == original_fid
 
 
 class TestLogout:
