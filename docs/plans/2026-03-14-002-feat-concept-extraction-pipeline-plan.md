@@ -10,7 +10,7 @@ completed_summary: >
   Core extraction pipeline, Subject Detail page, and dashboard mastery integration
   delivered in Session 9 (PR #26) + Session 11 (PR #31). Deferred: concept CRUD
   endpoints (no UI consumers), SM-2 fields (Phase 5), practice fields (Phase 4),
-  50+ concept performance testing, ruff lint cleanup (Phase 3 MUI removal).
+  50+ concept performance testing, ruff lint cleanup (todo 026, mostly ARG001 false positives from rate limiter).
 ---
 
 ## Deepening + Review Summary
