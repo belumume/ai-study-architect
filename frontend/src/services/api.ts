@@ -52,6 +52,8 @@ api.interceptors.request.use(
     const token = tokenStorage.getAccessToken()
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
+    } else {
+      delete config.headers.Authorization
     }
 
     // Remove Content-Type header for FormData (let browser set it with boundary)
