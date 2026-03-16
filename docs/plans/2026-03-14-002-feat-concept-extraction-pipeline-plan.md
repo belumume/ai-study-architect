@@ -1139,7 +1139,7 @@ New endpoints follow existing patterns:
 - [x] Frontend: Subject Detail page renders with 0 concepts (empty state)
 - [ ] Frontend: Subject Detail page renders with 50+ concepts (performance) — not formally tested
 - [x] Migration tested on local PostgreSQL AND Neon production
-- [ ] `ruff check app/` passes — pre-existing lint errors (todo 026), mostly in MUI components (Phase 3 removal)
+- [ ] `ruff check app/` passes — pre-existing lint errors (todo 026), mostly ARG001 false positives (request param required by rate limiter)
 - [x] `npm run typecheck && npm run lint` passes
 - [x] All existing tests still pass (no regressions)
 

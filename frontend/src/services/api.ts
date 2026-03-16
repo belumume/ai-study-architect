@@ -87,12 +87,14 @@ api.interceptors.response.use(
 
       // If a refresh is already in progress, queue this request
       if (isRefreshing) {
-        return new Promise((resolve) => {
+        return new Promise((resolve, reject) => {
           addRefreshSubscriber((token: string | null) => {
             if (token) {
               originalRequest.headers.Authorization = `Bearer ${token}`
+              resolve(api(originalRequest))
+            } else {
+              reject(error)
             }
-            resolve(api(originalRequest))
           })
         })
       }

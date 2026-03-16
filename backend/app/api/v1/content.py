@@ -492,8 +492,8 @@ def get_content_stats(
 
     stats = {
         "total_content": total_count,
-        "by_type": dict(content_type_counts),
-        "by_status": dict(status_counts),
+        "by_type": {ct: count for ct, count in content_type_counts},  # noqa: C416
+        "by_status": {s: count for s, count in status_counts},  # noqa: C416
         "total_file_size_bytes": total_size,
         "total_study_time_minutes": float(total_study_time),
         "avg_file_size_bytes": total_size // total_count if total_count > 0 else 0,
