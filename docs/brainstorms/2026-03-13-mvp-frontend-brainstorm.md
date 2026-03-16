@@ -139,7 +139,7 @@ The dashboard answers five questions at a glance — ALL with real data:
 | Component Variants | CVA (Class Variance Authority) | (new — shadcn uses internally) |
 | Icons | Lucide React | MUI Icons |
 | Charts | visx (D3 + React) | (new) |
-| Animation | Framer Motion | (new) |
+| Animation | ~~Framer Motion~~ CSS animations [REMOVED: YAGNI] | (new) |
 | Fonts | @fontsource (self-hosted, version-pinned) | Google Fonts CDN |
 
 ### State & Data
@@ -303,7 +303,7 @@ Figma Variables (source of truth)
 Add orchestrated page load animations beyond DESIGN.md's data-focused animations:
 - **Dashboard load**: Staggered metric card reveals with `animation-delay` (200ms between cards)
 - **Chart drawing**: SVG `stroke-dashoffset` animations fire sequentially as sections enter viewport
-- **Page transitions**: Framer Motion `AnimatePresence` for route changes
+- **Page transitions**: ~~Framer Motion `AnimatePresence`~~ CSS transitions for route changes [REMOVED: YAGNI — CSS handles this]
 - **Philosophy**: "One well-orchestrated page load with staggered reveals creates more delight than scattered micro-interactions"
 
 ---

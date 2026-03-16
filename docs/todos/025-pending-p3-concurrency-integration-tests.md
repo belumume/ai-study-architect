@@ -11,7 +11,7 @@ Concurrency and storage integration tests were planned but never created. The sy
 
 ## Proposed Solution
 
-Create integration tests covering: concurrent session start (should reject second), concurrent extraction requests for same subject, R2 upload/download/delete operations with error injection.
+Create integration tests covering: concurrent session start (should reject second), concurrent extraction requests for same content item (API rejects per content_id, not per subject), R2 upload/download/delete operations with error injection.
 
 ## Files Affected
 

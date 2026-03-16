@@ -14,7 +14,7 @@ Session 13 roadmap audit found minor gaps not worth individual todos:
 
 ## Resolution (Session 14)
 
-1. **@poupe/eslint-plugin-tailwindcss**: Not installed. Tailwind v4 uses `@tailwindcss/vite` plugin and `prettier-plugin-tailwindcss` for class sorting. The eslint plugin was for Tailwind v3 class validation — v4's CSS-first approach makes it less relevant. **Decision: skip, not needed.**
+1. **@poupe/eslint-plugin-tailwindcss**: Not installed. Current setup uses `@tailwindcss/vite` and `prettier-plugin-tailwindcss`, and we are not relying on any Tailwind-specific ESLint rules. **Decision: skip for now, not needed in this repo.**
 2. **Stitch implementation rules file**: EXISTS at `.claude/rules/stitch-implementation.md` with `paths: ["frontend/src/**"]` scoping. **Already done.**
 3. **ConceptNotFoundError**: Concepts use standard 404 via `HTTPException(status_code=404)`. No custom exception class needed. **Annotated in plan 002 as NOT NEEDED.**
 
