@@ -17,7 +17,7 @@ Implemented refresh token rotation with Redis family tracking:
 2. **Refresh** validates the presented token hash against Redis. On match: issues new tokens in the same family, stores new hash (consuming old). On mismatch (replay): invalidates the entire family.
 3. **Logout** invalidates the token family via Redis delete.
 4. **Legacy migration**: Old tokens without `fid` claim are transparently migrated into a new family on first refresh.
-5. **Redis unavailable**: Graceful degradation — tokens still rotate (new issued each refresh) but replay detection is skipped. Users are never locked out by Redis downtime.
+5. **Redis unavailable at login**: Tokens issued without `fid` — no replay detection, no lockout risk. **Redis drops mid-session**: tokens have `fid` but Redis can't validate; refresh may reject as invalid family. Known limitation — Upstash REST API has high availability, transient failures self-heal.
 
 ### Redis key pattern
 - Key: `refresh_family:{hex-uuid}`

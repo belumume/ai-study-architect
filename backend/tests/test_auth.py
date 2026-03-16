@@ -160,7 +160,7 @@ class TestUserLogin:
             data={
                 "username": "logintest@example.com",
                 "password": "testpass123",
-                "remember_me": "true",
+                "remember_me": "false",
             },
         )
 
@@ -171,7 +171,7 @@ class TestUserLogin:
         assert "refresh_token" not in data
         assert data["token_type"] == "bearer"
 
-        # Verify tokens are set in cookies
+        # Verify tokens are set in cookies (session cookies when remember_me=false)
         assert "access_token" in response.cookies
         assert "refresh_token" in response.cookies
 
@@ -499,6 +499,12 @@ class TestTokenRefresh:
             new_access_claims = verify_token_claims(new_access, token_type="access")
             assert new_access_claims is not None
             assert new_access_claims.get("fid") == original_fid
+
+            new_refresh = refresh_resp.cookies.get("refresh_token")
+            assert new_refresh is not None, "Refresh did not set refresh_token cookie"
+            new_refresh_claims = verify_token_claims(new_refresh, token_type="refresh")
+            assert new_refresh_claims is not None
+            assert new_refresh_claims.get("fid") == original_fid
 
 
 class TestLogout:
