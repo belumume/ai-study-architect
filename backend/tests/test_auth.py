@@ -160,14 +160,15 @@ class TestUserLogin:
             data={
                 "username": "logintest@example.com",
                 "password": "testpass123",
-                "remember_me": "false",
+                "remember_me": "true",
             },
         )
 
         assert response.status_code == 200
         data = response.json()
-        assert "access_token" in data
-        assert "refresh_token" in data
+        # Tokens must NOT be in response body (httpOnly cookies only)
+        assert "access_token" not in data
+        assert "refresh_token" not in data
         assert data["token_type"] == "bearer"
 
         # Verify tokens are set in cookies
@@ -190,13 +191,18 @@ class TestUserLogin:
         # Login with username
         response = await client.post(
             "/api/v1/auth/login",
-            data={"username": "loginuser2", "password": "testpass123", "remember_me": "false"},
+            data={"username": "loginuser2", "password": "testpass123", "remember_me": "true"},
         )
 
         assert response.status_code == 200
         data = response.json()
-        assert "access_token" in data
-        assert "refresh_token" in data
+        # Tokens must NOT be in response body
+        assert "access_token" not in data
+        assert "refresh_token" not in data
+        assert data["token_type"] == "bearer"
+        # Tokens are in cookies
+        assert "access_token" in response.cookies
+        assert "refresh_token" in response.cookies
 
     @pytest.mark.asyncio
     async def test_login_invalid_password(self, client: AsyncClient, db_session: Session):
@@ -301,7 +307,7 @@ class TestTokenRefresh:
 
     @pytest.mark.asyncio
     async def test_refresh_token_success(self, client: AsyncClient, db_session: Session):
-        """Test successful token refresh"""
+        """Test successful token refresh via request body (legacy path, no fid)"""
         # Create test user
         user = User(
             email="refresh@example.com",
@@ -313,7 +319,7 @@ class TestTokenRefresh:
         db_session.commit()
         db_session.refresh(user)
 
-        # Create refresh token
+        # Create legacy refresh token (no family_id) — triggers migration path
         refresh_token = create_refresh_token(subject=str(user.id))
 
         # Refresh the token
@@ -321,9 +327,50 @@ class TestTokenRefresh:
 
         assert response.status_code == 200
         data = response.json()
-        assert "access_token" in data
-        assert "refresh_token" in data
-        assert data["access_token"] != refresh_token  # New token should be different
+        # Tokens must NOT be in response body
+        assert "access_token" not in data
+        assert "refresh_token" not in data
+        assert data["token_type"] == "bearer"
+        # New tokens are in cookies
+        assert "access_token" in response.cookies
+        assert "refresh_token" in response.cookies
+
+    @pytest.mark.asyncio
+    async def test_refresh_via_cookie(self, client: AsyncClient, db_session: Session):
+        """Test refresh via httpOnly cookie (primary flow)"""
+        user = User(
+            email="refreshcookie@example.com",
+            username="refreshcookieuser",
+            hashed_password=get_password_hash("password123"),
+            is_active=True,
+        )
+        db_session.add(user)
+        db_session.commit()
+
+        # Login to get cookies
+        login_resp = await client.post(
+            "/api/v1/auth/login",
+            data={
+                "username": "refreshcookie@example.com",
+                "password": "password123",
+                "remember_me": "true",
+            },
+        )
+        assert login_resp.status_code == 200
+
+        # Use the refresh_token cookie from login
+        refresh_cookie = login_resp.cookies.get("refresh_token")
+        assert refresh_cookie is not None
+
+        # Refresh using cookie
+        client.cookies.set("refresh_token", refresh_cookie)
+        response = await client.post("/api/v1/auth/refresh")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["token_type"] == "bearer"
+        assert "access_token" not in data
+        assert "refresh_token" not in data
 
     @pytest.mark.asyncio
     async def test_refresh_token_invalid(self, client: AsyncClient):
@@ -380,6 +427,46 @@ class TestTokenRefresh:
 
         # Should fail because token type is wrong
         assert response.status_code == 401
+
+    @pytest.mark.asyncio
+    async def test_refresh_token_rotation_claims(self, client: AsyncClient, db_session: Session):
+        """Test that refreshed tokens contain family_id claim"""
+        from app.core.security import verify_token_claims
+
+        user = User(
+            email="rotation@example.com",
+            username="rotationuser",
+            hashed_password=get_password_hash("password123"),
+            is_active=True,
+        )
+        db_session.add(user)
+        db_session.commit()
+
+        # Login to get initial tokens with fid
+        login_resp = await client.post(
+            "/api/v1/auth/login",
+            data={
+                "username": "rotation@example.com",
+                "password": "password123",
+                "remember_me": "true",
+            },
+        )
+        assert login_resp.status_code == 200
+
+        # Verify access token has fid claim
+        access_cookie = login_resp.cookies.get("access_token")
+        access_claims = verify_token_claims(access_cookie, token_type="access")
+        assert access_claims is not None
+        assert "fid" in access_claims
+
+        # Verify refresh token has fid claim
+        refresh_cookie = login_resp.cookies.get("refresh_token")
+        refresh_claims = verify_token_claims(refresh_cookie, token_type="refresh")
+        assert refresh_claims is not None
+        assert "fid" in refresh_claims
+
+        # Both should share the same family
+        assert access_claims["fid"] == refresh_claims["fid"]
 
 
 class TestLogout:

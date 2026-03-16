@@ -212,10 +212,10 @@ class TestSubjectDetailEndpoint:
             data={
                 "username": f"attacker_{uid2}@test.com",
                 "password": "pass123",
+                "remember_me": "true",
             },
         )
-        tokens = login_resp.json()
-        client.headers["Authorization"] = f"Bearer {tokens['access_token']}"
+        client.headers["Authorization"] = f"Bearer {login_resp.cookies.get('access_token')}"
 
         response = await client.get(f"/api/v1/concepts/subjects/{other_subject.id}/detail")
         assert response.status_code == 404

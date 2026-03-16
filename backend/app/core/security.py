@@ -101,13 +101,18 @@ def rotate_jwt_keys() -> dict[str, str]:
             return {"status": "error", "error": str(e)}
 
 
-def create_access_token(subject: str | Any, expires_delta: timedelta | None = None) -> str:
+def create_access_token(
+    subject: str | Any,
+    expires_delta: timedelta | None = None,
+    family_id: str | None = None,
+) -> str:
     """
     Create a JWT access token.
 
     Args:
         subject: The subject of the token (usually user ID)
         expires_delta: Optional custom expiration time
+        family_id: Optional refresh token family ID (for token rotation tracking)
 
     Returns:
         Encoded JWT token
@@ -124,6 +129,8 @@ def create_access_token(subject: str | Any, expires_delta: timedelta | None = No
         "sub": str(subject),
         "type": "access",
     }
+    if family_id:
+        to_encode["fid"] = family_id
 
     # Use RS256 if RSA keys are available, otherwise fallback to HS256
     # kid goes in the JWT header per RFC 7515, not the payload
@@ -138,13 +145,18 @@ def create_access_token(subject: str | Any, expires_delta: timedelta | None = No
     return encoded_jwt
 
 
-def create_refresh_token(subject: str | Any, expires_delta: timedelta | None = None) -> str:
+def create_refresh_token(
+    subject: str | Any,
+    expires_delta: timedelta | None = None,
+    family_id: str | None = None,
+) -> str:
     """
     Create a JWT refresh token.
 
     Args:
         subject: The subject of the token (usually user ID)
         expires_delta: Optional custom expiration time
+        family_id: Optional token family ID for rotation tracking
 
     Returns:
         Encoded JWT refresh token
@@ -161,6 +173,8 @@ def create_refresh_token(subject: str | Any, expires_delta: timedelta | None = N
         "sub": str(subject),
         "type": "refresh",
     }
+    if family_id:
+        to_encode["fid"] = family_id
 
     # Use RS256 if RSA keys are available, otherwise fallback to HS256
     # kid goes in the JWT header per RFC 7515, not the payload
@@ -217,6 +231,23 @@ def verify_token(token: str, token_type: str = "access") -> str | None:
     Returns:
         The subject (user ID) if valid, None otherwise
     """
+    claims = verify_token_claims(token, token_type)
+    if claims is None:
+        return None
+    return claims.get("sub")
+
+
+def verify_token_claims(token: str, token_type: str = "access") -> dict | None:
+    """
+    Verify and decode a JWT token, returning the full claims dict.
+
+    Args:
+        token: The JWT token to verify
+        token_type: Expected token type ("access" or "refresh")
+
+    Returns:
+        The full claims dict if valid, None otherwise
+    """
     try:
         payload = None
 
@@ -246,7 +277,7 @@ def verify_token(token: str, token_type: str = "access") -> str | None:
             logger.debug("No subject found in token")
             return None
 
-        return subject
+        return payload
     except Exception as e:
         logger.debug(f"Token verification failed: {e}")
         return None

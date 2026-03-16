@@ -1,5 +1,5 @@
 import api from './api'
-import tokenStorage from './tokenStorage'
+import { clearLegacyTokens } from './tokenStorage'
 
 export interface LoginCredentials {
   username: string
@@ -24,15 +24,7 @@ export interface User {
 }
 
 export interface AuthResponse {
-  access_token: string
-  refresh_token: string
   token_type: string
-  id: number
-  username: string
-  email: string
-  full_name?: string
-  is_active: boolean
-  created_at: string
 }
 
 class AuthService {
@@ -73,8 +65,8 @@ class AuthService {
     } catch (error) {
       // Continue with local logout even if server request fails
     } finally {
-      // Clear any local tokens (for backward compatibility)
-      tokenStorage.clearTokens()
+      // Clear any stale tokens from storage (legacy cleanup)
+      clearLegacyTokens()
     }
   }
 

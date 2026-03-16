@@ -38,10 +38,8 @@ function AllTheProviders({ children }: AllTheProvidersProps) {
   )
 }
 
-const customRender = (
-  ui: ReactElement,
-  options?: Omit<RenderOptions, 'wrapper'>
-) => render(ui, { wrapper: AllTheProviders, ...options })
+const customRender = (ui: ReactElement, options?: Omit<RenderOptions, 'wrapper'>) =>
+  render(ui, { wrapper: AllTheProviders, ...options })
 
 export * from '@testing-library/react'
 export { customRender as render }
@@ -59,13 +57,10 @@ export const mockAuthenticatedUser = {
   updated_at: new Date().toISOString(),
 }
 
-// Mock tokens
+// Mock token response (tokens are in httpOnly cookies, not body)
 export const mockTokens = {
-  access_token: 'mock-access-token',
-  refresh_token: 'mock-refresh-token',
   token_type: 'bearer',
 }
 
 // Wait for async updates
-export const waitForAsync = () =>
-  new Promise((resolve) => setTimeout(resolve, 0))
+export const waitForAsync = () => new Promise((resolve) => setTimeout(resolve, 0))
