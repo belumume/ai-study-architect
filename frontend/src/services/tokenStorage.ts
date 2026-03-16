@@ -1,9 +1,9 @@
 /**
  * Token Storage Utility
- * 
+ *
  * Uses sessionStorage instead of localStorage for better security.
  * Tokens are cleared when the browser tab is closed.
- * 
+ *
  * Security Note: While sessionStorage is more secure than localStorage,
  * the ideal solution would be httpOnly cookies. This is a compromise
  * that improves security without requiring backend changes.
@@ -65,6 +65,8 @@ class TokenStorage {
   clearTokens(): void {
     sessionStorage.removeItem(this.ACCESS_TOKEN_KEY)
     sessionStorage.removeItem(this.REFRESH_TOKEN_KEY)
+    localStorage.removeItem(this.ACCESS_TOKEN_KEY)
+    localStorage.removeItem(this.REFRESH_TOKEN_KEY)
   }
 
   /**
