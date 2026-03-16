@@ -11,10 +11,12 @@ from sqlalchemy import (
     DateTime,
     Float,
     ForeignKey,
+    Index,
     Integer,
     String,
     Text,
 )
+from sqlalchemy.dialects.postgresql import TSVECTOR
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 
@@ -117,6 +119,9 @@ class Content(Base):
         String(20), nullable=True
     )  # extracting|completed|completed_empty|failed|partial
     extraction_error = Column(Text, nullable=True)
+
+    # Full-text search (maintained by PostgreSQL trigger)
+    search_vector = Column(TSVECTOR)
 
     # Analytics
     view_count = Column(Integer, default=0, nullable=False)
