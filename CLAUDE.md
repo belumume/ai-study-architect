@@ -83,17 +83,17 @@ cd worker && npx wrangler deploy               # Backend (CF Container)
 backend/app/
 ├── api/v1/
 │   ├── api.py              # Main router (12 sub-routers)
-│   ├── auth.py, chat.py, tutor.py, content.py
+│   ├── auth.py, chat.py, tutor.py, content.py, concepts.py
 │   ├── subjects.py         # Subject CRUD
 │   ├── study_sessions.py   # Session lifecycle (start/pause/resume/stop)
 │   ├── dashboard.py        # Dashboard summary (3-query pattern)
-│   ├── admin.py, admin_security.py, agents.py, csrf.py, websocket.py
+│   ├── admin.py, agents.py, csrf.py, websocket.py
 │   └── endpoints/backup.py
 ├── agents/                  # Lead tutor (Socratic questioning)
-├── core/                    # config, security, database, csrf, cache, rate_limiter
-├── models/                  # user, content, study_session, subject, practice, chat_message, concept
+├── core/                    # config, security, database, csrf, cache, rate_limiter, rsa_keys, utils
+├── models/                  # user, content, study_session, subject, practice, chat_message, concept, user_concept_mastery
 ├── schemas/                 # Pydantic v2 schemas (UUID-based, model_config)
-└── services/                # ai_service_manager, claude_service, openai_fallback, content_processor
+└── services/                # ai_service_manager, claude_service, openai_fallback, content_processor, concept_extraction, storage
 ```
 
 ### Frontend Structure
@@ -103,7 +103,7 @@ frontend/src/
 ├── pages/                   # DashboardPage, StudyPage, FocusPage, ContentPage
 ├── components/
 │   ├── dashboard/           # HeroMetrics, SubjectList, ContributionHeatmap, StartFocusCTA (Tailwind + SVG)
-│   ├── ui/                  # shadcn/ui primitives (button, card, dialog, dropdown-menu, input, tabs, sonner)
+│   ├── ui/                  # shadcn/ui primitives (button, card, dialog, dropdown-menu, input, tabs, badge, tooltip, sonner)
 │   ├── auth/                # LoginForm, RegisterForm, ProtectedRoute (Tailwind + shadcn)
 │   ├── chat/                # ChatInterface (MUI — legacy, Phase 3 restyle)
 │   └── content/             # ContentUpload, ContentList, ContentSelector (MUI — legacy)
