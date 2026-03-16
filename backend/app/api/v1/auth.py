@@ -172,11 +172,9 @@ def login(
     # Create token family for rotation tracking.
     # Only embed family_id if Redis is available — otherwise the refresh endpoint
     # would find no stored hash and incorrectly treat the token as stolen.
-    family_id = None
-    try:
-        redis_cache._get_client()
-        family_id = uuid.uuid4().hex
-    except Exception:
+    redis_cache._get_client()  # ensure lazy init
+    family_id = uuid.uuid4().hex if redis_cache.is_connected else None
+    if not family_id:
         logger.info("Redis unavailable at login — issuing tokens without family tracking")
 
     access_token = create_access_token(subject=str(user.id), family_id=family_id)

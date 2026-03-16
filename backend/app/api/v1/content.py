@@ -103,7 +103,9 @@ def flush_view_counts(db: Session) -> int:
 
         if flushed:
             db.commit()
-            # Delete Redis keys only after successful commit
+            # Delete keys after successful commit. Small race window exists
+            # where concurrent INCR between read and delete loses ~1-2 views.
+            # Acceptable for analytics counters at current scale.
             for key in keys:
                 redis_cache.delete(key)
         return flushed

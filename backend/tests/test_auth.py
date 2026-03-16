@@ -475,10 +475,10 @@ class TestTokenRefresh:
 
         # Refreshed tokens should have fid matching original family
         new_access = refresh_resp.cookies.get("access_token")
-        if new_access:
-            new_access_claims = verify_token_claims(new_access, token_type="access")
-            assert new_access_claims is not None
-            assert new_access_claims.get("fid") == original_fid
+        assert new_access is not None, "Refresh did not set access_token cookie"
+        new_access_claims = verify_token_claims(new_access, token_type="access")
+        assert new_access_claims is not None
+        assert new_access_claims.get("fid") == original_fid
 
 
 class TestLogout:
