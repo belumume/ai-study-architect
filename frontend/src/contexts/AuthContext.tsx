@@ -42,9 +42,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           setUser(currentUser)
         }
       } catch (err) {
-        // Token might be expired, clear it
-        localStorage.removeItem('access_token')
-        localStorage.removeItem('refresh_token')
+        // Auth check failed — interceptor already handles refresh/redirect
       } finally {
         setLoading(false)
       }
@@ -58,8 +56,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setError(null)
       setLoading(true)
       await authService.login(credentials)
-      
-      
+
       // Get current user data after login
       try {
         const currentUser = await authService.getCurrentUser()
