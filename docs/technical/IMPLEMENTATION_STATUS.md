@@ -50,8 +50,10 @@ This document tracks the current implementation status of AI Study Architect. Fo
   - Backup endpoints (R2 daily + S3 weekly + manual)
   - Security hardening (user-scoping, filename traversal, backup token fail-closed, cache fixes)
 
+- **STUB/PARTIAL**
+  - WebSocket support (router file exists, minimal implementation)
+
 - **NOT STARTED**
-  - WebSocket support for real-time features
   - Horizontal scaling setup
   - Practice generation endpoints (Phase 4)
   - SM-2 scheduling endpoints (Phase 5)
@@ -74,7 +76,7 @@ This document tracks the current implementation status of AI Study Architect. Fo
 
 - **IN PROGRESS**
   - Chat markdown rendering (react-markdown installed, not wired -- Phase 3)
-  - MUI -> Tailwind migration for chat/content pages (Phase 3)
+  - MUI -> Tailwind migration for chat/content/ErrorBoundary pages (Phase 3)
 
 - **NOT STARTED**
   - Practice UI (Phase 4)
@@ -89,7 +91,7 @@ This document tracks the current implementation status of AI Study Architect. Fo
   - Subject model with user FK
   - Concept model + UserConceptMastery table
   - Chat message model
-  - Practice model (schema exists, endpoints Phase 4)
+  - Practice model (Pydantic schema exists, DB columns deferred to Phase 4 migration)
   - Alembic migrations setup
   - Partial unique index (one active session per user)
 
@@ -112,9 +114,9 @@ This document tracks the current implementation status of AI Study Architect. Fo
   - Per-concept mastery scoring
 
 - **NOT STARTED**
-  - Vector database integration
-  - Embedding generation
-  - Semantic search
+  - Vector database integration (not in current roadmap — future vision)
+  - Embedding generation (not in current roadmap — future vision)
+  - Semantic search (not in current roadmap — future vision)
   - Practice question generation (Phase 4)
   - AI grading (Phase 4)
 
@@ -145,7 +147,7 @@ This document tracks the current implementation status of AI Study Architect. Fo
 - Content summarization improvements
 
 ### 3. Knowledge Synthesis Agent
-**Status**: NOT IMPLEMENTED
+**Status**: NOT PLANNED (original vision, not in current phased roadmap)
 **Planned Features**:
 - Personalized explanations
 - Concept connection mapping
@@ -181,7 +183,7 @@ This document tracks the current implementation status of AI Study Architect. Fo
 - Mastery verification
 
 ### 7. Collaboration Agent
-**Status**: NOT IMPLEMENTED
+**Status**: NOT PLANNED (original vision, not in current phased roadmap)
 **Planned Features**:
 - Study circle formation
 - Privacy-preserving insights
@@ -244,7 +246,7 @@ This document tracks the current implementation status of AI Study Architect. Fo
 3. **Mobile UI**: Not fully responsive
 4. **Chat renders raw markdown**: Frontend displays `**bold**` as literal asterisks (needs react-markdown -- Phase 3)
 5. **OpenAI streaming not implemented**: OpenAI fallback uses basic (non-streaming) response only
-6. **MUI/Tailwind coexistence**: Chat and content pages still use MUI internally (Phase 3 removal)
+6. **MUI/Tailwind coexistence**: Chat, content, and ErrorBoundary pages still use MUI internally (Phase 3 removal)
 
 ## Next Implementation Priorities
 
