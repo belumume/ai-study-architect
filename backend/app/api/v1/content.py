@@ -6,7 +6,7 @@ import uuid
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile, status
-from sqlalchemy import and_, func
+from sqlalchemy import and_, case, func
 from sqlalchemy.orm import Session
 
 from app.api.dependencies import get_current_user, get_db
@@ -158,7 +158,7 @@ def save_upload_file(
         raise
     except Exception as e:
         logger.error(f"Failed to upload file to R2: {str(e)}", exc_info=True)
-        raise FileUploadError(detail="Failed to save uploaded file")
+        raise FileUploadError(detail="Failed to save uploaded file") from e
 
     return r2_key, file_id
 
@@ -391,7 +391,7 @@ async def upload_content(
         raise
     except Exception as e:
         logger.error(f"Upload error: {str(e)}", exc_info=True)
-        raise FileUploadError(detail="Failed to upload content")
+        raise FileUploadError(detail="Failed to upload content") from e
 
 
 @router.get("/", response_model=list[ContentResponse])
@@ -492,8 +492,8 @@ def get_content_stats(
 
     stats = {
         "total_content": total_count,
-        "by_type": {ct: count for ct, count in content_type_counts},
-        "by_status": {status: count for status, count in status_counts},
+        "by_type": {ct: count for ct, count in content_type_counts},  # noqa: C416
+        "by_status": {s: count for s, count in status_counts},  # noqa: C416
         "total_file_size_bytes": total_size,
         "total_study_time_minutes": float(total_study_time),
         "avg_file_size_bytes": total_size // total_count if total_count > 0 else 0,
@@ -539,7 +539,7 @@ def search_content(
         )
         .order_by(
             # Relevance scoring: title matches first, then description, then content
-            func.case(
+            case(
                 (func.lower(Content.title).like(search_term), 1),
                 (func.lower(Content.description).like(search_term), 2),
                 else_=3,
@@ -654,7 +654,7 @@ def update_content(
     except Exception as e:
         db.rollback()
         logger.error(f"Failed to update content {content_id}: {e}")
-        raise HTTPException(status_code=500, detail="Failed to update content")
+        raise HTTPException(status_code=500, detail="Failed to update content") from e
 
     return content
 
@@ -749,7 +749,7 @@ def delete_content(
     except Exception as e:
         db.rollback()
         logger.error(f"Failed to delete content {content_id}: {e}")
-        raise HTTPException(status_code=500, detail="Failed to delete content")
+        raise HTTPException(status_code=500, detail="Failed to delete content") from e
 
     return None
 
@@ -826,7 +826,7 @@ def bulk_delete_content(
     except Exception as e:
         db.rollback()
         logger.error(f"Failed to bulk delete content: {e}")
-        raise HTTPException(status_code=500, detail="Failed to bulk delete content")
+        raise HTTPException(status_code=500, detail="Failed to bulk delete content") from e
 
     return {
         "message": f"Successfully deleted {results['db_deleted']} content items",
