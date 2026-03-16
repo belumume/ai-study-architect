@@ -93,6 +93,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         setError('Registration failed. Please try again.')
       }
       throw err
+    } finally {
+      setLoading(false)
     }
   }
 

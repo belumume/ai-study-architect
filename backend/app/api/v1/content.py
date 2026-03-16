@@ -48,7 +48,6 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/content", tags=["content"])
 
 VIEW_COUNT_PREFIX = "view_count:"
-VIEW_COUNT_FLUSH_THRESHOLD = 10
 
 
 def _increment_view_count(content_id: uuid.UUID) -> None:

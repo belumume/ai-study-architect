@@ -5,13 +5,14 @@ Security utilities for authentication and authorization
 import logging
 import threading
 import time
-from datetime import UTC, datetime, timedelta
+from datetime import timedelta
 from typing import Any
 
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 
 from app.core.config import settings
+from app.core.utils import utcnow
 from app.core.rsa_keys import key_manager
 
 logger = logging.getLogger(__name__)
@@ -118,9 +119,9 @@ def create_access_token(
         Encoded JWT token
     """
     if expires_delta:
-        expire = datetime.now(UTC) + expires_delta
+        expire = utcnow() + expires_delta
     else:
-        expire = datetime.now(UTC) + timedelta(minutes=settings.JWT_ACCESS_TOKEN_EXPIRE_MINUTES)
+        expire = utcnow() + timedelta(minutes=settings.JWT_ACCESS_TOKEN_EXPIRE_MINUTES)
 
     current_keys = get_current_keys()
     kid = current_keys.get("key_id", "fallback")
@@ -162,9 +163,9 @@ def create_refresh_token(
         Encoded JWT refresh token
     """
     if expires_delta:
-        expire = datetime.now(UTC) + expires_delta
+        expire = utcnow() + expires_delta
     else:
-        expire = datetime.now(UTC) + timedelta(days=settings.JWT_REFRESH_TOKEN_EXPIRE_DAYS)
+        expire = utcnow() + timedelta(days=settings.JWT_REFRESH_TOKEN_EXPIRE_DAYS)
 
     current_keys = get_current_keys()
     kid = current_keys.get("key_id", "fallback")
