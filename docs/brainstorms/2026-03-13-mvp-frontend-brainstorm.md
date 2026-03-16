@@ -284,7 +284,7 @@ Figma Variables (source of truth)
 
 **v0 (Vercel)**: Official API and community MCP exist. Generates shadcn/ui + Tailwind React directly. But with Figma in the pipeline, Figma MCP's structured data is objectively more accurate than v0's screenshot inference. Genuinely superseded, not arbitrarily dismissed. v0 SDK noted as available fallback if pipeline friction warrants it.
 
-**Risk mitigation**: Stitch is a Google Labs experiment (launched May 2025). Google kills Labs projects. Having Figma integrated from day 1 means Stitch disappearing would not break our pipeline — Figma continues independently as the durable long-term design infrastructure.
+**Risk mitigation**: Stitch is a Google Labs experiment (launched May 2025). Google kills Labs projects. ~~Having Figma integrated from day 1 means Stitch disappearing would not break our pipeline~~ [DEFERRED: Figma integration deferred, but can be added if Stitch disappears. DESIGN.md tokens-as-code provides the durable foundation.]
 
 ### Evaluated and Skipped (with rationale)
 
