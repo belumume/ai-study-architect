@@ -430,7 +430,9 @@ class TestTokenRefresh:
 
     @pytest.mark.asyncio
     async def test_refresh_token_rotation_claims(self, client: AsyncClient, db_session: Session):
-        """Test that refreshed tokens contain family_id claim"""
+        """Test that refreshed tokens contain family_id claim when Redis is available"""
+        from unittest.mock import PropertyMock, patch
+
         from app.core.security import verify_token_claims
 
         user = User(
@@ -442,43 +444,61 @@ class TestTokenRefresh:
         db_session.add(user)
         db_session.commit()
 
-        # Login to get initial tokens with fid
-        login_resp = await client.post(
-            "/api/v1/auth/login",
-            data={
-                "username": "rotation@example.com",
-                "password": "password123",
-                "remember_me": "true",
-            },
-        )
-        assert login_resp.status_code == 200
+        # Mock Redis as connected so family tracking is enabled (CI has no Redis).
+        # Store token hashes so refresh validation succeeds.
+        _stored = {}
 
-        # Verify login tokens have fid claim
-        login_access = login_resp.cookies.get("access_token")
-        login_access_claims = verify_token_claims(login_access, token_type="access")
-        assert login_access_claims is not None
-        assert "fid" in login_access_claims
+        def mock_set(key, value, **kwargs):
+            _stored[key] = value
+            return True
 
-        login_refresh = login_resp.cookies.get("refresh_token")
-        login_refresh_claims = verify_token_claims(login_refresh, token_type="refresh")
-        assert login_refresh_claims is not None
-        assert "fid" in login_refresh_claims
+        def mock_get(key):
+            return _stored.get(key)
 
-        # Both login tokens share the same family
-        original_fid = login_access_claims["fid"]
-        assert login_refresh_claims["fid"] == original_fid
+        with patch("app.api.v1.auth.redis_cache") as mock_cache:
+            type(mock_cache).is_connected = PropertyMock(return_value=True)
+            mock_cache._get_client.return_value = mock_cache
+            mock_cache.set.side_effect = mock_set
+            mock_cache.get.side_effect = mock_get
+            mock_cache.delete.return_value = True
 
-        # Now actually call /auth/refresh and verify rotated tokens keep the family
-        client.cookies.set("refresh_token", login_refresh)
-        refresh_resp = await client.post("/api/v1/auth/refresh")
-        assert refresh_resp.status_code == 200
+            # Login to get initial tokens with fid
+            login_resp = await client.post(
+                "/api/v1/auth/login",
+                data={
+                    "username": "rotation@example.com",
+                    "password": "password123",
+                    "remember_me": "true",
+                },
+            )
+            assert login_resp.status_code == 200
 
-        # Refreshed tokens should have fid matching original family
-        new_access = refresh_resp.cookies.get("access_token")
-        assert new_access is not None, "Refresh did not set access_token cookie"
-        new_access_claims = verify_token_claims(new_access, token_type="access")
-        assert new_access_claims is not None
-        assert new_access_claims.get("fid") == original_fid
+            # Verify login tokens have fid claim
+            login_access = login_resp.cookies.get("access_token")
+            login_access_claims = verify_token_claims(login_access, token_type="access")
+            assert login_access_claims is not None
+            assert "fid" in login_access_claims
+
+            login_refresh = login_resp.cookies.get("refresh_token")
+            login_refresh_claims = verify_token_claims(login_refresh, token_type="refresh")
+            assert login_refresh_claims is not None
+            assert "fid" in login_refresh_claims
+
+            # Both login tokens share the same family
+            original_fid = login_access_claims["fid"]
+            assert login_refresh_claims["fid"] == original_fid
+
+            # Now call /auth/refresh and verify rotated tokens keep the family
+            client.cookies.set("refresh_token", login_refresh)
+            refresh_resp = await client.post("/api/v1/auth/refresh")
+            assert refresh_resp.status_code == 200
+
+            # Refreshed tokens should have fid matching original family
+            new_access = refresh_resp.cookies.get("access_token")
+            assert new_access is not None, "Refresh did not set access_token cookie"
+            new_access_claims = verify_token_claims(new_access, token_type="access")
+            assert new_access_claims is not None
+            assert new_access_claims.get("fid") == original_fid
 
 
 class TestLogout:
