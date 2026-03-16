@@ -29,16 +29,18 @@ function getCSRFToken(): string | null {
   return null
 }
 
-// Refresh token queue: prevents concurrent refresh calls from racing
+// Refresh token queue: prevents concurrent refresh calls from racing.
+// Uses a success boolean (not token presence) so it works in both
+// cookie-only and Bearer token auth modes.
 let isRefreshing = false
-let refreshSubscribers: ((token: string | null) => void)[] = []
+let refreshSubscribers: ((success: boolean) => void)[] = []
 
-function onRefreshed(token: string | null) {
-  refreshSubscribers.forEach((callback) => callback(token))
+function onRefreshComplete(success: boolean) {
+  refreshSubscribers.forEach((callback) => callback(success))
   refreshSubscribers = []
 }
 
-function addRefreshSubscriber(callback: (token: string | null) => void) {
+function addRefreshSubscriber(callback: (success: boolean) => void) {
   refreshSubscribers.push(callback)
 }
 
@@ -88,9 +90,9 @@ api.interceptors.response.use(
       // If a refresh is already in progress, queue this request
       if (isRefreshing) {
         return new Promise((resolve, reject) => {
-          addRefreshSubscriber((token: string | null) => {
-            if (token) {
-              originalRequest.headers.Authorization = `Bearer ${token}`
+          addRefreshSubscriber((success: boolean) => {
+            if (success) {
+              // Retry with new cookies (httpOnly) — no Bearer header needed
               resolve(api(originalRequest))
             } else {
               reject(error)
@@ -103,21 +105,16 @@ api.interceptors.response.use(
 
       try {
         // Refresh using httpOnly cookie (sent automatically with withCredentials)
-        const response = await api.post('/api/v1/auth/refresh')
-        const newAccessToken = response.data.access_token || null
-
-        // Update Bearer header for the original request
-        if (newAccessToken) {
-          originalRequest.headers.Authorization = `Bearer ${newAccessToken}`
-        }
+        await api.post('/api/v1/auth/refresh')
 
         // Notify all queued requests that refresh succeeded
-        onRefreshed(newAccessToken)
+        onRefreshComplete(true)
 
+        // Retry original request — new cookies are already set by the server
         return api(originalRequest)
       } catch (refreshError) {
-        // Refresh failed — clear tokens and redirect to login
-        onRefreshed(null)
+        // Refresh failed — notify queued requests, clear state, redirect
+        onRefreshComplete(false)
         tokenStorage.clearTokens()
         if (!window.location.pathname.includes('/login')) {
           window.location.href = '/login'
