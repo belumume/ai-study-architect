@@ -16,10 +16,10 @@ deepened: 2026-03-14
 
 ### Key Improvements from Deepening
 
-1. **Tailwind v4 + MUI cannot coexist** — atomic removal confirmed. Emotion is a hard peer dep of MUI. CSS `@layer` conflicts make parallel usage impossible. Phase 0 must remove MUI entirely before adding Tailwind.
+1. **Tailwind v4 + MUI cannot coexist** — ~~atomic removal confirmed~~ [STALE: MUI and Tailwind v4 coexist in production. MUI bundled as `mui-vendor` chunk. Removal deferred to Phase 3. They CAN coexist, just not ideal.]
 2. **@fontsource imports MUST be in CSS** (not JS) and BEFORE `@import "tailwindcss"` with `layer(base)`. Wrong ordering breaks the font stack.
-3. **Session state machine** uses optimistic locking (`version_id` column, auto-incremented by SQLAlchemy) + pessimistic lock (`SELECT FOR UPDATE`) during transitions. `sendBeacon` + `visibilitychange` for reliable browser-close detection. Heartbeat endpoint every 30s for orphan detection.
-4. **Dashboard uses single consolidated query** with SQLAlchemy subqueries. Streak via SQL window function (`ROW_NUMBER() - date`). Timezone-aware grouping via `func.timezone(user_tz, column)`. Cache-aside pattern: 60s TTL per-user in Redis.
+3. **Session state machine** ~~uses optimistic locking (`version_id` column, auto-incremented by SQLAlchemy) + pessimistic lock (`SELECT FOR UPDATE`) during transitions~~ [STALE: `version_id` never implemented (review reconciliation #5 removed it). Uses conditional UPDATE with status checks instead. No `SELECT FOR UPDATE`. No heartbeat endpoint.]. `sendBeacon` + `visibilitychange` for reliable browser-close detection. ~~Heartbeat endpoint every 30s for orphan detection.~~ [NOT IMPLEMENTED]
+4. **Dashboard** ~~uses single consolidated query with SQLAlchemy subqueries. Streak via SQL window function (`ROW_NUMBER() - date`). Timezone-aware grouping via `func.timezone(user_tz, column)`.~~ [STALE: Uses 3 queries (28-day aggregation, active session check, streak calculation). Streak computed in Python loop, not SQL window function. `func.timezone()` crashes on Neon — timezone boundaries computed in Python.] Cache-aside pattern: 60s TTL per-user in Redis. [CORRECT]
 5. **`accumulated_seconds` + `pause_resume_history`** on StudySession model for accurate time tracking across pause/resume cycles (not timestamp math).
 
 ### Security Review Findings (Critical + High)
@@ -750,7 +750,7 @@ Add `accumulated_seconds: int = 0` column to StudySession model. On pause: `accu
 
 **Orphaned session resolution** (SpecFlow Q3):
 - `beforeunload` handler: best-effort `navigator.sendBeacon()` to stop endpoint
-- Dashboard endpoint: check for user's IN_PROGRESS sessions older than 12 hours → auto-complete with `actual_end = actual_start + accumulated_seconds`
+- ~~Dashboard endpoint: check for user's IN_PROGRESS sessions older than 12 hours → auto-complete~~ [NOT IMPLEMENTED: orphan cleanup not in dashboard GET. Deferred.]
 - Streak calculation ignores sessions with 0 accumulated_seconds
 
 **Concurrent session prevention** (SpecFlow Q5):
@@ -773,7 +773,7 @@ class DashboardSummary(BaseModel):
     today_minutes: int                    # total study time today
     week_minutes: int                     # total study time this week
     current_streak: int                   # consecutive days with study activity
-    active_session: Optional[SessionResponse]  # currently running session
+    active_session_id: Optional[uuid.UUID]  # [STALE FIX: returns UUID, not full SessionResponse]
     subjects: list[SubjectWithProgress]   # subjects with time spent this week
     heatmap: list[HeatmapDay]            # last 28 days of activity
 
@@ -790,7 +790,7 @@ class HeatmapDay(BaseModel):
     minutes: int                          # total study minutes
 ```
 
-**Implementation**: Single DB query with aggregation. Use SQLAlchemy `func.sum()`, `func.count()`, date grouping. The dashboard endpoint should be efficient — this is called on every page load.
+**Implementation**: ~~Single DB query with aggregation.~~ [STALE: Uses 3 focused queries — 28-day aggregation, active session check, streak calculation. Python timezone computation (not func.timezone()). Redis cache 60s TTL per user.] The dashboard endpoint should be efficient — this is called on every page load.
 
 **Streak calculation** (SpecFlow Q6, Q7, Q17):
 - A "study day" = any COMPLETED session with `duration_minutes >= 1` (minimum 1 min to count)

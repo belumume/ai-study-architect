@@ -146,8 +146,8 @@ The dashboard answers five questions at a glance — ALL with real data:
 | Category | Choice | Notes |
 |----------|--------|-------|
 | Server state | TanStack Query v5 | Keep — excellent |
-| Client state | Zustand | Timer, session, theme, UI state |
-| Forms | React Hook Form + Zod + @hookform/resolvers | Keep RHF, add Zod + resolver bridge |
+| Client state | Zustand | Timer, session, theme, UI state [INSTALLED but UNUSED — no stores created. State managed via React Context + hooks] |
+| Forms | React Hook Form + Zod + @hookform/resolvers | Keep RHF, add Zod + resolver bridge [INSTALLED but NOT WIRED — forms use inline validation, not Zod schemas] |
 | Routing | React Router v6 | Keep |
 
 ### Content & UX
@@ -163,7 +163,7 @@ The dashboard answers five questions at a glance — ALL with real data:
 |----------|--------|-------|
 | Tailwind class sorting | prettier-plugin-tailwindcss | Official Tailwind Labs, requires `tailwindStylesheet` for v4 |
 | Tailwind linting | ~~@poupe/eslint-plugin-tailwindcss~~ | (evaluated, not needed — prettier-plugin-tailwindcss + @tailwindcss/vite sufficient) |
-| Pre-commit hooks | husky + lint-staged | Frontend linting on commit (ruff handles Python) |
+| Pre-commit hooks | husky + lint-staged | Frontend linting on commit (ruff handles Python) [INSTALLED in package.json but NOT CONFIGURED — no .husky/ dir or lint-staged config. Pre-commit runs via Claude Code hooks instead] |
 | Visual regression | Playwright `toHaveScreenshot()` | Free, built into existing devDeps |
 | Performance gating | Lighthouse CI (GitHub Actions) | Free, gates on every commit |
 | Accessibility | axe + Playwright `checkA11y` | Critical for dark theme contrast ratios |
@@ -474,9 +474,9 @@ Phase 1 = minimum shippable (subjects, time tracking, dashboard, basic focus tim
 
 3. **Mobile navigation timing** — Desktop uses top nav. Mobile uses bottom nav (per DESIGN.md). Recommendation: after Phase 1 desktop is solid, generate mobile Stitch variants.
 
-4. **Mastery threshold** — What score constitutes "mastered"? 90% (MathAcademy standard)? 80%? Configurable per user? Decision can be made during Phase 2 implementation.
+4. **Mastery threshold** — What score constitutes "mastered"? 90% (MathAcademy standard)? 80%? Configurable per user? [PARTIAL: Model uses `mastery_level` float 0.0-1.0 with enum status (not_started/learning/reviewing/mastered). Exact threshold deferred to Phase 4 when practice tracking exists.]
 
-5. **Concept extraction quality** — How good is Claude at extracting atomic concepts from diverse academic content? Needs empirical testing in Phase 2. Fallback: user-defined concepts.
+5. **Concept extraction quality** — How good is Claude at extracting atomic concepts from diverse academic content? Needs empirical testing in Phase 2. Fallback: user-defined concepts. [TRACKED: todo 040]
 
 ---
 
