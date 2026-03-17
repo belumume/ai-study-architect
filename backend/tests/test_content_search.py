@@ -107,6 +107,10 @@ class TestBuildPrefixTsquery:
     def test_preserves_numbers(self):
         assert _build_prefix_tsquery("python3") == "python3:*"
 
+    def test_hyphenated_word_splits(self):
+        # Hyphens replaced with spaces — "well-known" becomes two words
+        assert _build_prefix_tsquery("well-known") == "well & known:*"
+
     def test_single_full_word(self):
         assert _build_prefix_tsquery("algorithm") == "algorithm:*"
 
@@ -141,8 +145,9 @@ class TestSanitizeTsqueryWord:
     def test_strips_single_quote(self):
         assert _sanitize_tsquery_word("it's") == "its"
 
-    def test_preserves_hyphen(self):
-        # Hyphens are word separators in tsquery, not injection vectors
+    def test_preserves_hyphen_in_word(self):
+        # _sanitize_tsquery_word doesn't touch hyphens (they're not tsquery operators)
+        # but _build_prefix_tsquery replaces hyphens with spaces before splitting
         assert _sanitize_tsquery_word("well-known") == "well-known"
 
     def test_all_special_returns_empty(self):

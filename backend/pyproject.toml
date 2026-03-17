@@ -43,8 +43,8 @@ ignore = [
 # Validator signature consistency (mime_type unused in office validator)
 "app/utils/file_validation.py" = ["ARG001"]
 # Pytest fixtures referenced in signature for setup side-effects, not read in body
-"tests/*.py" = ["ARG002"]
-"tests/**/*.py" = ["ARG002"]
+"tests/*.py" = ["ARG001", "ARG002"]
+"tests/**/*.py" = ["ARG001", "ARG002"]
 
 [tool.ruff.lint.isort]
 known-third-party = ["fastapi", "pydantic", "sqlalchemy"]

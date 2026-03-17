@@ -312,6 +312,61 @@ class TestRefreshRememberMe:
         assert "max-age=" in access_cookie[0].lower()
         assert "max-age=" in refresh_cookie[0].lower()
 
+    @pytest.mark.asyncio
+    async def test_true_legacy_token_no_fid_no_rem_defaults_to_persistent(
+        self, client: AsyncClient, db_session: Session
+    ):
+        """Tokens from before rotation (no fid, no rem) should also default to persistent."""
+        user = User(
+            email="true_legacy@example.com",
+            username="true_legacy_user",
+            hashed_password=get_password_hash("password123"),
+            is_active=True,
+        )
+        db_session.add(user)
+        db_session.commit()
+        db_session.refresh(user)
+
+        from datetime import timedelta
+
+        from jose import jwt
+
+        from app.core.config import settings
+        from app.core.security import get_current_keys
+        from app.core.utils import utcnow
+
+        expire = utcnow() + timedelta(days=settings.JWT_REFRESH_TOKEN_EXPIRE_DAYS)
+        current_keys = get_current_keys()
+        kid = current_keys.get("key_id", "fallback")
+        # No fid, no rem — true pre-rotation legacy token
+        payload = {
+            "exp": expire,
+            "sub": str(user.id),
+            "type": "refresh",
+        }
+        if current_keys.get("private"):
+            legacy_token = jwt.encode(
+                payload, current_keys["private"], algorithm="RS256", headers={"kid": kid}
+            )
+        else:
+            legacy_token = jwt.encode(
+                payload, settings.JWT_SECRET_KEY, algorithm="HS256", headers={"kid": kid}
+            )
+
+        # No fid → skips Redis validation, migrates to new family
+        response = await client.post("/api/v1/auth/refresh", json={"refresh_token": legacy_token})
+
+        assert response.status_code == 200
+
+        raw_headers = response.headers.get_list("set-cookie")
+        access_cookie = [h for h in raw_headers if h.startswith("access_token=")]
+        refresh_cookie = [h for h in raw_headers if h.startswith("refresh_token=")]
+
+        assert len(access_cookie) == 1
+        assert len(refresh_cookie) == 1
+        assert "max-age=" in access_cookie[0].lower()
+        assert "max-age=" in refresh_cookie[0].lower()
+
     def test_create_refresh_token_embeds_rem_claim(self):
         """create_refresh_token should embed the 'rem' claim."""
         token_true = create_refresh_token(subject="user1", remember_me=True)

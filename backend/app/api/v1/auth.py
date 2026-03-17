@@ -282,7 +282,7 @@ def refresh_token(
             # Redis had a transient error — skip replay detection rather than
             # locking the user out.  Same behaviour as the is_connected=False branch.
             logger.warning(
-                "Redis error during rotation check — skipping replay detection for family %s",
+                "Redis error during rotation check - skipping replay detection for family %s",
                 family_id,
             )
         elif not result.found:

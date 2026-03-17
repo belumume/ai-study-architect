@@ -128,13 +128,17 @@ def _sanitize_tsquery_word(word: str) -> str:
 def _build_prefix_tsquery(raw_query: str) -> str:
     """Build a to_tsquery expression string with prefix matching.
 
+    - Replaces hyphens with spaces (so "well-known" splits into "well" + "known")
     - Strips tsquery-special characters to prevent syntax injection
     - Single word: ``term:*`` (prefix match)
     - Multi-word: ``word1 & word2 & lastword:*`` (all must match, last gets prefix)
 
     Returns an empty string if no valid words remain after sanitization.
     """
-    words = [_sanitize_tsquery_word(w) for w in raw_query.split()]
+    # Replace hyphens with spaces before splitting — to_tsquery doesn't tokenize
+    # on hyphens, but tsvector does, so "well-known" must become "well" + "known"
+    normalized = raw_query.replace("-", " ")
+    words = [_sanitize_tsquery_word(w) for w in normalized.split()]
     words = [w for w in words if w]
     if not words:
         return ""
