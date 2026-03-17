@@ -1,0 +1,14 @@
+[
+  {
+    "pattern": "datetime\\.now\\s*\\(\\s*(UTC|timezone\\.utc)\\s*\\)",
+    "message": "Agent used datetime.now(UTC) — project requires utcnow() from app.core.utils"
+  },
+  {
+    "pattern": "redis_cache\\._get_client\\(\\)\\s*$",
+    "message": "Agent used _get_client() for availability check — it never raises. Use redis_cache.is_connected"
+  },
+  {
+    "pattern": "client\\.set\\([^)]*redis_cache\\.get\\(",
+    "message": "Agent used non-atomic get-then-set for Redis counter — use client.incr() instead"
+  }
+]
