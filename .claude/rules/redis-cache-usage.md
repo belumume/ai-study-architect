@@ -10,7 +10,7 @@ Any code that uses `redis_cache` from `app.core.cache`.
 
 `RedisCache._get_client()` NEVER raises — it returns `_NoOpCache` on failure.
 
-This has caused bugs in 3 sessions (10, 14, and pending todo 047).
+This has caused bugs in 3 sessions (10, 14, 15). Resolved in session 15 via `CacheResult` dataclass + `get_with_status()`.
 
 ## Rules
 
@@ -29,8 +29,8 @@ if redis_cache.is_connected:
     # Redis is available
 ```
 
-### 2. Never assume `get() == None` means "key missing"
-It could mean connection error. If the distinction matters (auth, rate limits, feature flags), check `is_connected` first or handle the ambiguity explicitly.
+### 2. Use `get_with_status()` when the distinction between miss and error matters
+`get()` still returns `None` for both missing keys and errors. For auth, rate limits, feature flags — use `get_with_status()` which returns a `CacheResult(value, found, error)` dataclass. Fall back to `is_connected` checks only if `get_with_status()` is not appropriate.
 
 ### 3. Use atomic Redis operations
 ```python
@@ -45,5 +45,5 @@ client.expire(key, 86400)
 ### 4. Delete after commit, not before
 When flushing buffered values from Redis to DB, delete the Redis keys AFTER `db.commit()` succeeds. If you delete first and commit fails, the data is lost.
 
-## Known Limitation (todo 047)
-The cache wrapper API itself needs redesign to distinguish hit/miss/error. Until then, callers must work around it using `is_connected` checks.
+## Resolved: CacheResult pattern (todo 047, session 15)
+`RedisCache.get_with_status()` returns `CacheResult(value, found, error)` to distinguish hit/miss/error. Auth refresh uses this to skip replay detection on Redis error (not lockout). The legacy `get()` method still returns `None` for both cases — prefer `get_with_status()` for new code where the distinction matters.
