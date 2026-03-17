@@ -87,11 +87,12 @@ class TestBuildPrefixTsquery:
         assert _build_prefix_tsquery("binary search tree") == "binary & search & tree:*"
 
     def test_strips_special_characters(self):
-        assert _build_prefix_tsquery("algo&rithm") == "algorithm:*"
-        assert _build_prefix_tsquery("test|injection") == "testinjection:*"
+        # Non-alnum chars become spaces, splitting into separate words
+        assert _build_prefix_tsquery("algo&rithm") == "algo & rithm:*"
+        assert _build_prefix_tsquery("test|injection") == "test & injection:*"
         assert _build_prefix_tsquery("hack!") == "hack:*"
         assert _build_prefix_tsquery("(parens)") == "parens:*"
-        assert _build_prefix_tsquery("colon:star*") == "colonstar:*"
+        assert _build_prefix_tsquery("colon:star") == "colon & star:*"
 
     def test_all_special_chars_returns_empty(self):
         assert _build_prefix_tsquery("&|!()") == ""
@@ -108,8 +109,14 @@ class TestBuildPrefixTsquery:
         assert _build_prefix_tsquery("python3") == "python3:*"
 
     def test_hyphenated_word_splits(self):
-        # Hyphens replaced with spaces — "well-known" becomes two words
         assert _build_prefix_tsquery("well-known") == "well & known:*"
+
+    def test_dotted_word_splits(self):
+        # "node.js" → "node" + "js" (tsvector tokenizes on periods)
+        assert _build_prefix_tsquery("node.js") == "node & js:*"
+
+    def test_slash_splits(self):
+        assert _build_prefix_tsquery("c/c++") == "c & c:*"
 
     def test_single_full_word(self):
         assert _build_prefix_tsquery("algorithm") == "algorithm:*"

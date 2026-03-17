@@ -5,7 +5,7 @@ Tests for refresh endpoint improvements:
 """
 
 import hashlib
-from unittest.mock import PropertyMock, patch
+from unittest.mock import patch
 
 import pytest
 from httpx import AsyncClient
@@ -48,7 +48,7 @@ class TestRefreshRedisErrorHandling:
 
         # Mock Redis as connected but get_with_status returns an error
         with patch("app.api.v1.auth.redis_cache") as mock_cache:
-            type(mock_cache).is_connected = PropertyMock(return_value=True)
+            mock_cache.is_connected = True
             mock_cache._get_client.return_value = mock_cache
             # Simulate transient Redis error
             mock_cache.get_with_status.return_value = CacheResult(
@@ -85,7 +85,7 @@ class TestRefreshRedisErrorHandling:
         refresh_tok = create_refresh_token(subject=str(user.id), family_id=family_id)
 
         with patch("app.api.v1.auth.redis_cache") as mock_cache:
-            type(mock_cache).is_connected = PropertyMock(return_value=True)
+            mock_cache.is_connected = True
             mock_cache._get_client.return_value = mock_cache
             # Family key genuinely missing (not an error)
             mock_cache.get_with_status.return_value = CacheResult(
@@ -115,7 +115,7 @@ class TestRefreshRedisErrorHandling:
         refresh_tok = create_refresh_token(subject=str(user.id), family_id=family_id)
 
         with patch("app.api.v1.auth.redis_cache") as mock_cache:
-            type(mock_cache).is_connected = PropertyMock(return_value=True)
+            mock_cache.is_connected = True
             mock_cache._get_client.return_value = mock_cache
             # Return a different hash (token was already consumed)
             mock_cache.get_with_status.return_value = CacheResult(
@@ -147,7 +147,7 @@ class TestRefreshRedisErrorHandling:
         token_hash = _hash_token(refresh_tok)
 
         with patch("app.api.v1.auth.redis_cache") as mock_cache:
-            type(mock_cache).is_connected = PropertyMock(return_value=True)
+            mock_cache.is_connected = True
             mock_cache._get_client.return_value = mock_cache
             # Return the correct hash — the token is the current valid one
             mock_cache.get_with_status.return_value = CacheResult(
@@ -289,7 +289,7 @@ class TestRefreshRememberMe:
         # Mock Redis: token has fid, so refresh will check Redis for family hash
         token_hash = _hash_token(legacy_token)
         with patch("app.api.v1.auth.redis_cache") as mock_cache:
-            type(mock_cache).is_connected = PropertyMock(return_value=True)
+            mock_cache.is_connected = True
             mock_cache._get_client.return_value = mock_cache
             mock_cache.get_with_status.return_value = CacheResult(
                 value=token_hash, found=True, error=False
