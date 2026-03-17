@@ -117,7 +117,7 @@ def flush_view_counts(db: Session) -> int:
 
 
 # tsquery special characters that must be stripped to prevent injection
-_TSQUERY_SPECIAL_RE = re.compile(r"[&|!():*<>'\\\-]")
+_TSQUERY_SPECIAL_RE = re.compile(r"[&|!():*<>'\\]")
 
 
 def _sanitize_tsquery_word(word: str) -> str:

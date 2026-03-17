@@ -265,11 +265,17 @@ class TestRefreshRememberMe:
         expire = utcnow() + timedelta(days=settings.JWT_REFRESH_TOKEN_EXPIRE_DAYS)
         current_keys = get_current_keys()
         kid = current_keys.get("key_id", "fallback")
+        # Include fid but omit rem — this is the realistic backward-compat case
+        # (tokens created with rotation but before rem was added)
+        import uuid
+
+        family_id = uuid.uuid4().hex
         payload = {
             "exp": expire,
             "sub": str(user.id),
             "type": "refresh",
-            # No "rem" claim — legacy token
+            "fid": family_id,
+            # No "rem" claim — legacy token with rotation
         }
         if current_keys.get("private"):
             legacy_token = jwt.encode(
@@ -280,7 +286,19 @@ class TestRefreshRememberMe:
                 payload, settings.JWT_SECRET_KEY, algorithm="HS256", headers={"kid": kid}
             )
 
-        response = await client.post("/api/v1/auth/refresh", json={"refresh_token": legacy_token})
+        # Mock Redis: token has fid, so refresh will check Redis for family hash
+        token_hash = _hash_token(legacy_token)
+        with patch("app.api.v1.auth.redis_cache") as mock_cache:
+            type(mock_cache).is_connected = PropertyMock(return_value=True)
+            mock_cache._get_client.return_value = mock_cache
+            mock_cache.get_with_status.return_value = CacheResult(
+                value=token_hash, found=True, error=False
+            )
+            mock_cache.set.return_value = True
+
+            response = await client.post(
+                "/api/v1/auth/refresh", json={"refresh_token": legacy_token}
+            )
 
         assert response.status_code == 200
 

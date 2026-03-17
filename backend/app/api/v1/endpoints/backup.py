@@ -260,9 +260,9 @@ async def test_backup_setup(authorized: bool = Depends(verify_backup_token)):
         checks["boto3_installed"] = False
 
     try:
-        import importlib.util
+        from cryptography.fernet import Fernet  # noqa: F401
 
-        checks["cryptography_installed"] = importlib.util.find_spec("cryptography") is not None
+        checks["cryptography_installed"] = True
     except ImportError:
         checks["cryptography_installed"] = False
 

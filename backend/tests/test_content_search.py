@@ -141,8 +141,9 @@ class TestSanitizeTsqueryWord:
     def test_strips_single_quote(self):
         assert _sanitize_tsquery_word("it's") == "its"
 
-    def test_strips_hyphen(self):
-        assert _sanitize_tsquery_word("well-known") == "wellknown"
+    def test_preserves_hyphen(self):
+        # Hyphens are word separators in tsquery, not injection vectors
+        assert _sanitize_tsquery_word("well-known") == "well-known"
 
     def test_all_special_returns_empty(self):
         assert _sanitize_tsquery_word("&|!") == ""
