@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { isAxiosError } from 'axios'
 import authService, { User, LoginCredentials, RegisterData } from '../services/auth.service'
 
 interface AuthContextType {
@@ -66,8 +67,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         // Even if getting user fails, we're logged in
         navigate('/')
       }
-    } catch (err: any) {
-      setError(err.response?.data?.detail || 'Login failed. Please try again.')
+    } catch (err: unknown) {
+      if (isAxiosError(err)) {
+        setError(err.response?.data?.detail || 'Login failed. Please try again.')
+      } else {
+        setError('Login failed. Please try again.')
+      }
       throw err
     } finally {
       setLoading(false)
@@ -81,9 +86,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       await authService.register(data)
       // After successful registration, log them in
       await login({ username: data.username, password: data.password })
-    } catch (err: any) {
-      setError(err.response?.data?.detail || 'Registration failed. Please try again.')
+    } catch (err: unknown) {
+      if (isAxiosError(err)) {
+        setError(err.response?.data?.detail || 'Registration failed. Please try again.')
+      } else {
+        setError('Registration failed. Please try again.')
+      }
       throw err
+    } finally {
+      setLoading(false)
     }
   }
 

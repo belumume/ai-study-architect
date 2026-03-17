@@ -117,24 +117,36 @@ def get_current_superuser(current_user: User = Depends(get_current_user)) -> Use
 
 
 def get_optional_current_user(
-    credentials: HTTPAuthorizationCredentials | None = Depends(HTTPBearer(auto_error=False)),
+    request: Request,
+    credentials: HTTPAuthorizationCredentials | None = Depends(security),
     db: Session = Depends(get_db),
 ) -> User | None:
     """
     Get current user if authenticated, None otherwise.
+    Checks Bearer header first, then falls back to httpOnly cookie.
 
     Args:
+        request: The FastAPI request object
         credentials: Optional HTTP authorization credentials
         db: Database session
 
     Returns:
         The current user or None
     """
-    if not credentials:
+    token = None
+
+    # First, try Authorization header
+    if credentials and credentials.credentials:
+        token = credentials.credentials
+
+    # If no header token, try cookie
+    if not token:
+        token = request.cookies.get("access_token")
+
+    if not token:
         return None
 
     try:
-        token = credentials.credentials
         user_id = verify_token(token, token_type="access")
         if not user_id:
             return None
