@@ -3,13 +3,13 @@
 ---
 Document Level: 4
 Created: August 2025
-Last Updated: March 2026 (Session 14)
+Last Updated: March 2026 (Session 15)
 Supersedes: None
 Status: Active — see CLAUDE.md for canonical status
 Purpose: Single source of truth for implementation progress
 ---
 
-## Last Updated: March 2026 (Session 14)
+## Last Updated: March 2026 (Session 15)
 
 This document tracks the current implementation status of AI Study Architect. For the vision and architecture, see the vision documents. This is about what exists today.
 
@@ -49,8 +49,13 @@ This document tracks the current implementation status of AI Study Architect. Fo
   - RSA key persistence via CF Worker secrets (base64-encoded PEM env vars)
   - Backup endpoints (R2 daily + S3 weekly + manual)
   - Security hardening (user-scoping, filename traversal, backup token fail-closed, cache fixes)
-  - Full-text search (tsvector + GIN index, weighted: title A > description B > text C)
+  - Full-text search (tsvector + GIN index, weighted: title A > description B > text C, `to_tsquery` prefix matching)
   - Auth hardening: httpOnly cookies only, refresh token rotation with Redis family tracking, no tokens in response body
+  - `CacheResult` dataclass + `get_with_status()` — distinguishes cache miss from Redis error (Session 15)
+  - `remember_me` (rem) JWT claim — refresh preserves session vs persistent cookie type (Session 15)
+  - Content search prefix matching via `to_tsquery` with non-alnum normalization (Session 15)
+  - Register/login error separation in AuthContext (Session 15)
+  - Ruff lint: 0 errors, config restructured to `[tool.ruff.lint]` with per-file-ignores (Session 15)
   - Content stats query consolidation (5 → 2 queries)
   - Parallel R2 bulk delete
   - View count Redis buffer (write-behind)
