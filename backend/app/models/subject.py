@@ -3,6 +3,7 @@ Subject model for organizing study materials by topic
 """
 
 import uuid
+
 from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, String, UniqueConstraint
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship

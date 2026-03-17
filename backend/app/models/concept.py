@@ -11,6 +11,7 @@ This is part of the Knowledge Graph Foundation (Week 1 of mastery-based pivot)
 
 import enum
 import uuid
+
 from sqlalchemy import (
     JSON,
     CheckConstraint,

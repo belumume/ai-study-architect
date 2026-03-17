@@ -7,20 +7,20 @@ Used with Claude API for mastery-based learning system.
 
 # Concept types for reference
 CONCEPT_TYPES = [
-    "definition",     # Basic definition or terminology
-    "procedure",      # Step-by-step process
-    "principle",      # Fundamental rule or law
-    "example",        # Concrete example or case study
-    "application",    # Practical application
-    "comparison",     # Comparison between concepts
+    "definition",  # Basic definition or terminology
+    "procedure",  # Step-by-step process
+    "principle",  # Fundamental rule or law
+    "example",  # Concrete example or case study
+    "application",  # Practical application
+    "comparison",  # Comparison between concepts
 ]
 
 # Difficulty levels for reference
 DIFFICULTY_LEVELS = [
-    "beginner",       # Entry-level, no prerequisites
-    "intermediate",   # Requires some foundational knowledge
-    "advanced",       # Requires solid understanding of prerequisites
-    "expert",         # Mastery-level, complex integration
+    "beginner",  # Entry-level, no prerequisites
+    "intermediate",  # Requires some foundational knowledge
+    "advanced",  # Requires solid understanding of prerequisites
+    "expert",  # Mastery-level, complex integration
 ]
 
 
@@ -241,7 +241,9 @@ def validate_extraction_response(response: dict) -> tuple[bool, list[str]]:
         concepts = response
         dependencies = []
     else:
-        return False, ["Invalid response structure: expected object with 'concepts' and 'dependencies' or array of concepts"]
+        return False, [
+            "Invalid response structure: expected object with 'concepts' and 'dependencies' or array of concepts"
+        ]
 
     # Validate concepts
     if not isinstance(concepts, list):
@@ -320,10 +322,14 @@ def validate_extraction_response(response: dict) -> tuple[bool, list[str]]:
 
             # Validate concept references
             if "prerequisite_name" in dep and dep["prerequisite_name"] not in concept_names:
-                errors.append(f"Dependency {i} references unknown prerequisite: {dep['prerequisite_name']}")
+                errors.append(
+                    f"Dependency {i} references unknown prerequisite: {dep['prerequisite_name']}"
+                )
 
             if "dependent_name" in dep and dep["dependent_name"] not in concept_names:
-                errors.append(f"Dependency {i} references unknown dependent: {dep['dependent_name']}")
+                errors.append(
+                    f"Dependency {i} references unknown dependent: {dep['dependent_name']}"
+                )
 
             # Validate strength range
             if "strength" in dep:
@@ -346,10 +352,7 @@ def validate_extraction_response(response: dict) -> tuple[bool, list[str]]:
     return len(errors) == 0, errors
 
 
-def get_extraction_prompt(
-    content_text: str,
-    mode: str = "combined"
-) -> str:
+def get_extraction_prompt(content_text: str, mode: str = "combined") -> str:
     """
     Get the appropriate extraction prompt based on mode
 

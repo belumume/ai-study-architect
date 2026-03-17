@@ -27,11 +27,7 @@ engine = create_engine(
 )
 
 # Create session factory
-SessionLocal = sessionmaker(
-    autocommit=False,
-    autoflush=False,
-    bind=engine
-)
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 # Create base class for models
 Base = declarative_base()
@@ -73,7 +69,7 @@ def get_pool_status() -> dict:
         "invalid": 0,  # QueuePool doesn't have invalidated() method
         "total_connections": pool_size + overflow,
         "available_connections": checked_in,
-        "pool_status": "healthy" if checked_in >= 0 else "warning"
+        "pool_status": "healthy" if checked_in >= 0 else "warning",
     }
 
 
@@ -92,6 +88,7 @@ def test_database_connection() -> bool:
     """
     try:
         from sqlalchemy import text
+
         with engine.connect() as conn:
             conn.execute(text("SELECT 1"))
         logger.info("Database connection test successful")

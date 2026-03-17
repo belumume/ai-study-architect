@@ -2,6 +2,7 @@
 
 import hashlib
 import logging
+import re
 import uuid
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
@@ -113,6 +114,38 @@ def flush_view_counts(db: Session) -> int:
         logger.warning(f"View count flush failed: {e}")
         db.rollback()
         return 0
+
+
+# tsquery special characters that must be stripped to prevent injection
+_TSQUERY_SPECIAL_RE = re.compile(r"[&|!():*<>'\\]")
+
+
+def _sanitize_tsquery_word(word: str) -> str:
+    """Remove tsquery special characters from a single word."""
+    return _TSQUERY_SPECIAL_RE.sub("", word).strip()
+
+
+def _build_prefix_tsquery(raw_query: str) -> str:
+    """Build a to_tsquery expression string with prefix matching.
+
+    - Normalizes non-alphanumeric chars to spaces (so "well-known", "node.js",
+      "c/c++" all split into separate words matching tsvector tokenization)
+    - Strips tsquery-special characters to prevent syntax injection
+    - Single word: ``term:*`` (prefix match)
+    - Multi-word: ``word1 & word2 & lastword:*`` (all must match, last gets prefix)
+
+    Returns an empty string if no valid words remain after sanitization.
+    """
+    # Normalize non-alnum to spaces before splitting — to_tsquery expects
+    # tsquery syntax and doesn't tokenize on punctuation, but tsvector does.
+    normalized = re.sub(r"[^a-zA-Z0-9\s]", " ", raw_query)
+    words = [_sanitize_tsquery_word(w) for w in normalized.split()]
+    words = [w for w in words if w]
+    if not words:
+        return ""
+    if len(words) == 1:
+        return f"{words[0]}:*"
+    return " & ".join(words[:-1]) + f" & {words[-1]}:*"
 
 
 # File type validation
@@ -607,8 +640,14 @@ def search_content(
     if len(q.strip()) < 2:
         raise ValidationError("Search query must be at least 2 characters")
 
-    # PostgreSQL full-text search with weighted ranking (title > description > text)
-    ts_query = func.plainto_tsquery("english", q)
+    # Build prefix-matching tsquery for typeahead behavior.
+    # Single word "algo" becomes "algo:*" matching "algorithm", "algorithmic", etc.
+    # Multi-word "data struct" becomes "data & struct:*".
+    tsquery_expr = _build_prefix_tsquery(q)
+    if not tsquery_expr:
+        return []
+
+    ts_query = func.to_tsquery("english", tsquery_expr)
 
     content_items = (
         db.query(Content)

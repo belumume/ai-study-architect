@@ -66,7 +66,7 @@ def get_current_user(
         if not user_id:
             raise InvalidTokenError()
     except Exception:
-        raise InvalidTokenError()
+        raise InvalidTokenError() from None
 
     # Get user from database
     user = db.query(User).filter(User.id == user_id).first()

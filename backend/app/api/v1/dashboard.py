@@ -79,8 +79,6 @@ async def get_dashboard(
 
     # Convert to UTC for WHERE clauses (preserves index usage per P1)
     utc = zoneinfo.ZoneInfo("UTC")
-    today_start_utc = today_start_local.astimezone(utc)
-    week_start_utc = week_start_local.astimezone(utc)
     heatmap_start_utc = heatmap_start_local.astimezone(utc)
 
     # Query 1: 28-day aggregation grouped by date + subject
@@ -184,7 +182,7 @@ async def get_dashboard(
     # Build subject progress
     subjects_db = (
         db.query(Subject)
-        .filter(Subject.user_id == current_user.id, Subject.is_active == True)
+        .filter(Subject.user_id == current_user.id, Subject.is_active.is_(True))
         .all()
     )
 

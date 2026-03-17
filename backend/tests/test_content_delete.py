@@ -2,7 +2,6 @@
 Tests for content deletion with confirm_delete cascade behavior.
 """
 
-import uuid
 
 import pytest
 

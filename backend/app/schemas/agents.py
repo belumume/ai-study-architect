@@ -10,11 +10,13 @@ from pydantic import BaseModel, Field
 
 class AgentType(str, Enum):
     """Available agent types"""
+
     LEAD_TUTOR = "lead_tutor"
 
 
 class LearningStyle(str, Enum):
     """Learning style preferences"""
+
     VISUAL = "visual"
     AUDITORY = "auditory"
     KINESTHETIC = "kinesthetic"
@@ -24,6 +26,7 @@ class LearningStyle(str, Enum):
 
 class KnowledgeLevel(str, Enum):
     """Knowledge level options"""
+
     BEGINNER = "beginner"
     INTERMEDIATE = "intermediate"
     ADVANCED = "advanced"
@@ -31,6 +34,7 @@ class KnowledgeLevel(str, Enum):
 
 class AgentRequest(BaseModel):
     """Base request for agent interactions"""
+
     agent_type: AgentType = Field(..., description="Type of agent to interact with")
     message: str = Field(..., description="Message or question for the agent", min_length=1)
     action: str | None = Field(None, description="Specific action to perform")
@@ -39,6 +43,7 @@ class AgentRequest(BaseModel):
 
 class AgentResponse(BaseModel):
     """Standard response from agents"""
+
     success: bool = Field(..., description="Whether the operation was successful")
     message: str = Field(..., description="Response message")
     data: dict[str, Any] = Field(default_factory=dict, description="Response data")
@@ -48,27 +53,37 @@ class AgentResponse(BaseModel):
 
 class CreateStudyPlanRequest(BaseModel):
     """Request to create a personalized study plan"""
+
     learning_goal: str = Field(..., description="The main learning objective", min_length=5)
-    knowledge_level: KnowledgeLevel = Field(default=KnowledgeLevel.INTERMEDIATE, description="Current knowledge level")
+    knowledge_level: KnowledgeLevel = Field(
+        default=KnowledgeLevel.INTERMEDIATE, description="Current knowledge level"
+    )
     time_available: str = Field(default="flexible", description="Available time for study")
-    learning_style: LearningStyle = Field(default=LearningStyle.MIXED, description="Preferred learning style")
+    learning_style: LearningStyle = Field(
+        default=LearningStyle.MIXED, description="Preferred learning style"
+    )
 
 
 class ExplainConceptRequest(BaseModel):
     """Request to explain a concept"""
+
     concept: str = Field(..., description="The concept to explain", min_length=2)
-    learning_style: LearningStyle = Field(default=LearningStyle.MIXED, description="Preferred learning style")
+    learning_style: LearningStyle = Field(
+        default=LearningStyle.MIXED, description="Preferred learning style"
+    )
     prior_knowledge: list[str] | None = Field(None, description="Relevant prior knowledge")
 
 
 class CheckUnderstandingRequest(BaseModel):
     """Request to generate understanding check questions"""
+
     topic: str = Field(..., description="The topic to create questions for", min_length=2)
 
 
 # Study Plan Related Schemas
 class LearningObjective(BaseModel):
     """A learning objective within a study plan"""
+
     id: str = Field(..., description="Unique identifier")
     title: str = Field(..., description="Objective title")
     description: str = Field(..., description="Detailed description")
@@ -81,6 +96,7 @@ class LearningObjective(BaseModel):
 
 class StudyPlan(BaseModel):
     """A complete study plan"""
+
     title: str = Field(..., description="Plan title")
     description: str = Field(..., description="Plan description")
     objectives: list[LearningObjective] = Field(..., description="Learning objectives")
@@ -90,13 +106,17 @@ class StudyPlan(BaseModel):
 
 class StudyMilestone(BaseModel):
     """A milestone in the study plan"""
+
     title: str = Field(..., description="Milestone title")
     description: str = Field(..., description="Milestone description")
-    objectives_required: list[str] = Field(..., description="Objectives needed to reach this milestone")
+    objectives_required: list[str] = Field(
+        ..., description="Objectives needed to reach this milestone"
+    )
 
 
 class Question(BaseModel):
     """A comprehension check question"""
+
     id: str = Field(..., description="Question identifier")
     question: str = Field(..., description="The question text")
     type: str = Field(..., description="Question type (comprehension, application, analysis)")
@@ -107,5 +127,6 @@ class Question(BaseModel):
 
 class UnderstandingCheckResponse(BaseModel):
     """Response containing understanding check questions"""
+
     topic: str = Field(..., description="The topic being tested")
     questions: list[Question] = Field(..., description="Generated questions")

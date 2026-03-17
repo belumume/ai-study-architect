@@ -4,6 +4,7 @@ Content model for user-uploaded study materials
 
 import enum
 import uuid
+
 import sqlalchemy as sa
 from sqlalchemy import (
     JSON,
@@ -12,14 +13,12 @@ from sqlalchemy import (
     DateTime,
     Float,
     ForeignKey,
-    Index,
     Integer,
     String,
     Text,
+    event,
 )
-from sqlalchemy.dialects.postgresql import TSVECTOR
-from sqlalchemy import event
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import TSVECTOR, UUID
 from sqlalchemy.orm import relationship
 
 from app.core.database import Base

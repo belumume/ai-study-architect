@@ -32,7 +32,7 @@ router = APIRouter(prefix="/concepts")
 @router.post("/extract", response_model=ConceptBulkCreateResponse)
 @limiter.limit("5/minute")
 async def extract_concepts(
-    request: Request,  # noqa: ARG001 — required by slowapi limiter
+    request: Request,
     extraction_request: ConceptExtractionRequest,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -116,7 +116,7 @@ async def extract_concepts(
 @router.get("/subjects/{subject_id}/detail")
 @limiter.limit("30/minute")
 async def get_subject_detail(
-    request: Request,  # noqa: ARG001 — required by slowapi limiter
+    request: Request,
     subject_id: UUID,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),

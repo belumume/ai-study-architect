@@ -19,6 +19,7 @@ router = APIRouter()
 
 class CSRFTokenResponse(BaseModel):
     """CSRF token response"""
+
     csrf_token: str
     header_name: str
     expires_in: int
@@ -26,9 +27,7 @@ class CSRFTokenResponse(BaseModel):
 
 @router.get("/token", response_model=CSRFTokenResponse)
 def get_csrf_token(
-    request: Request,
-    response: Response,
-    current_user: User = Depends(get_optional_current_user)
+    request: Request, response: Response, current_user: User = Depends(get_optional_current_user)
 ) -> CSRFTokenResponse:
     """
     Get a CSRF token
@@ -53,7 +52,9 @@ def get_csrf_token(
             logger.info(f"Returning existing CSRF token for user {user_id}")
         except Exception as e:
             # Token is invalid or expired, generate a new one
-            logger.info(f"Existing token invalid ({str(e)}), generating new token for user {user_id}")
+            logger.info(
+                f"Existing token invalid ({str(e)}), generating new token for user {user_id}"
+            )
             csrf_token = csrf_protect.set_csrf_cookie(response, user_id)
     else:
         # No existing token, generate a new one
@@ -63,7 +64,7 @@ def get_csrf_token(
     return CSRFTokenResponse(
         csrf_token=csrf_token,
         header_name=csrf_protect.header_name,
-        expires_in=csrf_protect.token_lifetime
+        expires_in=csrf_protect.token_lifetime,
     )
 
 
