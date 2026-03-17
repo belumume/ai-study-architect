@@ -162,18 +162,12 @@ erDiagram
         uuid concept_id FK
         string status "not_started|learning|reviewing|mastered"
         float mastery_level "0.0 to 1.0"
-        float confidence "system confidence"
-        float ease_factor "SM-2 EF, default 2.5, min 1.3"
-        int repetition_number "SM-2 rep count"
-        int interval_days "SM-2 interval"
-        datetime next_review_date
-        datetime last_reviewed_at
-        int total_attempts
-        int correct_attempts
-        int consecutive_correct
         datetime created_at
         datetime updated_at
     }
+    %% [STALE FIX: ERD updated to match actual 7-column schema per Review Reconciliation #1.
+    %% Future columns (Phase 4): total_attempts, correct_attempts, consecutive_correct
+    %% Future columns (Phase 5): ease_factor, interval_days, next_review_date, confidence]
 ```
 
 ### Implementation Phases
