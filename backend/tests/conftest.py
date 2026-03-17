@@ -78,6 +78,7 @@ async def client(db_session: Session) -> AsyncClient:
 
     # Disable rate limiting for tests (shared limiter instance)
     from app.core.rate_limiter import limiter as shared_limiter
+
     shared_limiter.enabled = False
 
     transport = ASGITransport(app=fastapi_app)
@@ -116,16 +117,18 @@ async def authenticated_client(client: AsyncClient, db_session: Session):
         data={
             "username": email,
             "password": "testpassword123",
-            "remember_me": "false",
+            "remember_me": "true",
         },
     )
-    tokens = response.json()
 
-    client.headers["Authorization"] = f"Bearer {tokens['access_token']}"
+    # Tokens are now in httpOnly cookies only (not in response body).
+    # Extract access_token from Set-Cookie header for Bearer auth in tests.
+    access_token = response.cookies.get("access_token")
+    assert access_token, "Login did not set access_token cookie"
+    client.headers["Authorization"] = f"Bearer {access_token}"
 
     user_data = {
         "user": user,
-        "tokens": tokens,
         "email": email,
         "password": "testpassword123",
     }

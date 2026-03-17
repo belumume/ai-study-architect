@@ -9,54 +9,47 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 // vi.hoisted runs before vi.mock hoisting — safe to reference in mock factories
-const {
-  requestInterceptors,
-  responseInterceptors,
-  mockAxiosInstance,
-  mockTokenStorage,
-} = vi.hoisted(() => {
-  const requestInterceptors: Array<{ fulfilled: Function; rejected?: Function }> = []
-  const responseInterceptors: Array<{ fulfilled: Function; rejected?: Function }> = []
+const { requestInterceptors, responseInterceptors, mockAxiosInstance, mockClearLegacyTokens } =
+  vi.hoisted(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    type InterceptorFn = (...args: any[]) => any
+    const requestInterceptors: Array<{ fulfilled: InterceptorFn; rejected?: InterceptorFn }> = []
+    const responseInterceptors: Array<{ fulfilled: InterceptorFn; rejected?: InterceptorFn }> = []
 
-  const mockAxiosInstance = {
-    defaults: {
-      baseURL: '',
-      headers: { 'Content-Type': 'application/json' } as Record<string, any>,
-      withCredentials: true,
-    },
-    interceptors: {
-      request: {
-        use: vi.fn((fulfilled: Function, rejected?: Function) => {
-          requestInterceptors.push({ fulfilled, rejected })
-          return requestInterceptors.length - 1
-        }),
-        clear: vi.fn(),
+    const mockAxiosInstance = {
+      defaults: {
+        baseURL: '',
+        headers: { 'Content-Type': 'application/json' } as Record<string, any>,
+        withCredentials: true,
       },
-      response: {
-        use: vi.fn((fulfilled: Function, rejected?: Function) => {
-          responseInterceptors.push({ fulfilled, rejected })
-          return responseInterceptors.length - 1
-        }),
-        clear: vi.fn(),
+      interceptors: {
+        request: {
+          use: vi.fn((fulfilled: InterceptorFn, rejected?: InterceptorFn) => {
+            requestInterceptors.push({ fulfilled, rejected })
+            return requestInterceptors.length - 1
+          }),
+          clear: vi.fn(),
+        },
+        response: {
+          use: vi.fn((fulfilled: InterceptorFn, rejected?: InterceptorFn) => {
+            responseInterceptors.push({ fulfilled, rejected })
+            return responseInterceptors.length - 1
+          }),
+          clear: vi.fn(),
+        },
       },
-    },
-    get: vi.fn(),
-    post: vi.fn(),
-    put: vi.fn(),
-    delete: vi.fn(),
-    patch: vi.fn(),
-    request: vi.fn(),
-  }
+      get: vi.fn(),
+      post: vi.fn(),
+      put: vi.fn(),
+      delete: vi.fn(),
+      patch: vi.fn(),
+      request: vi.fn(),
+    }
 
-  const mockTokenStorage = {
-    getAccessToken: vi.fn(),
-    getRefreshToken: vi.fn(),
-    setTokens: vi.fn(),
-    clearTokens: vi.fn(),
-  }
+    const mockClearLegacyTokens = vi.fn()
 
-  return { requestInterceptors, responseInterceptors, mockAxiosInstance, mockTokenStorage }
-})
+    return { requestInterceptors, responseInterceptors, mockAxiosInstance, mockClearLegacyTokens }
+  })
 
 vi.mock('axios', () => ({
   default: {
@@ -65,11 +58,11 @@ vi.mock('axios', () => ({
 }))
 
 vi.mock('../tokenStorage', () => ({
-  default: mockTokenStorage,
+  clearLegacyTokens: mockClearLegacyTokens,
 }))
 
 // Import AFTER mocks are set up (vitest hoists vi.mock)
-import { api } from '../api'
+import { api, __resetRefreshStateForTesting } from '../api'
 
 describe('API Service', () => {
   beforeEach(() => {
@@ -93,23 +86,19 @@ describe('API Service', () => {
     })
   })
 
-  describe('Request Interceptor - Auth Token', () => {
-    it('adds Authorization header when token exists', () => {
-      mockTokenStorage.getAccessToken.mockReturnValue('test-access-token')
-
+  describe('Request Interceptor - Auth', () => {
+    it('always deletes Authorization header (cookie-only auth)', () => {
       const config = {
-        headers: {} as Record<string, any>,
+        headers: { Authorization: 'Bearer stale-token' } as Record<string, any>,
         method: 'get',
       }
 
       const result = requestInterceptors[0].fulfilled(config)
 
-      expect(result.headers.Authorization).toBe('Bearer test-access-token')
+      expect(result.headers.Authorization).toBeUndefined()
     })
 
-    it('does not add Authorization header when no token', () => {
-      mockTokenStorage.getAccessToken.mockReturnValue(null)
-
+    it('does not set Authorization header', () => {
       const config = {
         headers: {} as Record<string, any>,
         method: 'get',
@@ -123,8 +112,6 @@ describe('API Service', () => {
 
   describe('Request Interceptor - FormData', () => {
     it('removes Content-Type for FormData', () => {
-      mockTokenStorage.getAccessToken.mockReturnValue(null)
-
       const formData = new FormData()
       const config = {
         headers: { 'Content-Type': 'application/json' } as Record<string, any>,
@@ -138,8 +125,6 @@ describe('API Service', () => {
     })
 
     it('keeps Content-Type for JSON data', () => {
-      mockTokenStorage.getAccessToken.mockReturnValue(null)
-
       const config = {
         headers: { 'Content-Type': 'application/json' } as Record<string, any>,
         data: { key: 'value' },
@@ -154,7 +139,6 @@ describe('API Service', () => {
 
   describe('Request Interceptor - CSRF Token', () => {
     it('adds CSRF header for POST requests', () => {
-      mockTokenStorage.getAccessToken.mockReturnValue(null)
       document.cookie = 'csrf_token=test-csrf-token; path=/'
 
       const config = {
@@ -168,7 +152,6 @@ describe('API Service', () => {
     })
 
     it('adds CSRF header for PUT requests', () => {
-      mockTokenStorage.getAccessToken.mockReturnValue(null)
       document.cookie = 'csrf_token=csrf-put-token; path=/'
 
       const config = {
@@ -182,7 +165,6 @@ describe('API Service', () => {
     })
 
     it('adds CSRF header for DELETE requests', () => {
-      mockTokenStorage.getAccessToken.mockReturnValue(null)
       document.cookie = 'csrf_token=csrf-delete-token; path=/'
 
       const config = {
@@ -196,7 +178,6 @@ describe('API Service', () => {
     })
 
     it('does not add CSRF header for GET requests', () => {
-      mockTokenStorage.getAccessToken.mockReturnValue(null)
       document.cookie = 'csrf_token=test-csrf-token; path=/'
 
       const config = {
@@ -210,7 +191,6 @@ describe('API Service', () => {
     })
 
     it('handles missing CSRF token gracefully', () => {
-      mockTokenStorage.getAccessToken.mockReturnValue(null)
       document.cookie = 'csrf_token=; max-age=0'
 
       const config = {
@@ -224,7 +204,6 @@ describe('API Service', () => {
     })
 
     it('handles multiple cookies', () => {
-      mockTokenStorage.getAccessToken.mockReturnValue(null)
       document.cookie = 'other=value'
       document.cookie = 'csrf_token=xyz789'
       document.cookie = 'another=cookie'
@@ -240,7 +219,6 @@ describe('API Service', () => {
     })
 
     it('handles encoded cookie values', () => {
-      mockTokenStorage.getAccessToken.mockReturnValue(null)
       document.cookie = 'csrf_token=encoded%20value; path=/'
 
       const config = {
@@ -311,7 +289,7 @@ describe('API Service', () => {
 
     it('attempts token refresh on 401 from non-auth endpoints', async () => {
       mockAxiosInstance.post.mockResolvedValueOnce({
-        data: { access_token: 'new-token' },
+        data: { token_type: 'bearer' },
       })
 
       const originalConfig = {
@@ -335,6 +313,141 @@ describe('API Service', () => {
       }
 
       expect(originalConfig._retry).toBe(true)
+    })
+  })
+
+  describe('Refresh Queue (concurrent 401 handling)', () => {
+    beforeEach(() => {
+      __resetRefreshStateForTesting()
+    })
+
+    it('only makes one refresh call for concurrent 401s', async () => {
+      // Control refresh timing — hold it pending so both 401s arrive before resolution
+      let resolveRefresh!: (value: unknown) => void
+      const refreshPromise = new Promise((resolve) => {
+        resolveRefresh = resolve
+      })
+      mockAxiosInstance.post.mockReturnValueOnce(refreshPromise)
+
+      const makeError = (url: string) => ({
+        response: { status: 401 },
+        config: {
+          url,
+          headers: {} as Record<string, any>,
+          _retry: undefined as boolean | undefined,
+        },
+      })
+
+      // First 401 starts refresh; second queues behind it
+      const p1 = responseInterceptors[0].rejected!(makeError('/api/v1/a'))
+      const p2 = responseInterceptors[0].rejected!(makeError('/api/v1/b'))
+
+      // Only ONE refresh call made (second was queued, not duplicated)
+      expect(mockAxiosInstance.post).toHaveBeenCalledTimes(1)
+      expect(mockAxiosInstance.post).toHaveBeenCalledWith('/api/v1/auth/refresh')
+
+      // Resolve to prevent hanging — retry calls api(config) which isn't callable
+      // in this mock, so they'll reject. That's fine — we proved the queuing works.
+      resolveRefresh({ data: { token_type: 'bearer' } })
+
+      // Settle both promises (they'll reject due to mock limitations on api())
+      await p1.catch(() => {})
+      await p2.catch(() => {})
+    })
+
+    it('rejects queued requests on refresh failure and redirects', async () => {
+      mockAxiosInstance.post.mockRejectedValueOnce(new Error('refresh failed'))
+
+      const error = {
+        response: { status: 401 },
+        config: {
+          url: '/api/v1/a',
+          headers: {} as Record<string, any>,
+          _retry: undefined as boolean | undefined,
+        },
+      }
+
+      await expect(responseInterceptors[0].rejected!(error)).rejects.toThrow('refresh failed')
+
+      expect(mockClearLegacyTokens).toHaveBeenCalled()
+    })
+
+    it('resets state after refresh so next 401 triggers new refresh', async () => {
+      // First refresh succeeds (retry will fail — that's ok)
+      mockAxiosInstance.post.mockResolvedValueOnce({ data: { token_type: 'bearer' } })
+
+      const error1 = {
+        response: { status: 401 },
+        config: {
+          url: '/api/v1/a',
+          headers: {} as Record<string, any>,
+          _retry: undefined as boolean | undefined,
+        },
+      }
+
+      try {
+        await responseInterceptors[0].rejected!(error1)
+      } catch {
+        // api(config) not callable in mock — expected
+      }
+
+      // Second 401 should trigger a NEW refresh call (isRefreshing was reset in finally)
+      mockAxiosInstance.post.mockResolvedValueOnce({ data: { token_type: 'bearer' } })
+      const error2 = {
+        response: { status: 401 },
+        config: {
+          url: '/api/v1/b',
+          headers: {} as Record<string, any>,
+          _retry: undefined as boolean | undefined,
+        },
+      }
+
+      try {
+        await responseInterceptors[0].rejected!(error2)
+      } catch {
+        // same
+      }
+
+      // Two separate refresh calls — state was properly reset between them
+      expect(mockAxiosInstance.post).toHaveBeenCalledTimes(2)
+    })
+
+    it('clears legacy tokens on refresh failure', async () => {
+      mockAxiosInstance.post.mockRejectedValueOnce(new Error('fail'))
+
+      try {
+        await responseInterceptors[0].rejected!({
+          response: { status: 401 },
+          config: {
+            url: '/api/v1/a',
+            headers: {} as Record<string, any>,
+            _retry: undefined as boolean | undefined,
+          },
+        })
+      } catch {
+        // expected
+      }
+
+      expect(mockClearLegacyTokens).toHaveBeenCalled()
+    })
+
+    it('clears legacy tokens on refresh success', async () => {
+      mockAxiosInstance.post.mockResolvedValueOnce({ data: { token_type: 'bearer' } })
+
+      try {
+        await responseInterceptors[0].rejected!({
+          response: { status: 401 },
+          config: {
+            url: '/api/v1/a',
+            headers: {} as Record<string, any>,
+            _retry: undefined as boolean | undefined,
+          },
+        })
+      } catch {
+        // api(config) not callable in mock
+      }
+
+      expect(mockClearLegacyTokens).toHaveBeenCalled()
     })
   })
 

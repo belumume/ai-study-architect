@@ -8,8 +8,6 @@ import { vi } from 'vitest'
 export const mockApiResponses = {
   auth: {
     login: {
-      access_token: 'mock-access-token',
-      refresh_token: 'mock-refresh-token',
       token_type: 'bearer',
     },
     register: {
@@ -133,11 +131,7 @@ export const mockFormData = {
 }
 
 // Mock file for upload testing
-export const createMockFile = (
-  name = 'test.pdf',
-  _size = 1024,
-  type = 'application/pdf'
-) => {
+export const createMockFile = (name = 'test.pdf', _size = 1024, type = 'application/pdf') => {
   const blob = new Blob(['test content'], { type })
   return new File([blob], name, { type })
 }
