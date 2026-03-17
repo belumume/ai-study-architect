@@ -15,6 +15,7 @@ from PIL import Image
 # Optional OCR support
 try:
     import pytesseract
+
     HAS_OCR = True
 except ImportError:
     HAS_OCR = False
@@ -27,6 +28,7 @@ logger = logging.getLogger(__name__)
 # Import vision processor for image extraction
 try:
     from app.services.vision_processor import vision_processor
+
     HAS_VISION = True
     logger.info("Vision processor imported successfully")
 except ImportError as e:
@@ -38,14 +40,14 @@ class ContentProcessor:
     """Service for processing uploaded content files"""
 
     SUPPORTED_FORMATS = {
-        'application/pdf': 'pdf',
-        'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'docx',
-        'application/vnd.openxmlformats-officedocument.presentationml.presentation': 'pptx',
-        'text/plain': 'txt',
-        'text/markdown': 'md',
-        'image/jpeg': 'image',
-        'image/png': 'image',
-        'image/jpg': 'image'
+        "application/pdf": "pdf",
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document": "docx",
+        "application/vnd.openxmlformats-officedocument.presentationml.presentation": "pptx",
+        "text/plain": "txt",
+        "text/markdown": "md",
+        "image/jpeg": "image",
+        "image/png": "image",
+        "image/jpg": "image",
     }
 
     def __init__(self):
@@ -70,30 +72,38 @@ class ContentProcessor:
 
             # Detect actual file type using magic
             actual_mime = magic.from_file(str(file_path), mime=True)
-            logger.info(f"Processing file: {file_path.name}, declared type: {content_type}, actual type: {actual_mime}")
+            logger.info(
+                f"Processing file: {file_path.name}, declared type: {content_type}, actual type: {actual_mime}"
+            )
 
             # Extract text based on file type
             text = ""
             metadata = {
                 "file_size": file_path.stat().st_size,
                 "detected_type": actual_mime,
-                "declared_type": content_type
+                "declared_type": content_type,
             }
 
             # Handle PowerPoint files detected as zip
             if actual_mime == "application/zip" and file_path.suffix.lower() == ".pptx":
-                actual_mime = "application/vnd.openxmlformats-officedocument.presentationml.presentation"
+                actual_mime = (
+                    "application/vnd.openxmlformats-officedocument.presentationml.presentation"
+                )
 
-            if actual_mime == 'application/pdf':
+            if actual_mime == "application/pdf":
                 text, pdf_metadata = self._extract_pdf_text(file_path)
                 metadata.update(pdf_metadata)
-            elif actual_mime in ['application/vnd.openxmlformats-officedocument.wordprocessingml.document']:
+            elif actual_mime in [
+                "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+            ]:
                 text = self._extract_docx_text(file_path)
-            elif actual_mime in ['application/vnd.openxmlformats-officedocument.presentationml.presentation']:
+            elif actual_mime in [
+                "application/vnd.openxmlformats-officedocument.presentationml.presentation"
+            ]:
                 text = self._extract_pptx_text(file_path)
-            elif actual_mime.startswith('text/'):
+            elif actual_mime.startswith("text/"):
                 text = self._extract_text_file(file_path)
-            elif actual_mime.startswith('image/'):
+            elif actual_mime.startswith("image/"):
                 text = self._extract_image_text(file_path)
                 metadata["extraction_method"] = "OCR"
             else:
@@ -103,21 +113,13 @@ class ContentProcessor:
             # Calculate text statistics
             metadata["text_length"] = len(text)
             metadata["word_count"] = len(text.split())
-            metadata["line_count"] = len(text.split('\n'))
+            metadata["line_count"] = len(text.split("\n"))
 
-            return {
-                "text": text,
-                "metadata": metadata,
-                "success": True
-            }
+            return {"text": text, "metadata": metadata, "success": True}
 
         except Exception as e:
             logger.error(f"Error processing file {file_path}: {str(e)}", exc_info=True)
-            return {
-                "text": "",
-                "metadata": {"error": str(e)},
-                "success": False
-            }
+            return {"text": "", "metadata": {"error": str(e)}, "success": False}
 
     def _extract_pdf_text(self, file_path: Path) -> tuple[str, dict[str, Any]]:
         """Extract text from PDF file including OCR for scanned pages"""
@@ -125,7 +127,7 @@ class ContentProcessor:
         metadata = {"page_count": 0, "has_images": False}
 
         try:
-            with open(file_path, 'rb') as file:
+            with open(file_path, "rb") as file:
                 pdf_reader = PyPDF2.PdfReader(file)
                 metadata["page_count"] = len(pdf_reader.pages)
 
@@ -141,30 +143,32 @@ class ContentProcessor:
                         logger.warning(f"Error extracting text from page {page_num + 1}: {e}")
 
                     # Check if page might be scanned (no extractable text)
-                    if len(page_content) == 1:  # Only header, no text
-                        # Try to extract as image if vision AI is available
-                        if HAS_VISION:
-                            try:
-                                # Note: This is a simplified approach
-                                # Full implementation would use PyMuPDF or pdf2image
-                                page_content.append("[Page appears to be scanned - vision extraction needed]")
-                                metadata["has_images"] = True
-                            except Exception as e:
-                                logger.warning(f"Could not check for images on page {page_num + 1}: {e}")
+                    if len(page_content) == 1 and HAS_VISION:  # Only header, no text
+                        try:
+                            # Note: This is a simplified approach
+                            # Full implementation would use PyMuPDF or pdf2image
+                            page_content.append(
+                                "[Page appears to be scanned - vision extraction needed]"
+                            )
+                            metadata["has_images"] = True
+                        except Exception as e:
+                            logger.warning(
+                                f"Could not check for images on page {page_num + 1}: {e}"
+                            )
 
-                    text_parts.append('\n'.join(page_content))
+                    text_parts.append("\n".join(page_content))
 
                 # Extract metadata
                 if pdf_reader.metadata:
-                    metadata["title"] = pdf_reader.metadata.get('/Title', '')
-                    metadata["author"] = pdf_reader.metadata.get('/Author', '')
-                    metadata["subject"] = pdf_reader.metadata.get('/Subject', '')
+                    metadata["title"] = pdf_reader.metadata.get("/Title", "")
+                    metadata["author"] = pdf_reader.metadata.get("/Author", "")
+                    metadata["subject"] = pdf_reader.metadata.get("/Subject", "")
 
         except Exception as e:
             logger.error(f"Error reading PDF: {e}")
-            raise ContentProcessingError(f"Failed to process PDF: {str(e)}")
+            raise ContentProcessingError(f"Failed to process PDF: {str(e)}") from e
 
-        return '\n\n'.join(text_parts), metadata
+        return "\n\n".join(text_parts), metadata
 
     def _extract_docx_text(self, file_path: Path) -> str:
         """Extract text from DOCX file"""
@@ -184,13 +188,13 @@ class ContentProcessor:
                         if cell.text.strip():
                             row_text.append(cell.text.strip())
                     if row_text:
-                        text_parts.append(' | '.join(row_text))
+                        text_parts.append(" | ".join(row_text))
 
-            return '\n\n'.join(text_parts)
+            return "\n\n".join(text_parts)
 
         except Exception as e:
             logger.error(f"Error reading DOCX: {e}")
-            raise ContentProcessingError(f"Failed to process DOCX: {str(e)}")
+            raise ContentProcessingError(f"Failed to process DOCX: {str(e)}") from e
 
     def _extract_pptx_text(self, file_path: Path) -> str:
         """Extract text from PPTX file including images with vision AI"""
@@ -208,53 +212,68 @@ class ContentProcessor:
                         slide_text.append(shape.text)
 
                     # Extract text from tables
-                    if hasattr(shape, 'has_table') and shape.has_table:
+                    if hasattr(shape, "has_table") and shape.has_table:
                         for row in shape.table.rows:
                             row_text = []
                             for cell in row.cells:
                                 if cell.text.strip():
                                     row_text.append(cell.text.strip())
                             if row_text:
-                                slide_text.append(' | '.join(row_text))
+                                slide_text.append(" | ".join(row_text))
 
                     # NEW: Extract content from images using vision AI
                     if shape.shape_type == 13 and HAS_VISION:  # Picture type
                         image_count += 1
                         try:
-                            if hasattr(shape, 'image'):
+                            if hasattr(shape, "image"):
                                 image_data = shape.image.blob
                                 # Use synchronous wrapper for vision extraction
-                                logger.info(f"Extracting content from slide {slide_num + 1}, image {image_count}")
+                                logger.info(
+                                    f"Extracting content from slide {slide_num + 1}, image {image_count}"
+                                )
                                 extraction = vision_processor.extract_from_image_sync(image_data)
 
-                                if extraction['success'] and extraction['text']:
+                                if extraction["success"] and extraction["text"]:
                                     slide_text.append(f"\n[Image {image_count} content:]")
-                                    slide_text.append(extraction['text'])
-                                    if extraction.get('description'):
-                                        slide_text.append(f"[Description: {extraction['description']}]")
-                                    logger.info(f"Successfully extracted content from image {image_count}")
+                                    slide_text.append(extraction["text"])
+                                    if extraction.get("description"):
+                                        slide_text.append(
+                                            f"[Description: {extraction['description']}]"
+                                        )
+                                    logger.info(
+                                        f"Successfully extracted content from image {image_count}"
+                                    )
                                 else:
-                                    error_msg = extraction.get('error', 'Unknown error')
-                                    logger.warning(f"Vision extraction failed for image {image_count}: {error_msg}")
-                                    slide_text.append(f"[Image {image_count}: Unable to extract - {error_msg}]")
+                                    error_msg = extraction.get("error", "Unknown error")
+                                    logger.warning(
+                                        f"Vision extraction failed for image {image_count}: {error_msg}"
+                                    )
+                                    slide_text.append(
+                                        f"[Image {image_count}: Unable to extract - {error_msg}]"
+                                    )
                         except Exception as e:
-                            logger.error(f"Could not extract image from slide {slide_num + 1}: {e}", exc_info=True)
-                            slide_text.append(f"[Image {image_count}: Unable to extract content - {str(e)}]")
+                            logger.error(
+                                f"Could not extract image from slide {slide_num + 1}: {e}",
+                                exc_info=True,
+                            )
+                            slide_text.append(
+                                f"[Image {image_count}: Unable to extract content - {str(e)}]"
+                            )
 
                 if len(slide_text) > 1:  # More than just the slide header
-                    text_parts.append('\n'.join(slide_text))
+                    text_parts.append("\n".join(slide_text))
 
-            return '\n\n'.join(text_parts)
+            return "\n\n".join(text_parts)
 
         except Exception as e:
             logger.error(f"Error reading PPTX: {e}")
-            raise ContentProcessingError(f"Failed to process PPTX: {str(e)}")
+            raise ContentProcessingError(f"Failed to process PPTX: {str(e)}") from e
 
     def _extract_text_file(self, file_path: Path) -> str:
         """Extract text from plain text file"""
         try:
             # Try different encodings
-            encodings = ['utf-8', 'latin-1', 'cp1252']
+            encodings = ["utf-8", "latin-1", "cp1252"]
 
             for encoding in encodings:
                 try:
@@ -264,33 +283,37 @@ class ContentProcessor:
                     continue
 
             # If all encodings fail, read as binary and decode with errors ignored
-            with open(file_path, 'rb') as file:
-                return file.read().decode('utf-8', errors='ignore')
+            with open(file_path, "rb") as file:
+                return file.read().decode("utf-8", errors="ignore")
 
         except Exception as e:
             logger.error(f"Error reading text file: {e}")
-            raise ContentProcessingError(f"Failed to process text file: {str(e)}")
+            raise ContentProcessingError(f"Failed to process text file: {str(e)}") from e
 
     def _extract_image_text(self, file_path: Path) -> str:
         """Extract text from image using vision AI or OCR"""
         # Try vision AI first (much better than local OCR)
         if HAS_VISION:
             try:
-                with open(file_path, 'rb') as f:
+                with open(file_path, "rb") as f:
                     image_data = f.read()
 
                 # Use synchronous wrapper for vision extraction
                 logger.info(f"Extracting text from image: {file_path.name}")
                 extraction = vision_processor.extract_from_image_sync(image_data)
 
-                if extraction['success'] and extraction['text']:
-                    result = extraction['text']
-                    if extraction.get('description'):
+                if extraction["success"] and extraction["text"]:
+                    result = extraction["text"]
+                    if extraction.get("description"):
                         result += f"\n\n[Image Description: {extraction['description']}]"
-                    logger.info(f"Successfully extracted text from image using {extraction.get('processor', 'unknown')}")
+                    logger.info(
+                        f"Successfully extracted text from image using {extraction.get('processor', 'unknown')}"
+                    )
                     return result
                 else:
-                    logger.warning(f"Vision extraction failed: {extraction.get('error', 'Unknown error')}")
+                    logger.warning(
+                        f"Vision extraction failed: {extraction.get('error', 'Unknown error')}"
+                    )
             except Exception as e:
                 logger.error(f"Vision AI extraction failed: {e}", exc_info=True)
 
@@ -301,8 +324,8 @@ class ContentProcessor:
                 image = Image.open(file_path)
 
                 # Convert to RGB if necessary
-                if image.mode != 'RGB':
-                    image = image.convert('RGB')
+                if image.mode != "RGB":
+                    image = image.convert("RGB")
 
                 # Extract text using OCR
                 text = pytesseract.image_to_string(image)
@@ -344,14 +367,14 @@ class ContentProcessor:
             # If this is not the last chunk, try to break at a sentence or word boundary
             if end < text_length:
                 # Look for sentence boundaries
-                for delimiter in ['. ', '.\n', '! ', '!\n', '? ', '?\n']:
+                for delimiter in [". ", ".\n", "! ", "!\n", "? ", "?\n"]:
                     delimiter_pos = text.rfind(delimiter, start, end)
                     if delimiter_pos != -1:
                         end = delimiter_pos + len(delimiter)
                         break
                 else:
                     # No sentence boundary found, try word boundary
-                    space_pos = text.rfind(' ', start, end)
+                    space_pos = text.rfind(" ", start, end)
                     if space_pos != -1:
                         end = space_pos + 1
 

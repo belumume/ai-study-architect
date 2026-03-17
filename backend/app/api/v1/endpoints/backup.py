@@ -174,15 +174,15 @@ async def trigger_backup(
                 "message": f"{provider.upper()} backup completed",
                 "timestamp": utcnow().isoformat(),
             }
-    except subprocess.TimeoutExpired:
+    except subprocess.TimeoutExpired as e:
         logger.error("Backup operation timed out")
-        raise HTTPException(status_code=504, detail="Operation timed out")
+        raise HTTPException(status_code=504, detail="Operation timed out") from e
     except Exception as e:
         logger.error(f"Backup error: {e}", exc_info=True)
         raise HTTPException(
             status_code=500,
             detail="Backup failed unexpectedly",
-        )
+        ) from e
 
 
 @router.get("/status")
@@ -246,7 +246,7 @@ async def test_backup_setup(authorized: bool = Depends(verify_backup_token)):
         # Test R2 client creation if configured
         if os.getenv("R2_ACCESS_KEY") and os.getenv("R2_SECRET_KEY"):
             try:
-                r2_client = boto3.client(
+                boto3.client(
                     "s3",
                     endpoint_url=f"https://{os.getenv('R2_ACCOUNT_ID', '')}.r2.cloudflarestorage.com",
                     aws_access_key_id=os.getenv("R2_ACCESS_KEY"),
@@ -254,13 +254,13 @@ async def test_backup_setup(authorized: bool = Depends(verify_backup_token)):
                     region_name="auto",
                 )
                 checks["r2_client_creation"] = "success"
-            except Exception as e:
+            except Exception:
                 checks["r2_client_creation"] = "failed"
     except ImportError:
         checks["boto3_installed"] = False
 
     try:
-        from cryptography.fernet import Fernet
+        from cryptography.fernet import Fernet  # noqa: F401
 
         checks["cryptography_installed"] = True
     except ImportError:

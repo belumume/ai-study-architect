@@ -3,9 +3,9 @@
 import hashlib
 import io
 import logging
-from typing import Any
 import re
 import zipfile
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -230,11 +230,13 @@ def _validate_image_content(
         return False, "Image files with embedded code are not allowed"
 
     # Check for EXIF data that might contain malicious payloads
-    if mime_type == "image/jpeg" and b"Exif" in content[:100]:
-        # Look for suspicious EXIF patterns
-        if b"<script" in content or b"javascript:" in content:
-            validation_info["security_warnings"].append("Image EXIF contains suspicious data")
-            return False, "Image files with suspicious EXIF data are not allowed"
+    if (
+        mime_type == "image/jpeg"
+        and b"Exif" in content[:100]
+        and (b"<script" in content or b"javascript:" in content)
+    ):
+        validation_info["security_warnings"].append("Image EXIF contains suspicious data")
+        return False, "Image files with suspicious EXIF data are not allowed"
 
     return True, ""
 
@@ -338,11 +340,7 @@ def _has_suspicious_filename(filename: str) -> bool:
         r"\.ht",  # .htaccess or .htpasswd
     ]
 
-    for pattern in suspicious_patterns:
-        if re.search(pattern, filename, re.IGNORECASE):
-            return True
-
-    return False
+    return any(re.search(pattern, filename, re.IGNORECASE) for pattern in suspicious_patterns)
 
 
 def _contains_malware_patterns(content: bytes) -> bool:
@@ -360,11 +358,7 @@ def _contains_malware_patterns(content: bytes) -> bool:
         b"\\x4d\\x5a",  # MZ header (PE executable)
     ]
 
-    for pattern in malware_patterns:
-        if pattern in content:
-            return True
-
-    return False
+    return any(pattern in content for pattern in malware_patterns)
 
 
 def calculate_file_hash(content: bytes, algorithm: str = "sha256") -> str:

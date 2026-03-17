@@ -4,6 +4,7 @@ Study Session model for tracking learning sessions
 
 import enum
 import uuid
+
 from sqlalchemy import (
     JSON,
     Boolean,

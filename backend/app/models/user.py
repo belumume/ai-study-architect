@@ -3,6 +3,7 @@ User model for authentication and profile management
 """
 
 import uuid
+
 from sqlalchemy import Boolean, Column, DateTime, String, Text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship

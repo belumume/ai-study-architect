@@ -2,14 +2,13 @@
 CSRF protection tests
 """
 
-import pytest
 import time
 from unittest.mock import patch
-from fastapi import Request, Response
-from fastapi.responses import JSONResponse
+
+import pytest
 from httpx import AsyncClient
 
-from app.core.csrf import CSRFProtect, CSRFError
+from app.core.csrf import CSRFError, CSRFProtect
 
 
 class TestCSRFTokenGeneration:

@@ -1,6 +1,15 @@
 [tool.ruff]
 target-version = "py311"
 line-length = 100
+exclude = [
+    ".git",
+    "__pycache__",
+    "venv",
+    ".venv",
+    "alembic/versions",
+]
+
+[tool.ruff.lint]
 select = [
     "E",   # pycodestyle errors
     "W",   # pycodestyle warnings
@@ -17,15 +26,27 @@ ignore = [
     "B008", # do not perform function calls in argument defaults
     "C901", # too complex
 ]
-exclude = [
-    ".git",
-    "__pycache__",
-    "venv",
-    ".venv",
-    "alembic/versions",
-]
 
-[tool.ruff.isort]
+[tool.ruff.lint.per-file-ignores]
+# FastAPI endpoints: request (slowapi), current_user/admin_user/authorized/db (DI) are
+# required by decorators/framework but unused in function bodies.
+"app/api/v1/*.py" = ["ARG001"]
+"app/api/v1/endpoints/*.py" = ["ARG001"]
+# Rate-limited root/health endpoints + model registration imports after logging setup
+"app/main.py" = ["ARG001", "E402"]
+# _NoOpCache implements Redis interface — all args unused by design
+"app/core/cache.py" = ["ARG002"]
+# Agent base/subclass method signatures for interface conformance
+"app/agents/*.py" = ["ARG002"]
+# OpenAI stream param accepted but not yet implemented
+"app/services/openai_fallback.py" = ["ARG002"]
+# Validator signature consistency (mime_type unused in office validator)
+"app/utils/file_validation.py" = ["ARG001"]
+# Pytest fixtures referenced in signature for setup side-effects, not read in body
+"tests/*.py" = ["ARG001", "ARG002"]
+"tests/**/*.py" = ["ARG001", "ARG002"]
+
+[tool.ruff.lint.isort]
 known-third-party = ["fastapi", "pydantic", "sqlalchemy"]
 
 [tool.pytest.ini_options]

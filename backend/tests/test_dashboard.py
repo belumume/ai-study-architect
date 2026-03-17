@@ -4,7 +4,6 @@ Tests for dashboard summary endpoint.
 Covers: empty state (0 concepts), subject listing, mastery aggregation.
 """
 
-import uuid
 
 import pytest
 

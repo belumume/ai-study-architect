@@ -157,7 +157,7 @@ class ClaudeService:
             try:
                 error_data = e.response.json()
                 error_message = error_data.get("error", {}).get("message", str(e))
-            except:
+            except Exception:
                 error_message = str(e)
 
             return {

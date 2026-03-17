@@ -226,7 +226,7 @@ async def main():
             print(f"  [{c['difficulty'][:3].upper()}] {c['concept_type']:<12} {c['name']}")
 
         if r["dependencies"]:
-            print(f"\n  Dependencies:")
+            print("\n  Dependencies:")
             for d in r["dependencies"][:5]:
                 print(f"    {d['prerequisite_name']} -> {d['dependent_name']} ({d['strength']})")
 
