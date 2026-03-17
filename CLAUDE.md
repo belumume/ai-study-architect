@@ -110,7 +110,7 @@ frontend/src/
 ├── hooks/useTimer.ts        # Web Worker timer hook
 ├── workers/timer.worker.ts  # Date.now()-based background timer
 ├── contexts/AuthContext.tsx  # Global auth state
-├── services/                # api.ts (Axios), auth.service.ts, tokenStorage.ts
+├── services/                # api.ts (Axios), auth.service.ts, tokenStorage.ts (legacy cleanup stub)
 ├── lib/utils.ts             # cn() helper (clsx + tailwind-merge)
 └── index.css                # @fontsource imports (layer(base)) → @import "tailwindcss" → @theme tokens
 ```
@@ -130,7 +130,8 @@ frontend/src/
 - **Rate limiter**: Single shared instance in `app/core/rate_limiter.py` (import as `limiter`, not `shared_limiter`)
 - **CSS import order**: @fontsource `layer(base)` FIRST → `@import "tailwindcss"` SECOND → `@theme` tokens. Wrong order = invisible fonts.
 - **Agent state**: Redis (2h TTL) + 50-agent local LRU cache
-- **Security**: JWT RS256 (HS256 fallback), CSRF double-submit, SecurityHeaders middleware
+- **Content search**: PostgreSQL full-text search (tsvector + GIN index, `plainto_tsquery` + `ts_rank`). Weighted: title(A) > description(B) > extracted_text(C). Trigger auto-updates on INSERT/UPDATE.
+- **Security**: JWT RS256 (HS256 fallback), CSRF double-submit, SecurityHeaders middleware, httpOnly cookies (no tokens in response body), refresh token rotation with Redis family tracking
 
 ## CI/CD
 
@@ -185,9 +186,9 @@ frontend/src/
 
 ## Implementation Status
 
-**Complete**: Lead tutor + Socratic chat, multi-provider AI, file upload/processing, chat streaming, subject CRUD, session lifecycle (start/pause/resume/stop), dashboard summary API, dashboard UI (HeroMetrics, SubjectList, ContributionHeatmap, CTA), focus timer (Web Worker), Tailwind v4 foundation, auth forms restyled, Stitch v3 evolved designs, concept extraction pipeline (Claude Structured Outputs + parallel chunks), Subject Detail page (MasteryRing, ConceptCard, ExtractionTrigger), per-subject mastery in dashboard, empty extraction UX, content deletion cascade warning, security hardening (session 10).
+**Complete**: Lead tutor + Socratic chat, multi-provider AI, file upload/processing, chat streaming, subject CRUD, session lifecycle (start/pause/resume/stop), dashboard summary API, dashboard UI (HeroMetrics, SubjectList, ContributionHeatmap, CTA), focus timer (Web Worker), Tailwind v4 foundation, auth forms restyled, Stitch v3 evolved designs, concept extraction pipeline (Claude Structured Outputs + parallel chunks), Subject Detail page (MasteryRing, ConceptCard, ExtractionTrigger), per-subject mastery in dashboard, empty extraction UX, content deletion cascade warning, security hardening (session 10), full-text search (tsvector + GIN index), auth hardening (httpOnly cookies only, refresh token rotation with Redis families, no tokens in response body).
 
-**Phase 2**: COMPLETE (PR #26 + PR #29 + PR #31 merged). All follow-up todos (009-024) resolved in PR #31.
+**Phase 2**: COMPLETE (PR #26 + PR #29 + PR #31 + PR #51 + PR #53 + PR #54 + PR #55 merged). Follow-up todos (009-045) resolved across sessions 10-14.
 **Phase 3 (next)**: Chat restyle (MUI → Tailwind), react-markdown integration, MUI removal.
 **Phase 4**: Practice generation, attempt tracking, AI grading, real Active Focus.
 **Phase 5**: SM-2 scheduling, analytics page, recommendation engine, retention curves.
