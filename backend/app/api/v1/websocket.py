@@ -11,6 +11,7 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
+
 # Store active connections
 class ConnectionManager:
     def __init__(self):
@@ -44,13 +45,13 @@ class ConnectionManager:
             for conn in disconnected:
                 self.active_connections[user_id].discard(conn)
 
+
 manager = ConnectionManager()
+
 
 @router.websocket("/ws/status")
 async def websocket_endpoint(
-    websocket: WebSocket,
-    token: str = None,
-    db: Session = Depends(get_db)
+    websocket: WebSocket, token: str = None, db: Session = Depends(get_db)
 ):
     """WebSocket endpoint for real-time status updates"""
     user = None
@@ -62,11 +63,13 @@ async def websocket_endpoint(
                 await manager.connect(websocket, str(user.id))
 
                 # Send initial connection success
-                await websocket.send_json({
-                    "type": "connection",
-                    "status": "connected",
-                    "message": "Connected to status updates"
-                })
+                await websocket.send_json(
+                    {
+                        "type": "connection",
+                        "status": "connected",
+                        "message": "Connected to status updates",
+                    }
+                )
 
                 # Keep connection alive
                 while True:
@@ -86,6 +89,7 @@ async def websocket_endpoint(
         logger.error(f"WebSocket error: {e}")
         if user:
             manager.disconnect(websocket, str(user.id))
+
 
 # Export manager for use in other modules
 websocket_manager = manager

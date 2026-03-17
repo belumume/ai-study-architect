@@ -2,7 +2,6 @@
 Subject CRUD endpoints
 """
 
-
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -29,7 +28,7 @@ async def create_subject(
         db.query(Subject)
         .filter(
             Subject.user_id == current_user.id,
-            Subject.is_active == True,
+            Subject.is_active.is_(True),
         )
         .count()
     )
@@ -63,7 +62,7 @@ async def create_subject(
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail=f"Subject '{subject_data.name}' already exists",
-        )
+        ) from None
 
     return subject
 
@@ -78,7 +77,7 @@ async def list_subjects(
 ):
     query = db.query(Subject).filter(Subject.user_id == current_user.id)
     if not include_inactive:
-        query = query.filter(Subject.is_active == True)
+        query = query.filter(Subject.is_active.is_(True))
     return query.order_by(Subject.created_at.desc()).all()
 
 
@@ -138,7 +137,7 @@ async def update_subject(
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail=f"Subject '{update_data.name}' already exists",
-        )
+        ) from None
 
     return subject
 

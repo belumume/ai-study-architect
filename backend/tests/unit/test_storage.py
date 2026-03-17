@@ -1,7 +1,7 @@
 """Tests for R2/S3-compatible storage service."""
 
 from unittest.mock import MagicMock, patch
-import pytest
+
 from botocore.exceptions import ClientError
 
 from app.services import storage

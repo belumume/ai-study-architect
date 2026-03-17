@@ -80,21 +80,28 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   }
 
   const register = async (data: RegisterData) => {
+    setError(null)
+    setLoading(true)
     try {
-      setError(null)
-      setLoading(true)
       await authService.register(data)
-      // After successful registration, log them in
-      await login({ username: data.username, password: data.password })
     } catch (err: unknown) {
+      setLoading(false)
       if (isAxiosError(err)) {
         setError(err.response?.data?.detail || 'Registration failed. Please try again.')
       } else {
         setError('Registration failed. Please try again.')
       }
       throw err
-    } finally {
+    }
+
+    // Registration succeeded — attempt auto-login
+    try {
+      await login({ username: data.username, password: data.password })
+    } catch {
+      // Auto-login failed but account was created successfully
       setLoading(false)
+      setError('Account created successfully. Please log in.')
+      navigate('/login')
     }
   }
 

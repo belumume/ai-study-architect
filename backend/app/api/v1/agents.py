@@ -28,6 +28,7 @@ router = APIRouter(prefix="/agents")
 # Agent registry - could be moved to a service layer
 _agent_registry = {}
 
+
 def get_agent(agent_type: str, user_id: str) -> Any:
     """Get or create an agent instance for a user"""
     agent_key = f"{agent_type}_{user_id}"
@@ -36,21 +37,17 @@ def get_agent(agent_type: str, user_id: str) -> Any:
         if agent_type == "lead_tutor":
             _agent_registry[agent_key] = LeadTutorAgent(
                 agent_id=agent_key,
-                model_preference="claude"  # Use Claude for best educational experience
+                model_preference="claude",  # Use Claude for best educational experience
             )
         else:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Unknown agent type: {agent_type}"
-            )
+            raise HTTPException(status_code=400, detail=f"Unknown agent type: {agent_type}")
 
     return _agent_registry[agent_key]
 
 
 @router.post("/chat", response_model=AgentResponseSchema)
 async def agent_chat(
-    request: AgentRequest,
-    current_user: User = Depends(get_current_user)
+    request: AgentRequest, current_user: User = Depends(get_current_user)
 ) -> dict[str, Any]:
     """
     Chat with a specialized AI agent.
@@ -67,7 +64,7 @@ async def agent_chat(
             "user_input": request.message,
             "user_id": str(current_user.id),
             "action": request.action or "general",
-            **request.context
+            **request.context,
         }
 
         # Process the request
@@ -83,22 +80,21 @@ async def agent_chat(
             "metadata": {
                 **response.metadata,
                 "agent_type": request.agent_type,
-                "user_id": str(current_user.id)
-            }
+                "user_id": str(current_user.id),
+            },
         }
 
     except Exception as e:
         logger.error(f"Agent chat error: {e}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Agent processing failed: {str(e)}"
-        )
+            detail=f"Agent processing failed: {str(e)}",
+        ) from e
 
 
 @router.post("/study-plan", response_model=AgentResponseSchema)
 async def create_study_plan(
-    request: CreateStudyPlanRequest,
-    current_user: User = Depends(get_current_user)
+    request: CreateStudyPlanRequest, current_user: User = Depends(get_current_user)
 ) -> dict[str, Any]:
     """
     Create a personalized study plan using the Lead Tutor agent.
@@ -115,7 +111,7 @@ async def create_study_plan(
             "action": "create_plan",
             "knowledge_level": request.knowledge_level,
             "time_available": request.time_available,
-            "learning_style": request.learning_style
+            "learning_style": request.learning_style,
         }
 
         logger.info(f"Creating study plan for user {current_user.id}: {request.learning_goal}")
@@ -130,22 +126,21 @@ async def create_study_plan(
                 **response.metadata,
                 "agent_type": "lead_tutor",
                 "action": "create_plan",
-                "user_id": str(current_user.id)
-            }
+                "user_id": str(current_user.id),
+            },
         }
 
     except Exception as e:
         logger.error(f"Study plan creation error: {e}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Study plan creation failed: {str(e)}"
-        )
+            detail=f"Study plan creation failed: {str(e)}",
+        ) from e
 
 
 @router.post("/explain", response_model=AgentResponseSchema)
 async def explain_concept(
-    request: ExplainConceptRequest,
-    current_user: User = Depends(get_current_user)
+    request: ExplainConceptRequest, current_user: User = Depends(get_current_user)
 ) -> dict[str, Any]:
     """
     Get a detailed explanation of a concept from the Lead Tutor.
@@ -161,7 +156,7 @@ async def explain_concept(
             "user_id": str(current_user.id),
             "action": "explain_concept",
             "learning_style": request.learning_style,
-            "prior_knowledge": request.prior_knowledge or []
+            "prior_knowledge": request.prior_knowledge or [],
         }
 
         logger.info(f"Explaining concept for user {current_user.id}: {request.concept}")
@@ -176,22 +171,21 @@ async def explain_concept(
                 **response.metadata,
                 "agent_type": "lead_tutor",
                 "action": "explain_concept",
-                "user_id": str(current_user.id)
-            }
+                "user_id": str(current_user.id),
+            },
         }
 
     except Exception as e:
         logger.error(f"Concept explanation error: {e}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Concept explanation failed: {str(e)}"
-        )
+            detail=f"Concept explanation failed: {str(e)}",
+        ) from e
 
 
 @router.post("/check-understanding", response_model=AgentResponseSchema)
 async def check_understanding(
-    request: CheckUnderstandingRequest,
-    current_user: User = Depends(get_current_user)
+    request: CheckUnderstandingRequest, current_user: User = Depends(get_current_user)
 ) -> dict[str, Any]:
     """
     Generate questions to check understanding of a topic.
@@ -205,7 +199,7 @@ async def check_understanding(
         input_data = {
             "user_input": request.topic,
             "user_id": str(current_user.id),
-            "action": "check_understanding"
+            "action": "check_understanding",
         }
 
         logger.info(f"Generating understanding check for user {current_user.id}: {request.topic}")
@@ -220,22 +214,20 @@ async def check_understanding(
                 **response.metadata,
                 "agent_type": "lead_tutor",
                 "action": "check_understanding",
-                "user_id": str(current_user.id)
-            }
+                "user_id": str(current_user.id),
+            },
         }
 
     except Exception as e:
         logger.error(f"Understanding check error: {e}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Understanding check failed: {str(e)}"
-        )
+            detail=f"Understanding check failed: {str(e)}",
+        ) from e
 
 
 @router.get("/status")
-async def agent_status(
-    current_user: User = Depends(get_current_user)
-) -> dict[str, Any]:
+async def agent_status(current_user: User = Depends(get_current_user)) -> dict[str, Any]:
     """Get status of all agents for the current user"""
     try:
         user_agents = {}
@@ -247,7 +239,7 @@ async def agent_status(
                 user_agents[agent_type] = {
                     "active": True,
                     "memory_length": len(agent.get_messages()),
-                    "state": agent.get_state()
+                    "state": agent.get_state(),
                 }
 
         return {
@@ -255,21 +247,20 @@ async def agent_status(
             "active_agents": len(user_agents),
             "agents": user_agents,
             "available_agents": ["lead_tutor"],
-            "system_status": "operational"
+            "system_status": "operational",
         }
 
     except Exception as e:
         logger.error(f"Agent status error: {e}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to get agent status: {str(e)}"
-        )
+            detail=f"Failed to get agent status: {str(e)}",
+        ) from e
 
 
 @router.delete("/clear-memory")
 async def clear_agent_memory(
-    agent_type: str,
-    current_user: User = Depends(get_current_user)
+    agent_type: str, current_user: User = Depends(get_current_user)
 ) -> dict[str, Any]:
     """Clear conversation memory for a specific agent"""
     try:
@@ -285,17 +276,16 @@ async def clear_agent_memory(
                 "success": True,
                 "message": f"Cleared memory for {agent_type} agent",
                 "agent_type": agent_type,
-                "user_id": str(current_user.id)
+                "user_id": str(current_user.id),
             }
         else:
             raise HTTPException(
-                status_code=404,
-                detail=f"No active {agent_type} agent found for user"
+                status_code=404, detail=f"No active {agent_type} agent found for user"
             )
 
     except Exception as e:
         logger.error(f"Clear memory error: {e}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to clear agent memory: {str(e)}"
-        )
+            detail=f"Failed to clear agent memory: {str(e)}",
+        ) from e

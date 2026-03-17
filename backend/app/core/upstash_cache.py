@@ -30,27 +30,31 @@ class UpstashRedisClient:
             logger.warning("Upstash Redis not configured, using mock cache")
 
     def get(self, key: str) -> Any | None:
-        """Get value from Upstash Redis"""
+        """Get value from Upstash Redis.
+
+        Returns the cached value on hit, None on cache miss (key does not exist).
+        Raises on connection/transport errors so the caller (RedisCache) can
+        distinguish errors from genuine misses.
+        """
         if not self.connected:
             return None
 
-        try:
-            response = requests.get(
-                f"{self.url}/get/{quote(key, safe='')}", headers=self.headers, timeout=5
-            )
-            if response.status_code == 200:
-                data = response.json()
-                result = data.get("result")
-                if result is not None:
-                    # Try to parse JSON if it looks like JSON
-                    try:
-                        return json.loads(result)
-                    except (json.JSONDecodeError, TypeError):
-                        return result
+        response = requests.get(
+            f"{self.url}/get/{quote(key, safe='')}", headers=self.headers, timeout=5
+        )
+        if response.status_code == 200:
+            data = response.json()
+            result = data.get("result")
+            if result is not None:
+                # Try to parse JSON if it looks like JSON
+                try:
+                    return json.loads(result)
+                except (json.JSONDecodeError, TypeError):
+                    return result
             return None
-        except Exception as e:
-            logger.warning(f"Upstash get failed for {key}: {e}")
-            return None
+        # Non-200 status from Upstash is a server/transport error, not a miss
+        response.raise_for_status()
+        return None
 
     def set(self, key: str, value: Any, ex: int | None = None) -> bool:
         """Set value in Upstash Redis with optional TTL in seconds"""

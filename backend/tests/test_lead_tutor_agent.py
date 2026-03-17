@@ -1,11 +1,10 @@
 """Tests for the Lead Tutor Agent"""
 
-import pytest
-from unittest.mock import Mock, patch
+from unittest.mock import Mock
 
-from app.agents.lead_tutor import LeadTutorAgent, LeadTutorState
-from app.agents.base import AgentResponse
-from app.schemas.study_session import StudyPlan, LearningObjective
+import pytest
+
+from app.agents.lead_tutor import LeadTutorAgent
 
 
 class TestLeadTutorAgent:

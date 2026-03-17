@@ -12,12 +12,12 @@ import logging
 import os
 import re
 import uuid
-from app.core.utils import utcnow
 
 import httpx
 from sqlalchemy import insert
 from sqlalchemy.orm import Session
 
+from app.core.utils import utcnow
 from app.models.concept import Concept
 from app.models.user_concept_mastery import UserConceptMastery
 from app.schemas.concept import ConceptBase, ConceptBulkCreateResponse

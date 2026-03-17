@@ -15,9 +15,9 @@ from app.core.cache import ai_cache, redis_cache
 from app.core.database import get_pool_status, test_database_connection
 from app.core.exceptions import UnauthorizedError
 from app.core.rate_limiter import limiter
-from app.core.utils import utcnow
 from app.core.rsa_keys import key_manager
 from app.core.security import get_key_rotation_info, rotate_jwt_keys
+from app.core.utils import utcnow
 from app.models.user import User
 
 logger = logging.getLogger(__name__)
@@ -140,7 +140,7 @@ def rotate_rsa_keys(
 
     except Exception as e:
         logger.error(f"Key rotation failed: {str(e)}", exc_info=True)
-        raise HTTPException(status_code=500, detail="Key rotation failed")
+        raise HTTPException(status_code=500, detail="Key rotation failed") from e
 
 
 @router.get("/keys/info", response_model=KeyRotationInfoResponse)
@@ -178,7 +178,7 @@ def get_keys_info(
 
     except Exception as e:
         logger.error(f"Failed to get key rotation info: {str(e)}", exc_info=True)
-        raise HTTPException(status_code=500, detail="Failed to get key rotation info")
+        raise HTTPException(status_code=500, detail="Failed to get key rotation info") from e
 
 
 @router.get("/public-key")
@@ -197,7 +197,7 @@ def get_public_key() -> dict[str, str]:
         return {"public_key": public_key, "algorithm": "RS256"}
     except Exception as e:
         logger.error(f"Failed to load public key: {str(e)}")
-        raise HTTPException(status_code=500, detail="Failed to load public key")
+        raise HTTPException(status_code=500, detail="Failed to load public key") from e
 
 
 @router.get("/health/detailed")
@@ -348,7 +348,7 @@ def get_database_pool_status(
 
     except Exception as e:
         logger.error(f"Failed to get database pool status: {str(e)}", exc_info=True)
-        raise HTTPException(status_code=500, detail="Failed to get database pool status")
+        raise HTTPException(status_code=500, detail="Failed to get database pool status") from e
 
 
 @router.get("/cache/status", response_model=CacheStatus)
@@ -401,7 +401,7 @@ def get_cache_status(request: Request, admin_user: User = Depends(verify_admin))
 
     except Exception as e:
         logger.error(f"Failed to get cache status: {str(e)}", exc_info=True)
-        raise HTTPException(status_code=500, detail="Failed to get cache status")
+        raise HTTPException(status_code=500, detail="Failed to get cache status") from e
 
 
 @router.post("/cache/clear-model")
@@ -433,7 +433,7 @@ def clear_model_cache(request: Request, model: str, admin_user: User = Depends(v
 
     except Exception as e:
         logger.error(f"Failed to clear model cache: {str(e)}", exc_info=True)
-        raise HTTPException(status_code=500, detail="Failed to clear model cache")
+        raise HTTPException(status_code=500, detail="Failed to clear model cache") from e
 
 
 @router.post("/cache/clear-pattern")
@@ -464,7 +464,7 @@ def clear_cache_pattern(request: Request, pattern: str, admin_user: User = Depen
 
     except Exception as e:
         logger.error(f"Failed to clear cache pattern: {str(e)}", exc_info=True)
-        raise HTTPException(status_code=500, detail="Failed to clear cache pattern")
+        raise HTTPException(status_code=500, detail="Failed to clear cache pattern") from e
 
 
 @router.get("/agents/status", response_model=AgentManagerStatus)
@@ -514,7 +514,7 @@ def get_agent_manager_status(
 
     except Exception as e:
         logger.error(f"Failed to get agent manager status: {str(e)}", exc_info=True)
-        raise HTTPException(status_code=500, detail="Failed to get agent manager status")
+        raise HTTPException(status_code=500, detail="Failed to get agent manager status") from e
 
 
 @router.get("/agents/list/{user_id}")
@@ -540,7 +540,7 @@ def list_user_agents(request: Request, user_id: str, admin_user: User = Depends(
 
     except Exception as e:
         logger.error(f"Failed to list agents for user {user_id}: {str(e)}", exc_info=True)
-        raise HTTPException(status_code=500, detail="Failed to list user agents")
+        raise HTTPException(status_code=500, detail="Failed to list user agents") from e
 
 
 @router.post("/agents/cleanup")
@@ -572,7 +572,7 @@ def cleanup_expired_agents(request: Request, admin_user: User = Depends(verify_a
 
     except Exception as e:
         logger.error(f"Failed to cleanup expired agents: {str(e)}", exc_info=True)
-        raise HTTPException(status_code=500, detail="Failed to cleanup expired agents")
+        raise HTTPException(status_code=500, detail="Failed to cleanup expired agents") from e
 
 
 @router.delete("/agents/{user_id}/{agent_type}")
@@ -616,4 +616,4 @@ def delete_user_agent(
         raise
     except Exception as e:
         logger.error(f"Failed to delete agent: {str(e)}", exc_info=True)
-        raise HTTPException(status_code=500, detail="Failed to delete agent")
+        raise HTTPException(status_code=500, detail="Failed to delete agent") from e

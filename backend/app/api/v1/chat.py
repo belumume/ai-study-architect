@@ -12,8 +12,8 @@ from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from app.api.dependencies import get_current_active_user, get_db
-from app.core.utils import utcnow
 from app.core.cache import redis_cache
+from app.core.utils import utcnow
 from app.models.chat_message import ChatMessage as ChatMessageModel
 from app.models.content import Content
 from app.models.user import User

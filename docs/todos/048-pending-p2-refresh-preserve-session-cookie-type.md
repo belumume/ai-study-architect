@@ -1,8 +1,9 @@
 ---
-status: pending
+status: resolved
 priority: p2
 issue_id: "048"
 tags: [code-review, security]
+resolved_in: fix/resolve-todos-047-048
 ---
 
 ## Problem Statement

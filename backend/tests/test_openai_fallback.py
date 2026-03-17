@@ -1,8 +1,9 @@
 """Tests for OpenAI fallback service."""
 
-import pytest
-from unittest.mock import patch, AsyncMock, MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
+
 import httpx
+import pytest
 
 from app.services.openai_fallback import OpenAIFallbackService
 

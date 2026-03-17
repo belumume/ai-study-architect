@@ -12,8 +12,8 @@ from jose import JWTError, jwt
 from passlib.context import CryptContext
 
 from app.core.config import settings
-from app.core.utils import utcnow
 from app.core.rsa_keys import key_manager
+from app.core.utils import utcnow
 
 logger = logging.getLogger(__name__)
 
@@ -150,6 +150,7 @@ def create_refresh_token(
     subject: str | Any,
     expires_delta: timedelta | None = None,
     family_id: str | None = None,
+    remember_me: bool = True,
 ) -> str:
     """
     Create a JWT refresh token.
@@ -158,6 +159,9 @@ def create_refresh_token(
         subject: The subject of the token (usually user ID)
         expires_delta: Optional custom expiration time
         family_id: Optional token family ID for rotation tracking
+        remember_me: Whether the user chose persistent cookies.
+            Embedded as "rem" claim so the refresh endpoint can
+            preserve the cookie type (session vs persistent).
 
     Returns:
         Encoded JWT refresh token
@@ -173,6 +177,7 @@ def create_refresh_token(
         "exp": expire,
         "sub": str(subject),
         "type": "refresh",
+        "rem": remember_me,
     }
     if family_id:
         to_encode["fid"] = family_id

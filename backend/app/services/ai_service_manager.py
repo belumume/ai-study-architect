@@ -145,11 +145,14 @@ class AIServiceManager:
         # Try services in priority order
         for name, service in self.services:
             try:
-                if hasattr(service, "analyze_content"):
-                    if hasattr(service, "enabled") and service.enabled:
-                        result = await service.analyze_content(content, content_type, instructions)
-                        if not result.get("error"):
-                            return result
+                if (
+                    hasattr(service, "analyze_content")
+                    and hasattr(service, "enabled")
+                    and service.enabled
+                ):
+                    result = await service.analyze_content(content, content_type, instructions)
+                    if not result.get("error"):
+                        return result
             except Exception as e:
                 logger.error(f"Error analyzing with {name}: {e}")
                 continue

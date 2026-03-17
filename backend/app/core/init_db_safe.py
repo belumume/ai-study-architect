@@ -62,16 +62,26 @@ def verify_tables() -> bool:
                 """),
                 {
                     "schema": "public",
-                    "table_names": ["users", "content", "study_sessions",
-                                  "practice_sessions", "problems",
-                                  "study_session_content"]
-                }
+                    "table_names": [
+                        "users",
+                        "content",
+                        "study_sessions",
+                        "practice_sessions",
+                        "problems",
+                        "study_session_content",
+                    ],
+                },
             )
 
             existing_tables = {row[0] for row in result}
-            required_tables = {"users", "content", "study_sessions",
-                             "practice_sessions", "problems",
-                             "study_session_content"}
+            required_tables = {
+                "users",
+                "content",
+                "study_sessions",
+                "practice_sessions",
+                "problems",
+                "study_session_content",
+            }
 
             missing_tables = required_tables - existing_tables
 
@@ -106,9 +116,11 @@ def create_initial_superuser(email: str, username: str, password: str) -> bool:
 
         with Session(engine) as session:
             # Check if superuser already exists
-            existing = session.query(User).filter(
-                (User.email == email) | (User.username == username)
-            ).first()
+            existing = (
+                session.query(User)
+                .filter((User.email == email) | (User.username == username))
+                .first()
+            )
 
             if existing:
                 logger.info(f"Superuser already exists: {existing.email}")
@@ -122,7 +134,7 @@ def create_initial_superuser(email: str, username: str, password: str) -> bool:
                 hashed_password=get_password_hash(password),
                 is_active=True,
                 is_superuser=True,
-                is_verified=True
+                is_verified=True,
             )
 
             session.add(superuser)
@@ -140,15 +152,14 @@ def create_initial_superuser(email: str, username: str, password: str) -> bool:
 
 
 if __name__ == "__main__":
-    # Initialize database
-    if init_db():
-        # Verify tables
-        if verify_tables():
-            # Create initial superuser (for development only)
-            # In production, use environment variables or management command
-            import os
-            admin_email = os.getenv("ADMIN_EMAIL", "admin@example.com")
-            admin_username = os.getenv("ADMIN_USERNAME", "admin")
-            admin_password = os.getenv("ADMIN_PASSWORD", "changeme123")
+    # Initialize database and verify tables
+    if init_db() and verify_tables():
+        # Create initial superuser (for development only)
+        # In production, use environment variables or management command
+        import os
 
-            create_initial_superuser(admin_email, admin_username, admin_password)
+        admin_email = os.getenv("ADMIN_EMAIL", "admin@example.com")
+        admin_username = os.getenv("ADMIN_USERNAME", "admin")
+        admin_password = os.getenv("ADMIN_PASSWORD", "changeme123")
+
+        create_initial_superuser(admin_email, admin_username, admin_password)

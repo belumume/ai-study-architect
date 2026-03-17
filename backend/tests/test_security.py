@@ -2,18 +2,17 @@
 Security module tests
 """
 
-import pytest
-from datetime import timedelta
 import time
+from datetime import timedelta
 
 from app.core.security import (
-    get_password_hash,
-    verify_password,
     create_access_token,
     create_refresh_token,
-    verify_token,
-    rotate_jwt_keys,
     get_current_keys,
+    get_password_hash,
+    rotate_jwt_keys,
+    verify_password,
+    verify_token,
 )
 
 
@@ -246,6 +245,7 @@ class TestRSAKeyEnvLoading:
     def test_load_keys_from_env(self, monkeypatch):
         """Keys from env vars (base64-encoded PEM) should load successfully"""
         import base64
+
         from app.core.rsa_keys import RSAKeyManager
 
         mgr = RSAKeyManager()

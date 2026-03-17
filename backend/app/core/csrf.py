@@ -124,7 +124,6 @@ class CSRFProtect:
             if len(data_parts) < 2:
                 raise CSRFError("Invalid CSRF token format")
 
-            random_token = data_parts[0]
             timestamp = data_parts[1]
 
             if len(data_parts) == 3:
@@ -145,7 +144,7 @@ class CSRFProtect:
             return True
 
         except (ValueError, IndexError) as e:
-            raise CSRFError(f"CSRF token validation failed: {str(e)}")
+            raise CSRFError(f"CSRF token validation failed: {str(e)}") from e
 
     def set_csrf_cookie(self, response: Response, user_id: str | None = None) -> str:
         """
@@ -274,12 +273,15 @@ def require_csrf_token(request: Request):
     ):
         ...
     """
-    if not csrf_protect.exempt_path(request.url.path):
-        # Only validate for unsafe methods
-        if request.method in ["POST", "PUT", "PATCH", "DELETE"]:
-            try:
-                # Get user_id from request state if available
-                user_id = getattr(request.state, "user_id", None)
-                csrf_protect.validate_request(request, user_id)
-            except CSRFError as e:
-                raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(e))
+    if not csrf_protect.exempt_path(request.url.path) and request.method in [
+        "POST",
+        "PUT",
+        "PATCH",
+        "DELETE",
+    ]:
+        try:
+            # Get user_id from request state if available
+            user_id = getattr(request.state, "user_id", None)
+            csrf_protect.validate_request(request, user_id)
+        except CSRFError as e:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(e)) from e

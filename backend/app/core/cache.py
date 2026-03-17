@@ -6,12 +6,28 @@ import hashlib
 import json
 import logging
 import os
-
+import time
+from dataclasses import dataclass
 from datetime import timedelta
 from functools import wraps
 from typing import Any
 
 logger = logging.getLogger(__name__)
+
+
+@dataclass(frozen=True, slots=True)
+class CacheResult:
+    """Result of a cache lookup that distinguishes found/missing/error.
+
+    Attributes:
+        value: The cached value (None when not found or on error).
+        found: True only when the key exists and was successfully retrieved.
+        error: True when the lookup failed due to a connection/transport error.
+    """
+
+    value: Any
+    found: bool
+    error: bool = False
 
 
 class _NoOpCache:
@@ -94,22 +110,42 @@ class RedisCache:
         return f"{prefix}:{key_hash}"
 
     def get(self, key: str) -> Any | None:
-        """Get value from cache"""
+        """Get value from cache.
+
+        Returns None for both missing keys and connection errors.
+        Use get_with_status() when the distinction matters.
+        """
+        result = self.get_with_status(key)
+        return result.value
+
+    def get_with_status(self, key: str) -> CacheResult:
+        """Get value from cache with explicit found/error status.
+
+        Returns CacheResult where:
+        - found=True, error=False: key existed, value is the cached data
+        - found=False, error=False: key genuinely does not exist
+        - found=False, error=True: connection/transport error (value is None)
+        """
         try:
             client = self._get_client()
+            # _NoOpCache always returns None — treat as "not found" (not error)
+            if isinstance(client, _NoOpCache):
+                return CacheResult(value=None, found=False, error=False)
+
             value = client.get(key)
             if value is None:
-                return None
+                return CacheResult(value=None, found=False, error=False)
 
             # Deserialize JSON only (no unsafe deserialization)
             try:
-                return json.loads(value)
+                deserialized = json.loads(value)
             except (json.JSONDecodeError, TypeError):
-                return value
+                deserialized = value
+            return CacheResult(value=deserialized, found=True, error=False)
 
         except Exception as e:
             logger.warning(f"Cache get failed for key {key}: {e}")
-            return None
+            return CacheResult(value=None, found=False, error=True)
 
     def set(self, key: str, value: Any, ttl: int | timedelta | None = None) -> bool:
         """Set value in cache with optional TTL"""
@@ -315,7 +351,3 @@ def cached_ai_response(
         return wrapper
 
     return decorator
-
-
-# Import time for timestamps
-import time
