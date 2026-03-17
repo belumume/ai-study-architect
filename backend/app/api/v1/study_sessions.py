@@ -2,8 +2,6 @@
 Study session lifecycle endpoints (start/pause/resume/stop)
 """
 
-from typing import Optional
-
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.orm import Session
 
@@ -197,7 +195,7 @@ async def stop_session(
     return session
 
 
-@router.get("/active", response_model=Optional[SessionStateResponse])
+@router.get("/active", response_model=SessionStateResponse | None)
 @limiter.limit("60/minute")
 async def get_active_session(
     request: Request,

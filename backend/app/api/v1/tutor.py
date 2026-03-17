@@ -137,10 +137,10 @@ def chat_with_tutor(
 
     except ConnectionError as e:
         logger.error(f"AI service connection error: {str(e)}")
-        raise AgentProcessingError(detail="AI service connection failed")
+        raise AgentProcessingError(detail="AI service connection failed") from e
     except Exception as e:
         logger.error(f"Error in tutor chat: {str(e)}")
-        raise AgentProcessingError(detail=f"Failed to process request: {str(e)}")
+        raise AgentProcessingError(detail=f"Failed to process request: {str(e)}") from e
 
 
 @router.post("/create-study-plan", response_model=TutorResponse)

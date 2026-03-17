@@ -4,6 +4,7 @@ Practice Session model for AI-generated practice problems
 
 import enum
 import uuid
+
 from sqlalchemy import (
     JSON,
     Column,

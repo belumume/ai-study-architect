@@ -3,8 +3,10 @@ AI service integration tests with mocking
 """
 
 import os
+from unittest.mock import AsyncMock, patch
+
 import pytest
-from unittest.mock import Mock, AsyncMock, patch, MagicMock
+
 from app.services.ai_service_manager import AIServiceManager
 
 

@@ -2,18 +2,18 @@
 Authentication endpoint tests
 """
 
+from datetime import timedelta
+
 import pytest
-from datetime import datetime, timedelta
 from httpx import AsyncClient
 from sqlalchemy.orm import Session
 
-from app.models.user import User
 from app.core.security import (
-    get_password_hash,
     create_access_token,
     create_refresh_token,
-    verify_token,
+    get_password_hash,
 )
+from app.models.user import User
 
 
 class TestUserRegistration:

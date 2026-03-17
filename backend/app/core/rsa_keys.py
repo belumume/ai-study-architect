@@ -146,8 +146,8 @@ class RSAKeyManager:
             if public_archive_path.exists():
                 public_archive_path.unlink()
 
-            old_private = self.private_key_path.rename(private_archive_path)
-            old_public = self.public_key_path.rename(public_archive_path)
+            self.private_key_path.rename(private_archive_path)
+            self.public_key_path.rename(public_archive_path)
 
             logger.info(f"Archived old keys to {archive_dir}")
 

@@ -20,7 +20,7 @@ from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from app.api.dependencies import get_current_user, get_db
-from app.core.cache import redis_cache
+from app.core.cache import CacheResult, redis_cache
 from app.core.config import settings
 from app.core.exceptions import (
     InactiveUserError,
@@ -178,7 +178,9 @@ def login(
         logger.info("Redis unavailable at login — issuing tokens without family tracking")
 
     access_token = create_access_token(subject=str(user.id), family_id=family_id)
-    refresh_token = create_refresh_token(subject=str(user.id), family_id=family_id)
+    refresh_token = create_refresh_token(
+        subject=str(user.id), family_id=family_id, remember_me=remember_me_bool
+    )
 
     if family_id:
         _store_refresh_family(family_id, _hash_token(refresh_token))
@@ -267,24 +269,33 @@ def refresh_token(
         raise InvalidTokenError()
 
     family_id = claims.get("fid")
+    # Preserve the remember_me preference from the original login.
+    # Legacy tokens without the claim default to True (persistent cookies) for
+    # backward compatibility — existing persistent sessions stay persistent.
+    remember_me = claims.get("rem", True)
 
     if family_id and redis_cache.is_connected:
         # --- Token rotation validation (requires Redis) ---
-        stored_hash = redis_cache.get(f"{_FAMILY_KEY_PREFIX}{family_id}")
+        result: CacheResult = redis_cache.get_with_status(f"{_FAMILY_KEY_PREFIX}{family_id}")
 
-        if stored_hash is None:
-            # Family was invalidated (theft detected previously) or expired
+        if result.error:
+            # Redis had a transient error — skip replay detection rather than
+            # locking the user out.  Same behaviour as the is_connected=False branch.
+            logger.warning(
+                "Redis error during rotation check - skipping replay detection for family %s",
+                family_id,
+            )
+        elif not result.found:
+            # Family key genuinely missing — was invalidated (theft) or expired.
             logger.warning("Refresh attempt on invalidated/expired family: %s", family_id)
             raise InvalidTokenError()
-
-        current_hash = _hash_token(raw_refresh_token)
-
-        if stored_hash != current_hash:
-            # Token was already consumed — this is a replay (potential theft).
-            # Invalidate the entire family so the legitimate user's next refresh also fails,
-            # forcing re-authentication.
-            _invalidate_family(family_id)
-            raise InvalidTokenError()
+        else:
+            # Key found — verify the hash matches the current token.
+            current_hash = _hash_token(raw_refresh_token)
+            if result.value != current_hash:
+                # Token was already consumed — replay (potential theft).
+                _invalidate_family(family_id)
+                raise InvalidTokenError()
     elif not family_id:
         # Legacy token without family_id — migrate into the rotation system.
         family_id = uuid.uuid4().hex
@@ -301,18 +312,24 @@ def refresh_token(
     if not user.is_active:
         raise InactiveUserError()
 
-    # Issue new tokens in the same family
+    # Issue new tokens in the same family, preserving the remember_me preference
     access_token = create_access_token(subject=str(user.id), family_id=family_id)
-    new_refresh_token = create_refresh_token(subject=str(user.id), family_id=family_id)
+    new_refresh_token = create_refresh_token(
+        subject=str(user.id), family_id=family_id, remember_me=remember_me
+    )
 
     # Store the new refresh token hash, consuming the old one
     _store_refresh_family(family_id, _hash_token(new_refresh_token))
+
+    # Preserve cookie type: persistent (max_age set) vs session (max_age omitted)
+    access_max_age = settings.JWT_ACCESS_TOKEN_EXPIRE_MINUTES * 60 if remember_me else None
+    refresh_max_age = settings.JWT_REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60 if remember_me else None
 
     # Update cookies with new tokens
     response.set_cookie(
         key="access_token",
         value=access_token,
-        max_age=settings.JWT_ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+        max_age=access_max_age,
         httponly=True,
         secure=not settings.DEBUG,
         samesite="lax",
@@ -322,7 +339,7 @@ def refresh_token(
     response.set_cookie(
         key="refresh_token",
         value=new_refresh_token,
-        max_age=settings.JWT_REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60,
+        max_age=refresh_max_age,
         httponly=True,
         secure=not settings.DEBUG,
         samesite="lax",

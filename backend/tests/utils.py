@@ -1,13 +1,13 @@
 """Test utilities and helper functions"""
 
-from typing import Dict
 from uuid import uuid4
-from sqlalchemy.orm import Session
-from fastapi.testclient import TestClient
 
-from app.models.user import User
+from fastapi.testclient import TestClient
+from sqlalchemy.orm import Session
+
 from app.core.security import get_password_hash
 from app.core.utils import utcnow
+from app.models.user import User
 
 
 def create_test_user(
@@ -41,7 +41,7 @@ def create_test_user(
     return user
 
 
-def get_auth_headers(client: TestClient, username: str, password: str) -> Dict[str, str]:
+def get_auth_headers(client: TestClient, username: str, password: str) -> dict[str, str]:
     """Get authentication headers for a user"""
     # Login to get token
     response = client.post("/api/v1/auth/login", data={"username": username, "password": password})

@@ -3,6 +3,7 @@ Chat Message model for persistent chat history
 """
 
 import uuid
+
 from sqlalchemy import JSON, CheckConstraint, Column, DateTime, ForeignKey, String, Text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship

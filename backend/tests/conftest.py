@@ -2,28 +2,28 @@
 Pytest configuration and fixtures
 """
 
-from typing import Generator
+# Test database URL — use TEST_DATABASE_URL env var, or fall back to app's DATABASE_URL with _test suffix
+import os
+from collections.abc import Generator
+
 import pytest
-from httpx import AsyncClient, ASGITransport
+from httpx import ASGITransport, AsyncClient
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker, Session
+from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import NullPool
 
-from app.core.database import Base
-from app.core.config import settings
-from app.main import app as fastapi_app
 from app.api.dependencies import get_db
+from app.core.config import settings
+from app.core.database import Base
+from app.main import app as fastapi_app
+from app.models.chat_message import ChatMessage as _ChatMessage  # noqa: F401
+from app.models.concept import Concept as _Concept  # noqa: F401
+from app.models.content import Content as _Content  # noqa: F401
+from app.models.practice import PracticeSession as _Practice  # noqa: F401
+from app.models.study_session import StudySession as _StudySession  # noqa: F401
 
 # Import all models so SQLAlchemy can resolve relationship string references
 from app.models.user import User as _User  # noqa: F401
-from app.models.content import Content as _Content  # noqa: F401
-from app.models.study_session import StudySession as _StudySession  # noqa: F401
-from app.models.practice import PracticeSession as _Practice  # noqa: F401
-from app.models.chat_message import ChatMessage as _ChatMessage  # noqa: F401
-from app.models.concept import Concept as _Concept  # noqa: F401
-
-# Test database URL — use TEST_DATABASE_URL env var, or fall back to app's DATABASE_URL with _test suffix
-import os
 
 _test_db_url = os.getenv("TEST_DATABASE_URL")
 if not _test_db_url:
@@ -92,8 +92,9 @@ async def client(db_session: Session) -> AsyncClient:
 async def authenticated_client(client: AsyncClient, db_session: Session):
     """Get authenticated test client with user data."""
     import uuid
-    from app.models.user import User
+
     from app.core.security import get_password_hash
+    from app.models.user import User
 
     # Use unique email/username per fixture invocation to prevent UniqueViolation
     unique_id = uuid.uuid4().hex[:8]

@@ -14,7 +14,6 @@ from PIL import Image
 
 from app.services.claude_service import claude_service
 
-
 logger = logging.getLogger(__name__)
 
 
@@ -183,7 +182,7 @@ DESCRIPTION:
 
         try:
             try:
-                loop = asyncio.get_running_loop()
+                asyncio.get_running_loop()
                 import concurrent.futures
 
                 with concurrent.futures.ThreadPoolExecutor() as executor:
@@ -221,16 +220,15 @@ DESCRIPTION:
                 slide_images = []
 
                 for shape in slide.shapes:
-                    if shape.shape_type == 13:  # Picture type
-                        if hasattr(shape, "image"):
-                            image_data = shape.image.blob
+                    if shape.shape_type == 13 and hasattr(shape, "image"):  # Picture type
+                        image_data = shape.image.blob
 
-                            # Extract content from image
-                            extraction = await self.extract_from_image(image_data)
-                            extraction["slide_number"] = slide_num
-                            extraction["shape_position"] = (shape.left, shape.top)
+                        # Extract content from image
+                        extraction = await self.extract_from_image(image_data)
+                        extraction["slide_number"] = slide_num
+                        extraction["shape_position"] = (shape.left, shape.top)
 
-                            slide_images.append(extraction)
+                        slide_images.append(extraction)
 
                 if slide_images:
                     results.append({"slide_number": slide_num, "images": slide_images})

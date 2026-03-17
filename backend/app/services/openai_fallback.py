@@ -87,7 +87,7 @@ class OpenAIFallbackService:
                     timeout=5.0,
                 )
                 return response.status_code == 200
-        except:
+        except Exception:
             return False
 
 

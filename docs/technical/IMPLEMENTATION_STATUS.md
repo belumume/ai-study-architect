@@ -49,6 +49,11 @@ This document tracks the current implementation status of AI Study Architect. Fo
   - RSA key persistence via CF Worker secrets (base64-encoded PEM env vars)
   - Backup endpoints (R2 daily + S3 weekly + manual)
   - Security hardening (user-scoping, filename traversal, backup token fail-closed, cache fixes)
+  - Full-text search (tsvector + GIN index, weighted: title A > description B > text C)
+  - Auth hardening: httpOnly cookies only, refresh token rotation with Redis family tracking, no tokens in response body
+  - Content stats query consolidation (5 → 2 queries)
+  - Parallel R2 bulk delete
+  - View count Redis buffer (write-behind)
 
 - **STUB/PARTIAL**
   - WebSocket support (router file exists, minimal implementation)
@@ -73,6 +78,8 @@ This document tracks the current implementation status of AI Study Architect. Fo
   - Per-subject mastery display
   - Empty extraction UX
   - Dashboard array guard for Vercel direct-URL edge case
+  - Auth: httpOnly cookie-only flow, single-flight refresh queue, legacy tokenStorage replaced with clearLegacyTokens()
+  - Typed Axios retry flag, cleaned error handling (no `err: unknown` or `any` catches)
 
 - **IN PROGRESS**
   - Chat markdown rendering (react-markdown installed, not wired -- Phase 3)
@@ -94,6 +101,7 @@ This document tracks the current implementation status of AI Study Architect. Fo
   - Practice model (Pydantic schema exists, DB columns deferred to Phase 4 migration)
   - Alembic migrations setup
   - Partial unique index (one active session per user)
+  - Full-text search tsvector column + GIN index on content table (migration d1e2f3a4b5c6)
 
 - **NOT STARTED**
   - Collaboration features schema
@@ -216,12 +224,15 @@ This document tracks the current implementation status of AI Study Architect. Fo
 
 ## Testing Coverage
 
-**Current Coverage**: 54.23% (CI-enforced at 54%, ratcheting toward 80%)
-- Backend: 431 tests
-- Frontend: 86 tests (Vitest)
-- Total: 517 in suite (516 pass, 1 pre-existing failure below)
+**Current Coverage**: 54% (CI-enforced at 54%, ratcheting toward 80%)
+- Backend: 452 tests
+- Frontend: 91 tests (Vitest)
+- Total: 543 in suite (542 pass, 1 pre-existing failure below)
 - 1 pre-existing failure: test_office_document_with_macros (python-magic Windows issue)
 - Content deletion cascade tests (4 tests, Session 11)
+- Extraction integration tests (19 tests, Session 14)
+- Auth rotation tests (2 tests, Session 14)
+- Refresh queue frontend tests (5 tests, Session 14)
 - End-to-end: Playwright configured but minimal coverage
 
 ## Performance Metrics
@@ -299,7 +310,7 @@ This document tracks the current implementation status of AI Study Architect. Fo
 
 **Completed**:
 1. Production deployment (Cloudflare + Vercel)
-2. Database migrations (Alembic on Neon, including concept/mastery tables + session unique index)
+2. Database migrations (Alembic on Neon, including concept/mastery tables + session unique index + full-text search tsvector)
 3. Environment configuration (12 Worker secrets: DATABASE_URL, JWT_SECRET_KEY, SECRET_KEY, UPSTASH x2, R2 x3, ANTHROPIC_API_KEY, OPENAI_API_KEY, RSA_PRIVATE_KEY, RSA_PUBLIC_KEY)
 4. HTTPS/SSL certificates (automatic via Cloudflare)
 5. CI pipeline (GitHub Actions with security scanning, shared via belumume/.github hub)

@@ -8,6 +8,7 @@ Phase 5 will add: ease_factor, repetition_number, interval_days, next_review_dat
 
 import enum
 import uuid
+
 from sqlalchemy import (
     CheckConstraint,
     Column,

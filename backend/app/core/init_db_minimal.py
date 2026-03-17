@@ -25,7 +25,8 @@ def init_db_minimal(engine, Base) -> bool:
         # Import models here to avoid circular imports
         try:
             # Try to import models
-            from app.models import content, practice, study_session, user
+            from app.models import content, practice, study_session, user  # noqa: F401
+
             logger.info("Models imported successfully")
         except ImportError as e:
             logger.warning(f"Could not import models: {e}")
@@ -57,7 +58,7 @@ def check_database_connection(engine) -> bool:
     """
     try:
         with engine.connect() as conn:
-            result = conn.execute(text("SELECT 1"))
+            conn.execute(text("SELECT 1"))
             logger.info("✓ Database connection successful")
             return True
     except Exception as e:
