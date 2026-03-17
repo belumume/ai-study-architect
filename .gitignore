@@ -248,6 +248,7 @@ service_accounts/
 !tsconfig.json
 !tsconfig.node.json
 !.prettierrc.json
+!.claude/code-antipatterns.json
 credentials/
 gcp_credentials/
 aws_credentials/
