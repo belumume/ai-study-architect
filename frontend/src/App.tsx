@@ -8,11 +8,11 @@ import { DashboardPage, StudyPage, ContentPage, FocusPage } from './pages'
 import SubjectDetailPage from './pages/SubjectDetailPage'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import api from './services/api'
-import tokenStorage from './services/tokenStorage'
+import { clearLegacyTokens } from './services/tokenStorage'
 
 function App() {
   useEffect(() => {
-    tokenStorage.migrateFromLocalStorage()
+    clearLegacyTokens()
   }, [])
 
   useEffect(() => {

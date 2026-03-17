@@ -1,5 +1,11 @@
 import axios from 'axios'
-import tokenStorage from './tokenStorage'
+import { clearLegacyTokens } from './tokenStorage'
+
+declare module 'axios' {
+  interface InternalAxiosRequestConfig {
+    _retry?: boolean
+  }
+}
 
 // With Cloudflare Worker, we can use relative paths everywhere!
 // Same-origin means no CORS, better security, and simpler code
@@ -46,15 +52,12 @@ function addRefreshSubscriber(callback: (success: boolean) => void) {
   refreshSubscribers.push(callback)
 }
 
-// Request interceptor to add auth token (if using Bearer tokens)
+// Request interceptor — httpOnly cookies handle auth automatically.
+// No Bearer token injection needed.
 api.interceptors.request.use(
   (config) => {
-    const token = tokenStorage.getAccessToken()
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`
-    } else {
-      delete config.headers.Authorization
-    }
+    // Remove any stale Authorization header (legacy cleanup)
+    delete config.headers.Authorization
 
     // Remove Content-Type header for FormData (let browser set it with boundary)
     if (config.data instanceof FormData) {
@@ -111,10 +114,8 @@ api.interceptors.response.use(
         // Refresh using httpOnly cookie (sent automatically with withCredentials)
         await api.post('/api/v1/auth/refresh')
 
-        // Clear any stale Bearer tokens from sessionStorage (migrated from
-        // old localStorage auth). Server checks Bearer before cookies, so
-        // a stale Bearer would override the fresh cookie and cause 401.
-        tokenStorage.clearTokens()
+        // Clear any stale tokens from storage (legacy cleanup)
+        clearLegacyTokens()
 
         // Notify all queued requests that refresh succeeded
         onRefreshComplete(true)
@@ -124,7 +125,7 @@ api.interceptors.response.use(
       } catch (refreshError) {
         // Refresh failed — notify queued requests, clear state, redirect
         onRefreshComplete(false)
-        tokenStorage.clearTokens()
+        clearLegacyTokens()
         if (!window.location.pathname.includes('/login')) {
           window.location.href = '/login'
         }
@@ -137,5 +138,10 @@ api.interceptors.response.use(
     return Promise.reject(error)
   },
 )
+
+export function __resetRefreshStateForTesting() {
+  isRefreshing = false
+  refreshSubscribers = []
+}
 
 export default api

@@ -166,11 +166,12 @@ class TestUserLogin:
 
         assert response.status_code == 200
         data = response.json()
-        assert "access_token" in data
-        assert "refresh_token" in data
+        # Tokens must NOT be in response body (httpOnly cookies only)
+        assert "access_token" not in data
+        assert "refresh_token" not in data
         assert data["token_type"] == "bearer"
 
-        # Verify tokens are set in cookies
+        # Verify tokens are set in cookies (session cookies when remember_me=false)
         assert "access_token" in response.cookies
         assert "refresh_token" in response.cookies
 
@@ -190,13 +191,18 @@ class TestUserLogin:
         # Login with username
         response = await client.post(
             "/api/v1/auth/login",
-            data={"username": "loginuser2", "password": "testpass123", "remember_me": "false"},
+            data={"username": "loginuser2", "password": "testpass123", "remember_me": "true"},
         )
 
         assert response.status_code == 200
         data = response.json()
-        assert "access_token" in data
-        assert "refresh_token" in data
+        # Tokens must NOT be in response body
+        assert "access_token" not in data
+        assert "refresh_token" not in data
+        assert data["token_type"] == "bearer"
+        # Tokens are in cookies
+        assert "access_token" in response.cookies
+        assert "refresh_token" in response.cookies
 
     @pytest.mark.asyncio
     async def test_login_invalid_password(self, client: AsyncClient, db_session: Session):
@@ -301,7 +307,7 @@ class TestTokenRefresh:
 
     @pytest.mark.asyncio
     async def test_refresh_token_success(self, client: AsyncClient, db_session: Session):
-        """Test successful token refresh"""
+        """Test successful token refresh via request body (legacy path, no fid)"""
         # Create test user
         user = User(
             email="refresh@example.com",
@@ -313,7 +319,7 @@ class TestTokenRefresh:
         db_session.commit()
         db_session.refresh(user)
 
-        # Create refresh token
+        # Create legacy refresh token (no family_id) — triggers migration path
         refresh_token = create_refresh_token(subject=str(user.id))
 
         # Refresh the token
@@ -321,9 +327,50 @@ class TestTokenRefresh:
 
         assert response.status_code == 200
         data = response.json()
-        assert "access_token" in data
-        assert "refresh_token" in data
-        assert data["access_token"] != refresh_token  # New token should be different
+        # Tokens must NOT be in response body
+        assert "access_token" not in data
+        assert "refresh_token" not in data
+        assert data["token_type"] == "bearer"
+        # New tokens are in cookies
+        assert "access_token" in response.cookies
+        assert "refresh_token" in response.cookies
+
+    @pytest.mark.asyncio
+    async def test_refresh_via_cookie(self, client: AsyncClient, db_session: Session):
+        """Test refresh via httpOnly cookie (primary flow)"""
+        user = User(
+            email="refreshcookie@example.com",
+            username="refreshcookieuser",
+            hashed_password=get_password_hash("password123"),
+            is_active=True,
+        )
+        db_session.add(user)
+        db_session.commit()
+
+        # Login to get cookies
+        login_resp = await client.post(
+            "/api/v1/auth/login",
+            data={
+                "username": "refreshcookie@example.com",
+                "password": "password123",
+                "remember_me": "true",
+            },
+        )
+        assert login_resp.status_code == 200
+
+        # Use the refresh_token cookie from login
+        refresh_cookie = login_resp.cookies.get("refresh_token")
+        assert refresh_cookie is not None
+
+        # Refresh using cookie
+        client.cookies.set("refresh_token", refresh_cookie)
+        response = await client.post("/api/v1/auth/refresh")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["token_type"] == "bearer"
+        assert "access_token" not in data
+        assert "refresh_token" not in data
 
     @pytest.mark.asyncio
     async def test_refresh_token_invalid(self, client: AsyncClient):
@@ -380,6 +427,84 @@ class TestTokenRefresh:
 
         # Should fail because token type is wrong
         assert response.status_code == 401
+
+    @pytest.mark.asyncio
+    async def test_refresh_token_rotation_claims(self, client: AsyncClient, db_session: Session):
+        """Test that refreshed tokens contain family_id claim when Redis is available"""
+        from unittest.mock import PropertyMock, patch
+
+        from app.core.security import verify_token_claims
+
+        user = User(
+            email="rotation@example.com",
+            username="rotationuser",
+            hashed_password=get_password_hash("password123"),
+            is_active=True,
+        )
+        db_session.add(user)
+        db_session.commit()
+
+        # Mock Redis as connected so family tracking is enabled (CI has no Redis).
+        # Store token hashes so refresh validation succeeds.
+        _stored = {}
+
+        def mock_set(key, value, **kwargs):
+            _stored[key] = value
+            return True
+
+        def mock_get(key):
+            return _stored.get(key)
+
+        with patch("app.api.v1.auth.redis_cache") as mock_cache:
+            type(mock_cache).is_connected = PropertyMock(return_value=True)
+            mock_cache._get_client.return_value = mock_cache
+            mock_cache.set.side_effect = mock_set
+            mock_cache.get.side_effect = mock_get
+            mock_cache.delete.return_value = True
+
+            # Login to get initial tokens with fid
+            login_resp = await client.post(
+                "/api/v1/auth/login",
+                data={
+                    "username": "rotation@example.com",
+                    "password": "password123",
+                    "remember_me": "true",
+                },
+            )
+            assert login_resp.status_code == 200
+
+            # Verify login tokens have fid claim
+            login_access = login_resp.cookies.get("access_token")
+            login_access_claims = verify_token_claims(login_access, token_type="access")
+            assert login_access_claims is not None
+            assert "fid" in login_access_claims
+
+            login_refresh = login_resp.cookies.get("refresh_token")
+            login_refresh_claims = verify_token_claims(login_refresh, token_type="refresh")
+            assert login_refresh_claims is not None
+            assert "fid" in login_refresh_claims
+
+            # Both login tokens share the same family
+            original_fid = login_access_claims["fid"]
+            assert login_refresh_claims["fid"] == original_fid
+
+            # Now call /auth/refresh and verify rotated tokens keep the family
+            client.cookies.set("refresh_token", login_refresh)
+            refresh_resp = await client.post("/api/v1/auth/refresh")
+            assert refresh_resp.status_code == 200
+
+            # Refreshed tokens should have fid matching original family
+            new_access = refresh_resp.cookies.get("access_token")
+            assert new_access is not None, "Refresh did not set access_token cookie"
+            new_access_claims = verify_token_claims(new_access, token_type="access")
+            assert new_access_claims is not None
+            assert new_access_claims.get("fid") == original_fid
+
+            new_refresh = refresh_resp.cookies.get("refresh_token")
+            assert new_refresh is not None, "Refresh did not set refresh_token cookie"
+            new_refresh_claims = verify_token_claims(new_refresh, token_type="refresh")
+            assert new_refresh_claims is not None
+            assert new_refresh_claims.get("fid") == original_fid
 
 
 class TestLogout:

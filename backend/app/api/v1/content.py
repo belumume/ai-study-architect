@@ -3,13 +3,25 @@
 import hashlib
 import logging
 import uuid
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile, status
-from sqlalchemy import and_, case, func
+from fastapi import (
+    APIRouter,
+    BackgroundTasks,
+    Depends,
+    File,
+    Form,
+    HTTPException,
+    Request,
+    UploadFile,
+    status,
+)
+from sqlalchemy import and_, case, func, literal
 from sqlalchemy.orm import Session
 
 from app.api.dependencies import get_current_user, get_db
+from app.core.cache import redis_cache
 from app.core.config import settings
 from app.core.csrf import require_csrf_token
 from app.core.exceptions import (
@@ -34,6 +46,73 @@ from app.utils.sanitization import sanitize_filename, sanitize_input
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/content", tags=["content"])
+
+VIEW_COUNT_PREFIX = "view_count:"
+
+
+def _increment_view_count(content_id: uuid.UUID) -> None:
+    """Buffer view count increment in Redis. Falls back to no-op if Redis unavailable."""
+    try:
+        client = redis_cache._get_client()
+        key = f"{VIEW_COUNT_PREFIX}{content_id}"
+        client.incr(key)
+        client.expire(key, 86400)
+    except Exception as e:
+        logger.debug(f"View count buffer failed for {content_id}: {e}")
+
+
+def flush_view_counts(db: Session) -> int:
+    """Flush buffered view counts from Redis to the database.
+
+    Must be called periodically by an external scheduler (cron, background task).
+    Not called automatically — view counts accumulate in Redis until flushed.
+    Returns number of content items flushed.
+    """
+    try:
+        client = redis_cache._get_client()
+        keys = client.keys(f"{VIEW_COUNT_PREFIX}*")
+        if not keys:
+            return 0
+
+        flushed = 0
+        for key in keys:
+            raw = redis_cache.get(key)
+            if not raw:
+                continue
+            count = int(raw)
+            if count <= 0:
+                continue
+
+            # Extract content_id from key
+            content_id_str = (
+                key.replace(VIEW_COUNT_PREFIX, "")
+                if isinstance(key, str)
+                else key.decode().replace(VIEW_COUNT_PREFIX, "")
+            )
+            try:
+                content_id = uuid.UUID(content_id_str)
+            except ValueError:
+                redis_cache.delete(key)
+                continue
+
+            db.query(Content).filter(Content.id == content_id).update(
+                {Content.view_count: Content.view_count + count},
+                synchronize_session=False,
+            )
+            flushed += 1
+
+        if flushed:
+            db.commit()
+            # Delete keys after successful commit. Small race window exists
+            # where concurrent INCR between read and delete loses ~1-2 views.
+            # Acceptable for analytics counters at current scale.
+            for key in keys:
+                redis_cache.delete(key)
+        return flushed
+    except Exception as e:
+        logger.warning(f"View count flush failed: {e}")
+        db.rollback()
+        return 0
 
 
 # File type validation
@@ -452,48 +531,55 @@ def get_content_stats(
     Returns summary statistics without loading all content items,
     preventing N+1 queries through aggregate functions.
     """
-    # Use efficient aggregate queries to get stats
-    stats = {}
-
-    # Total content count
-    total_count = (
-        db.query(func.count(Content.id)).filter(Content.user_id == current_user.id).scalar()
+    # Consolidated: 2 queries instead of 5 using conditional aggregation
+    # Query 1: Scalar aggregates (total count, total size, total study time)
+    agg_row = (
+        db.query(
+            func.count(Content.id).label("total_count"),
+            func.coalesce(func.sum(Content.file_size), 0).label("total_size"),
+            func.coalesce(func.sum(Content.study_time_minutes), 0).label("total_study_time"),
+        )
+        .filter(Content.user_id == current_user.id)
+        .one()
     )
+    total_count = agg_row.total_count
+    total_size = agg_row.total_size
+    total_study_time = agg_row.total_study_time
 
-    # Count by content type
-    content_type_counts = (
-        db.query(Content.content_type, func.count(Content.id).label("count"))
+    # Query 2: Grouped counts for both content_type and processing_status
+    # Uses UNION ALL to get both breakdowns in a single round-trip
+    type_q = (
+        db.query(
+            literal("type").label("dimension"),
+            Content.content_type.label("key"),
+            func.count(Content.id).label("count"),
+        )
         .filter(Content.user_id == current_user.id)
         .group_by(Content.content_type)
-        .all()
     )
-
-    # Processing status counts
-    status_counts = (
-        db.query(Content.processing_status, func.count(Content.id).label("count"))
+    status_q = (
+        db.query(
+            literal("status").label("dimension"),
+            Content.processing_status.label("key"),
+            func.count(Content.id).label("count"),
+        )
         .filter(Content.user_id == current_user.id)
         .group_by(Content.processing_status)
-        .all()
     )
+    grouped_rows = type_q.union_all(status_q).all()
 
-    # Total file size
-    total_size = (
-        db.query(func.coalesce(func.sum(Content.file_size), 0))
-        .filter(Content.user_id == current_user.id)
-        .scalar()
-    )
-
-    # Total study time
-    total_study_time = (
-        db.query(func.coalesce(func.sum(Content.study_time_minutes), 0))
-        .filter(Content.user_id == current_user.id)
-        .scalar()
-    )
+    by_type: dict[str, int] = {}
+    by_status: dict[str, int] = {}
+    for dimension, key, count in grouped_rows:
+        if dimension == "type":
+            by_type[key] = count
+        else:
+            by_status[key] = count
 
     stats = {
         "total_content": total_count,
-        "by_type": {ct: count for ct, count in content_type_counts},  # noqa: C416
-        "by_status": {s: count for s, count in status_counts},  # noqa: C416
+        "by_type": by_type,
+        "by_status": by_status,
         "total_file_size_bytes": total_size,
         "total_study_time_minutes": float(total_study_time),
         "avg_file_size_bytes": total_size // total_count if total_count > 0 else 0,
@@ -561,6 +647,7 @@ def search_content(
 def get_content(
     request: Request,
     content_id: uuid.UUID,
+    background_tasks: BackgroundTasks,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -569,6 +656,8 @@ def get_content(
 
     Optimized query that only loads the requested content item
     without any unnecessary relationships.
+    View count is buffered in Redis and flushed periodically,
+    avoiding a DB write on every read.
     """
     content = (
         db.query(Content)
@@ -579,17 +668,27 @@ def get_content(
     if not content:
         raise ContentNotFoundError()
 
-    # Update last accessed timestamp for analytics (optional)
-    content.last_accessed_at = utcnow()
-    content.view_count += 1
+    # Buffer view count in Redis (non-blocking, no DB write)
+    _increment_view_count(content_id)
 
-    # Commit the analytics update without affecting the response
-    try:
-        db.commit()
-        db.refresh(content)
-    except Exception as e:
-        logger.warning(f"Failed to update content analytics: {e}")
-        db.rollback()
+    # Update last_accessed_at in a background task so it doesn't block the response
+    def _update_last_accessed(cid: uuid.UUID, uid: uuid.UUID) -> None:
+        from app.core.database import SessionLocal
+
+        session = SessionLocal()
+        try:
+            session.query(Content).filter(and_(Content.id == cid, Content.user_id == uid)).update(
+                {Content.last_accessed_at: utcnow()},
+                synchronize_session=False,
+            )
+            session.commit()
+        except Exception as e:
+            logger.warning(f"Failed to update last_accessed_at: {e}")
+            session.rollback()
+        finally:
+            session.close()
+
+    background_tasks.add_task(_update_last_accessed, content_id, current_user.id)
 
     logger.info(f"User {current_user.id} accessed content {content_id}")
     return content
@@ -794,17 +893,21 @@ def bulk_delete_content(
         "db_deleted": 0,
     }
 
-    # Delete files from R2 first
-    for content in content_items:
-        if content.file_path:
-            try:
-                if r2.delete_file(content.file_path):
-                    results["files_deleted"] += 1
-                else:
-                    results["files_failed"] += 1
-            except Exception as e:
-                logger.error(f"Failed to delete file {content.file_path}: {e}")
-                results["files_failed"] += 1
+    # Delete files from R2 in parallel (boto3 is sync, so use threads)
+    file_paths = [c.file_path for c in content_items if c.file_path]
+
+    def _delete_one(path: str) -> bool:
+        try:
+            return r2.delete_file(path)
+        except Exception as e:
+            logger.error(f"Failed to delete file {path}: {e}")
+            return False
+
+    if file_paths:
+        with ThreadPoolExecutor(max_workers=min(len(file_paths), 10)) as executor:
+            delete_results = list(executor.map(_delete_one, file_paths))
+        results["files_deleted"] = sum(1 for ok in delete_results if ok)
+        results["files_failed"] = sum(1 for ok in delete_results if not ok)
 
     # Bulk delete from database
     try:
