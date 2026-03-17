@@ -17,7 +17,7 @@ from fastapi import (
     UploadFile,
     status,
 )
-from sqlalchemy import and_, case, func, literal
+from sqlalchemy import and_, func, literal
 from sqlalchemy.orm import Session
 
 from app.api.dependencies import get_current_user, get_db
@@ -607,29 +607,19 @@ def search_content(
     if len(q.strip()) < 2:
         raise ValidationError("Search query must be at least 2 characters")
 
-    search_term = f"%{q.lower()}%"
+    # PostgreSQL full-text search with weighted ranking (title > description > text)
+    ts_query = func.plainto_tsquery("english", q)
 
-    # Use efficient search with proper indexing
-    # This query should have indexes on title, description, and extracted_text
     content_items = (
         db.query(Content)
         .filter(
             and_(
                 Content.user_id == current_user.id,
-                (
-                    func.lower(Content.title).like(search_term)
-                    | func.lower(Content.description).like(search_term)
-                    | func.lower(Content.extracted_text).like(search_term)
-                ),
+                Content.search_vector.op("@@")(ts_query),
             )
         )
         .order_by(
-            # Relevance scoring: title matches first, then description, then content
-            case(
-                (func.lower(Content.title).like(search_term), 1),
-                (func.lower(Content.description).like(search_term), 2),
-                else_=3,
-            ),
+            func.ts_rank(Content.search_vector, ts_query).desc(),
             Content.created_at.desc(),
         )
         .offset(skip)
