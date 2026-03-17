@@ -15,5 +15,9 @@ Upload 5-10 diverse academic documents (different subjects, formats). Run extrac
 - backend/app/services/concept_extraction.py (extraction logic)
 - Manual evaluation of extraction output
 
+## Additional Gap (from PR #54 review)
+
+Cross-chunk deduplication is not covered by integration tests (identified by cubic). Current tests use short content that fits in a single chunk. Add a test with content exceeding `MAX_CHUNK_SIZE` to verify dedup across chunk boundaries.
+
 ## Effort Estimate
-Medium (requires manual evaluation of extraction quality)
+Medium (requires manual evaluation of extraction quality + cross-chunk test)
