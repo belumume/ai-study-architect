@@ -8,6 +8,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Button } from '@/components/ui/button'
 import { User, LogOut } from 'lucide-react'
+import { BrandMark } from './BrandMark'
 
 const NAV_LINKS = [
   { path: '/', label: 'Dashboard' },
@@ -26,8 +27,9 @@ export function TopNav() {
         <div className="flex items-center gap-8">
           <Link
             to="/"
-            className="font-display text-lg font-bold uppercase tracking-wider text-primary"
+            className="flex items-center gap-2.5 font-display text-lg font-bold uppercase tracking-wider text-primary"
           >
+            <BrandMark className="h-7 w-7" />
             Study Architect
           </Link>
 

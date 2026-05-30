@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" role="img" aria-label="Study Architect">
+  <title>Study Architect</title>
+  <style>
+    .a { fill: #141414; }
+    @media (prefers-color-scheme: dark) { .a { fill: #ffffff; } }
+  </style>
+  <path class="a" fill-rule="evenodd" d="M12 87 L45 12 L55 12 L88 87 Z M50 30 L42 54 L58 54 Z M42 60 L58 60 L76 87 L24 87 Z"/>
+  <path fill="#D4FF00" d="M26.52 54 L73.48 54 L76.12 60 L23.88 60 Z"/>
+</svg>
