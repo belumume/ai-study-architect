@@ -177,6 +177,8 @@ async def trigger_backup(
     except subprocess.TimeoutExpired as e:
         logger.error("Backup operation timed out")
         raise HTTPException(status_code=504, detail="Operation timed out") from e
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Backup error: {e}", exc_info=True)
         raise HTTPException(

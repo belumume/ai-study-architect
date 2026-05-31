@@ -229,11 +229,12 @@ This document tracks the current implementation status of AI Study Architect. Fo
 
 ## Testing Coverage
 
-**Current Coverage**: 54.94% (CI-enforced at 54%, ratcheting toward 80%)
-- Backend: 508 tests (507 pass, 1 pre-existing failure)
+**Current Coverage**: 55.50% (CI-enforced at 54%, ratcheting toward 80%)
+- Backend: 519 tests (518 pass, 1 pre-existing failure)
 - Frontend: 91 tests (Vitest)
-- Total: 599 in suite (598 pass)
+- Total: 610 in suite (609 pass)
 - 1 pre-existing failure: test_office_document_with_macros (python-magic Windows issue)
+- Agent API security + error handling tests (11 tests, Session 16)
 - Content search prefix matching tests (33 tests, Session 15)
 - Cache CacheResult + refresh improvements tests (25 tests, Session 15)
 - Extraction integration tests (19 tests, Session 14)
