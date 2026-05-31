@@ -17,7 +17,7 @@ requests==2.33.0
 python-jose[cryptography]==3.4.0
 passlib[bcrypt]==1.7.4
 bcrypt==4.0.1
-cryptography==46.0.6
+cryptography==46.0.7
 python-dotenv==1.2.2
 pydantic==2.9.0  # Core validation library
 pydantic-settings==2.4.0  # Configuration management
