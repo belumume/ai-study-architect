@@ -17,14 +17,7 @@ import {
   Badge,
   Zoom,
 } from '@mui/material'
-import {
-  Send,
-  SmartToy,
-  Person,
-  AttachFile,
-  Stop,
-  KeyboardArrowDown,
-} from '@mui/icons-material'
+import { Send, SmartToy, Person, AttachFile, Stop, KeyboardArrowDown } from '@mui/icons-material'
 import { format } from 'date-fns'
 
 interface Message {
@@ -50,15 +43,16 @@ export function ChatInterface({ selectedContent = [] }: ChatInterfaceProps) {
     {
       id: '1',
       role: 'assistant',
-      content: "Hi! I'm your AI Study Assistant. I can help you understand your study materials, answer questions, and create practice problems. What would you like to learn today?",
+      content:
+        "Hi! I'm your AI Study Assistant. I can help you understand your study materials, answer questions, and create practice problems. What would you like to learn today?",
       timestamp: new Date(),
-    }
+    },
   ])
   const [input, setInput] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string>('')
   const [attachedContent, setAttachedContent] = useState<typeof selectedContent>([])
-  const [conversationContent, setConversationContent] = useState<typeof selectedContent>([])  // Content for entire conversation
+  const [conversationContent, setConversationContent] = useState<typeof selectedContent>([]) // Content for entire conversation
   const messagesEndRef = useRef<null | HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const messagesContainerRef = useRef<HTMLDivElement>(null)
@@ -68,7 +62,7 @@ export function ChatInterface({ selectedContent = [] }: ChatInterfaceProps) {
   const abortControllerRef = useRef<AbortController | null>(null)
   const [showScrollToBottom, setShowScrollToBottom] = useState(false)
   const [unreadCount, setUnreadCount] = useState(0)
-  
+
   // Mobile and tablet detection
   const theme = useTheme()
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'))
@@ -86,10 +80,10 @@ export function ChatInterface({ selectedContent = [] }: ChatInterfaceProps) {
     if (messagesContainerRef.current) {
       const { scrollTop, scrollHeight, clientHeight } = messagesContainerRef.current
       const distanceFromBottom = scrollHeight - scrollTop - clientHeight
-      
+
       // More sensitive detection during streaming
       const threshold = isStreamingRef.current ? 30 : 50
-      
+
       // If user scrolled up, set the flag
       if (distanceFromBottom > threshold) {
         userHasScrolledUp.current = true
@@ -111,7 +105,7 @@ export function ChatInterface({ selectedContent = [] }: ChatInterfaceProps) {
     // 2. A new user message was sent (not streaming)
     const lastMessage = messages[messages.length - 1]
     const isUserMessage = lastMessage?.role === 'user'
-    
+
     if (isUserMessage) {
       // Always scroll for new user messages
       scrollToBottom()
@@ -174,10 +168,13 @@ export function ChatInterface({ selectedContent = [] }: ChatInterfaceProps) {
       role: 'user',
       content: input,
       timestamp: new Date(),
-      attachments: attachedContent.length > 0 ? attachedContent.map(c => ({ contentId: c.id, title: c.title })) : undefined,
+      attachments:
+        attachedContent.length > 0
+          ? attachedContent.map((c) => ({ contentId: c.id, title: c.title }))
+          : undefined,
     }
 
-    setMessages(prev => [...prev, userMessage])
+    setMessages((prev) => [...prev, userMessage])
     setInput('')
     setIsLoading(true)
 
@@ -192,40 +189,41 @@ export function ChatInterface({ selectedContent = [] }: ChatInterfaceProps) {
       const contentToSend = attachedContent.length > 0 ? attachedContent : conversationContent
       const chatRequest = {
         messages: messages
-          .filter(m => m.role === 'user' || m.role === 'assistant')
-          .map(m => ({
+          .filter((m) => m.role === 'user' || m.role === 'assistant')
+          .map((m) => ({
             role: m.role,
-            content: m.content
+            content: m.content,
           }))
           .concat([{ role: 'user', content: input }]),
-        content_ids: contentToSend.map(c => c.id),
-        stream: true,  // Re-enable streaming for better UX
-        temperature: 0.7
+        content_ids: contentToSend.map((c) => c.id),
+        stream: true, // Re-enable streaming for better UX
+        temperature: 0.7,
       }
 
       // Get CSRF token (authentication is handled by httpOnly cookies)
       const csrfToken = localStorage.getItem('csrf_token')
-      
-      
+
       // Build complete headers
       const headers: Record<string, string> = {
         'Content-Type': 'application/json',
       }
-      
+
       // Add CSRF header if available (optional since endpoint is exempt)
       if (csrfToken) {
         headers['X-CSRF-Token'] = csrfToken
       }
-      
+
       // Use fetch for streaming response with abort signal
       // credentials: 'include' is required to send httpOnly cookies
-      const chatUrl = api.defaults.baseURL ? `${api.defaults.baseURL}/api/v1/chat/` : '/api/v1/chat/'
+      const chatUrl = api.defaults.baseURL
+        ? `${api.defaults.baseURL}/api/v1/chat/`
+        : '/api/v1/chat/'
       const fetchResponse = await fetch(chatUrl, {
         method: 'POST',
         headers,
         body: JSON.stringify(chatRequest),
-        credentials: 'include',  // Send cookies with request
-        signal: abortControllerRef.current.signal
+        credentials: 'include', // Send cookies with request
+        signal: abortControllerRef.current.signal,
       })
 
       if (!fetchResponse.ok) {
@@ -243,7 +241,7 @@ export function ChatInterface({ selectedContent = [] }: ChatInterfaceProps) {
       // Check if response is streaming or not
       const contentType = fetchResponse.headers.get('content-type')
       const isStreaming = contentType?.includes('text/event-stream')
-      
+
       if (!isStreaming) {
         // Handle non-streaming response
         const data = await fetchResponse.json()
@@ -253,17 +251,17 @@ export function ChatInterface({ selectedContent = [] }: ChatInterfaceProps) {
           content: data.message.content,
           timestamp: new Date(),
         }
-        setMessages(prev => [...prev, assistantMessage as Message])
+        setMessages((prev) => [...prev, assistantMessage as Message])
         userHasScrolledUp.current = false
       } else {
         // Handle streaming response
         const reader = fetchResponse.body?.getReader()
         const decoder = new TextDecoder()
-        
+
         // Set streaming flag and reset user scroll flag for new response
         isStreamingRef.current = true
-        userHasScrolledUp.current = false  // Reset for new message
-        
+        userHasScrolledUp.current = false // Reset for new message
+
         assistantMessage = {
           id: (Date.now() + 1).toString(),
           role: 'assistant',
@@ -272,86 +270,89 @@ export function ChatInterface({ selectedContent = [] }: ChatInterfaceProps) {
         }
 
         // Add empty message that we'll update as chunks arrive
-        setMessages(prev => [...prev, assistantMessage as Message])
+        setMessages((prev) => [...prev, assistantMessage as Message])
 
         if (reader) {
           let buffer = ''
-          
+
+          // eslint-disable-next-line no-constant-condition -- intentional stream-read loop; exits on reader 'done'
           while (true) {
-          const { done, value } = await reader.read()
-          if (done) {
-            isStreamingRef.current = false
-            break
-          }
+            const { done, value } = await reader.read()
+            if (done) {
+              isStreamingRef.current = false
+              break
+            }
 
-          // Use stream: true to handle partial UTF-8 sequences
-          const chunk = decoder.decode(value, { stream: true })
-          buffer += chunk
-          const lines = buffer.split('\n')
-          
-          // Keep the last line in buffer if it's incomplete
-          buffer = lines.pop() || ''
+            // Use stream: true to handle partial UTF-8 sequences
+            const chunk = decoder.decode(value, { stream: true })
+            buffer += chunk
+            const lines = buffer.split('\n')
 
-          for (const line of lines) {
-            if (line.startsWith('data: ')) {
-              try {
-                const data = JSON.parse(line.slice(6))
-                
-                if (data.type === 'content' && assistantMessage) {
-                  // Update the assistant message content
-                  const isFirstChunk = assistantMessage.content === ''
-                  assistantMessage.content += data.content
-                  const currentMessage = assistantMessage
-                  setMessages(prev => 
-                    prev.map(msg => 
-                      msg.id === currentMessage.id 
-                        ? { ...msg, content: currentMessage.content }
-                        : msg
+            // Keep the last line in buffer if it's incomplete
+            buffer = lines.pop() || ''
+
+            for (const line of lines) {
+              if (line.startsWith('data: ')) {
+                try {
+                  const data = JSON.parse(line.slice(6))
+
+                  if (data.type === 'content' && assistantMessage) {
+                    // Update the assistant message content
+                    const isFirstChunk = assistantMessage.content === ''
+                    assistantMessage.content += data.content
+                    const currentMessage = assistantMessage
+                    setMessages((prev) =>
+                      prev.map((msg) =>
+                        msg.id === currentMessage.id
+                          ? { ...msg, content: currentMessage.content }
+                          : msg,
+                      ),
                     )
-                  )
-                  
-                  // Only increment unread count once per message when first content arrives
-                  if (userHasScrolledUp.current && isFirstChunk && data.content.trim()) {
-                    setUnreadCount(prev => Math.min(prev + 1, 99))
-                  }
-                  
-                  // Only scroll if user hasn't manually scrolled up
-                  if (!userHasScrolledUp.current && messagesContainerRef.current) {
-                    const container = messagesContainerRef.current
-                    const distanceFromBottom = container.scrollHeight - container.scrollTop - container.clientHeight
-                    
-                    // Only auto-scroll if already near bottom (within 150px)
-                    if (distanceFromBottom < 150) {
-                      // Cancel any pending scroll animation
-                      if (scrollAnimationFrame.current) {
-                        cancelAnimationFrame(scrollAnimationFrame.current)
-                      }
-                      
-                      // Use smooth, minimal scrolling
-                      scrollAnimationFrame.current = requestAnimationFrame(() => {
-                        if (messagesContainerRef.current && !userHasScrolledUp.current) {
-                          // Double-check user hasn't scrolled during the frame
-                          const container = messagesContainerRef.current
-                          const currentDistanceFromBottom = container.scrollHeight - container.scrollTop - container.clientHeight
-                          
-                          // Only proceed if still near bottom
-                          if (currentDistanceFromBottom < 150) {
-                            // Smooth scroll to bottom
-                            container.scrollTop = container.scrollHeight
-                          }
-                        }
-                      })
+
+                    // Only increment unread count once per message when first content arrives
+                    if (userHasScrolledUp.current && isFirstChunk && data.content.trim()) {
+                      setUnreadCount((prev) => Math.min(prev + 1, 99))
                     }
+
+                    // Only scroll if user hasn't manually scrolled up
+                    if (!userHasScrolledUp.current && messagesContainerRef.current) {
+                      const container = messagesContainerRef.current
+                      const distanceFromBottom =
+                        container.scrollHeight - container.scrollTop - container.clientHeight
+
+                      // Only auto-scroll if already near bottom (within 150px)
+                      if (distanceFromBottom < 150) {
+                        // Cancel any pending scroll animation
+                        if (scrollAnimationFrame.current) {
+                          cancelAnimationFrame(scrollAnimationFrame.current)
+                        }
+
+                        // Use smooth, minimal scrolling
+                        scrollAnimationFrame.current = requestAnimationFrame(() => {
+                          if (messagesContainerRef.current && !userHasScrolledUp.current) {
+                            // Double-check user hasn't scrolled during the frame
+                            const container = messagesContainerRef.current
+                            const currentDistanceFromBottom =
+                              container.scrollHeight - container.scrollTop - container.clientHeight
+
+                            // Only proceed if still near bottom
+                            if (currentDistanceFromBottom < 150) {
+                              // Smooth scroll to bottom
+                              container.scrollTop = container.scrollHeight
+                            }
+                          }
+                        })
+                      }
+                    }
+                  } else if (data.type === 'error') {
+                    throw new Error(data.error)
                   }
-                } else if (data.type === 'error') {
-                  throw new Error(data.error)
+                } catch (e) {
+                  // Skip invalid JSON lines
                 }
-              } catch (e) {
-                // Skip invalid JSON lines
               }
             }
           }
-        }
         }
       }
 
@@ -361,7 +362,6 @@ export function ChatInterface({ selectedContent = [] }: ChatInterfaceProps) {
       }
       // Clear only the attached content display, not the conversation context
       setAttachedContent([])
-      
     } catch (error) {
       // Handle abort separately - not an error
       if (error instanceof Error && error.name === 'AbortError') {
@@ -373,31 +373,28 @@ export function ChatInterface({ selectedContent = [] }: ChatInterfaceProps) {
         }
         if (assistantMessage?.content && assistantMessage) {
           const messageId = assistantMessage.id
-          setMessages(prev => 
-            prev.map(msg => 
-              msg.id === messageId ? cancelMessage : msg
-            )
-          )
+          setMessages((prev) => prev.map((msg) => (msg.id === messageId ? cancelMessage : msg)))
         }
         return
       }
 
       let errorMsg = 'An error occurred while sending your message. '
-      
+
       if (error instanceof Error) {
         if (error.message.includes('401') || error.message.includes('Unauthorized')) {
           errorMsg = 'Your session has expired. Please log in again.'
         } else if (error.message.includes('403')) {
           errorMsg = 'CSRF validation failed. Please refresh the page and try again.'
         } else if (error.message.includes('Failed to fetch')) {
-          errorMsg = 'Cannot connect to the backend server. Please make sure it is running on http://localhost:8000'
+          errorMsg =
+            'Cannot connect to the backend server. Please make sure it is running on http://localhost:4200'
         } else {
           errorMsg += error.message
         }
       }
-      
+
       setError(errorMsg)
-      
+
       // Also add error message to chat
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
@@ -405,7 +402,7 @@ export function ChatInterface({ selectedContent = [] }: ChatInterfaceProps) {
         content: `I'm having trouble connecting to the AI service. ${errorMsg}`,
         timestamp: new Date(),
       }
-      setMessages(prev => [...prev, errorMessage])
+      setMessages((prev) => [...prev, errorMessage])
     } finally {
       setIsLoading(false)
     }
@@ -438,15 +435,15 @@ export function ChatInterface({ selectedContent = [] }: ChatInterfaceProps) {
   }, [])
 
   const removeAttachment = (index: number) => {
-    setAttachedContent(prev => prev.filter((_, i) => i !== index))
+    setAttachedContent((prev) => prev.filter((_, i) => i !== index))
   }
 
   return (
-    <Paper 
-      elevation={3} 
-      sx={{ 
-        height: '100%', 
-        display: 'flex', 
+    <Paper
+      elevation={3}
+      sx={{
+        height: '100%',
+        display: 'flex',
         flexDirection: 'column',
         overflow: 'hidden',
         position: 'relative',
@@ -531,28 +528,31 @@ export function ChatInterface({ selectedContent = [] }: ChatInterfaceProps) {
                   ))}
                 </Box>
               )}
-              <Typography 
-                variant={isMobile ? "body2" : "body1"} 
-                sx={{ whiteSpace: 'pre-wrap' }}
-              >
+              <Typography variant={isMobile ? 'body2' : 'body1'} sx={{ whiteSpace: 'pre-wrap' }}>
                 {message.content}
               </Typography>
               {!isMobile && (
-                <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+                <Typography
+                  variant="caption"
+                  color="text.secondary"
+                  sx={{ mt: 1, display: 'block' }}
+                >
                   {format(message.timestamp, 'h:mm a')}
                 </Typography>
               )}
             </Box>
           </Box>
         ))}
-        
+
         {isLoading && (
           <Box sx={{ display: 'flex', gap: isMobile ? 1 : 2, mb: isMobile ? 1 : 2 }}>
-            <Avatar sx={{ 
-              bgcolor: 'primary.main', 
-              width: isMobile ? 28 : 36, 
-              height: isMobile ? 28 : 36 
-            }}>
+            <Avatar
+              sx={{
+                bgcolor: 'primary.main',
+                width: isMobile ? 28 : 36,
+                height: isMobile ? 28 : 36,
+              }}
+            >
               <SmartToy />
             </Avatar>
             <Box
@@ -569,24 +569,27 @@ export function ChatInterface({ selectedContent = [] }: ChatInterfaceProps) {
               aria-live="assertive"
             >
               <CircularProgress size={isMobile ? 14 : 16} />
-              <Typography variant={isMobile ? "caption" : "body2"} color="text.secondary">
+              <Typography variant={isMobile ? 'caption' : 'body2'} color="text.secondary">
                 Thinking...
               </Typography>
             </Box>
           </Box>
         )}
-        
+
         <div ref={messagesEndRef} />
-        
       </Box>
-      
+
       {/* Scroll to Bottom FAB - Outside scrollable container */}
       <Zoom in={showScrollToBottom}>
         <Fab
           color="primary"
           size="small"
           onClick={handleScrollToBottom}
-          aria-label={unreadCount > 0 ? `Scroll to bottom, ${unreadCount} unread messages` : 'Scroll to bottom'}
+          aria-label={
+            unreadCount > 0
+              ? `Scroll to bottom, ${unreadCount} unread messages`
+              : 'Scroll to bottom'
+          }
           sx={{
             position: 'absolute',
             bottom: isMobile ? 80 : 100,
@@ -633,8 +636,8 @@ export function ChatInterface({ selectedContent = [] }: ChatInterfaceProps) {
             onKeyPress={handleKeyPress}
             placeholder={
               attachedContent.length > 0
-                ? "Ask about the attached content..."
-                : "Type your message..."
+                ? 'Ask about the attached content...'
+                : 'Type your message...'
             }
             disabled={isLoading}
             sx={{
@@ -647,10 +650,10 @@ export function ChatInterface({ selectedContent = [] }: ChatInterfaceProps) {
             <IconButton
               color="error"
               onClick={handleStop}
-              size={isMobile ? "small" : "medium"}
+              size={isMobile ? 'small' : 'medium'}
               aria-label="Stop response (Esc)"
               title="Stop response (Press Esc)"
-              sx={{ 
+              sx={{
                 bgcolor: 'error.main',
                 color: 'white',
                 '&:hover': {
@@ -665,9 +668,9 @@ export function ChatInterface({ selectedContent = [] }: ChatInterfaceProps) {
               color="primary"
               onClick={handleSend}
               disabled={isLoading || (!input.trim() && attachedContent.length === 0)}
-              size={isMobile ? "small" : "medium"}
+              size={isMobile ? 'small' : 'medium'}
               aria-label="Send message"
-              sx={{ 
+              sx={{
                 bgcolor: 'primary.main',
                 color: 'white',
                 '&:hover': {
