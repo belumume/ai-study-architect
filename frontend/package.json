@@ -66,10 +66,10 @@
     "@types/react": "^18.2.48",
     "@types/react-dom": "^18.2.18",
     "@types/react-dropzone": "^4.2.2",
-    "@typescript-eslint/eslint-plugin": "^6.19.0",
-    "@typescript-eslint/parser": "^6.19.0",
+    "@typescript-eslint/eslint-plugin": "^8.60.0",
+    "@typescript-eslint/parser": "^8.60.0",
     "@vitejs/plugin-react": "^4.7.0",
-    "@vitest/ui": "^1.2.0",
+    "@vitest/ui": "^4.1.7",
     "eslint": "^8.56.0",
     "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-react-hooks": "^4.6.0",
@@ -83,7 +83,7 @@
     "tailwindcss": "^4.2.1",
     "typescript": "^5.3.3",
     "vite": "^6.4.1",
-    "vitest": "^1.2.0"
+    "vitest": "^4.1.7"
   },
   "lint-staged": {
     "*.{ts,tsx}": [
