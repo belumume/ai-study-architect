@@ -9,7 +9,7 @@ from typing import Any
 import docx
 import magic
 import pptx
-import PyPDF2
+import pypdf
 from PIL import Image
 
 # Optional OCR support
@@ -128,7 +128,7 @@ class ContentProcessor:
 
         try:
             with open(file_path, "rb") as file:
-                pdf_reader = PyPDF2.PdfReader(file)
+                pdf_reader = pypdf.PdfReader(file)
                 metadata["page_count"] = len(pdf_reader.pages)
 
                 for page_num, page in enumerate(pdf_reader.pages):
