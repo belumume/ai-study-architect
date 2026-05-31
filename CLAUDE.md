@@ -135,8 +135,8 @@ frontend/src/
 
 ## CI/CD
 
-- **staging.yml**: Tests on push to develop/staging, PR to main. PostgreSQL 17 service container. Node 20, checkout@v6, setup-python@v6, setup-node@v6.
-- **deploy.yml**: Security scan (semgrep via pipx — NOT pip), migrations, CF Worker deploy. Node 20, same action versions.
+- **staging.yml**: Tests on push to develop/staging, PR to main. PostgreSQL 17 service container. Node 22, checkout@v6, setup-python@v6, setup-node@v6.
+- **deploy.yml**: Security scan (semgrep via pipx — NOT pip), migrations, CF Worker deploy. Node 22, same action versions.
 - **claude-code-review.yml**: AI PR review with Claude Sonnet.
 - **claude.yml**: Claude Code agent (@claude mentions in issues/PRs).
 - **backup.yml**: Automated database backups.
