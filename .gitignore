@@ -451,6 +451,8 @@ kubeconfig
 .claude/local/
 CLAUDE.local.md
 .claude/cache/
+# Auto-synced hookify rule templates (local-only, regenerated from ~/.claude/hookify-rules each session)
+.claude/hookify.*.local.md
 
 # ngrok
 ngrok
