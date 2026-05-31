@@ -60,11 +60,12 @@ async def agent_chat(
         agent = get_agent(request.agent_type, str(current_user.id))
 
         # Prepare input data for the agent
+        # Unpack context FIRST so trusted values (user_id, action) can't be overridden
         input_data = {
+            **request.context,
             "user_input": request.message,
             "user_id": str(current_user.id),
             "action": request.action or "general",
-            **request.context,
         }
 
         # Process the request
@@ -84,6 +85,8 @@ async def agent_chat(
             },
         }
 
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Agent chat error: {e}", exc_info=True)
         raise HTTPException(
@@ -130,6 +133,8 @@ async def create_study_plan(
             },
         }
 
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Study plan creation error: {e}", exc_info=True)
         raise HTTPException(
@@ -175,6 +180,8 @@ async def explain_concept(
             },
         }
 
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Concept explanation error: {e}", exc_info=True)
         raise HTTPException(
@@ -218,6 +225,8 @@ async def check_understanding(
             },
         }
 
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Understanding check error: {e}", exc_info=True)
         raise HTTPException(
@@ -250,6 +259,8 @@ async def agent_status(current_user: User = Depends(get_current_user)) -> dict[s
             "system_status": "operational",
         }
 
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Agent status error: {e}", exc_info=True)
         raise HTTPException(
@@ -283,6 +294,8 @@ async def clear_agent_memory(
                 status_code=404, detail=f"No active {agent_type} agent found for user"
             )
 
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Clear memory error: {e}", exc_info=True)
         raise HTTPException(
