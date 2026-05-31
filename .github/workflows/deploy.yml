@@ -137,11 +137,22 @@ jobs:
 
       - name: Health check
         run: |
-          sleep 15
-          response=$(curl -s -o /dev/null -w "%{http_code}" https://aistudyarchitect.com/api/v1/health/ready || true)
-          echo "Health check status: $response"
-          if [ "$response" = "200" ]; then
-            echo "Health check passed"
-          else
-            echo "Health check returned $response (container may still be waking)"
-          fi
+          # Probe the real readiness endpoint. The backend exposes /health and
+          # /health/ready at root (main.py); the worker routes both to the
+          # container (worker/src/index.ts). /api/v1/health/ready does NOT exist
+          # (404) — that was the old, decorative probe. Gate the deploy: retry
+          # for cold-start tolerance, fail the job if never healthy.
+          url="https://aistudyarchitect.com/health/ready"
+          for i in $(seq 1 6); do
+            body=$(curl -s --max-time 30 -A "Mozilla/5.0" -w "\n%{http_code}" "$url" || true)
+            code=$(printf '%s' "$body" | tail -n1)
+            payload=$(printf '%s' "$body" | sed '$d')
+            echo "Attempt $i/6: HTTP $code  $payload"
+            if [ "$code" = "200" ]; then
+              echo "Health check passed (container serving). Readiness: $payload"
+              exit 0
+            fi
+            sleep 10
+          done
+          echo "::error::Health check failed: $url did not return HTTP 200 after 6 attempts (container down or unhealthy)"
+          exit 1
