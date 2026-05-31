@@ -135,8 +135,8 @@ frontend/src/
 
 ## CI/CD
 
-- **staging.yml**: Tests on push to develop/staging, PR to main. PostgreSQL 17 service container. Node 20, checkout@v6, setup-python@v6, setup-node@v6.
-- **deploy.yml**: Security scan (semgrep via pipx — NOT pip), migrations, CF Worker deploy. Node 20, same action versions.
+- **staging.yml**: Tests on push to develop/staging, PR to main. PostgreSQL 17 service container. Node 22, checkout@v6, setup-python@v6, setup-node@v6.
+- **deploy.yml**: Security scan (semgrep via pipx — NOT pip), migrations, CF Worker deploy. Node 22, same action versions.
 - **claude-code-review.yml**: AI PR review with Claude Sonnet.
 - **claude.yml**: Claude Code agent (@claude mentions in issues/PRs).
 - **backup.yml**: Automated database backups.
@@ -188,7 +188,7 @@ frontend/src/
 
 **Complete**: Lead tutor + Socratic chat, multi-provider AI, file upload/processing, chat streaming, subject CRUD, session lifecycle (start/pause/resume/stop), dashboard summary API, dashboard UI (HeroMetrics, SubjectList, ContributionHeatmap, CTA), focus timer (Web Worker), Tailwind v4 foundation, auth forms restyled, Stitch v3 evolved designs, concept extraction pipeline (Claude Structured Outputs + parallel chunks), Subject Detail page (MasteryRing, ConceptCard, ExtractionTrigger), per-subject mastery in dashboard, empty extraction UX, content deletion cascade warning, security hardening (session 10), full-text search (tsvector + GIN index), auth hardening (httpOnly cookies only, refresh token rotation with Redis families, no tokens in response body).
 
-**Phase 2**: COMPLETE (PR #26 + PR #29 + PR #31 + PR #51 + PR #53 + PR #54 + PR #55 + PR #58 merged). Follow-up todos (009-049) resolved across sessions 10-15.
+**Phase 2**: COMPLETE (PR #26 + PR #29 + PR #31 + PR #51 + PR #53 + PR #54 + PR #55 + PR #58 merged). Follow-up todos (009-051) resolved across sessions 10-16. Session 16: full Dependabot security pass (66 alerts to 0), deploy hardening (Node 22 + wrangler pin), test stack to pytest 9 / vitest 4.
 **Phase 3 (next)**: Chat restyle (MUI → Tailwind), react-markdown integration, MUI removal.
 **Phase 4**: Practice generation, attempt tracking, AI grading, real Active Focus.
 **Phase 5**: SM-2 scheduling, analytics page, recommendation engine, retention curves.
