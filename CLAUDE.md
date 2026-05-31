@@ -30,7 +30,7 @@
 ### Backend
 ```bash
 cd backend
-uvicorn app.main:app --reload                  # Dev server (port 8000)
+uvicorn app.main:app --reload --port 4200       # Dev server (port 4200)
 pytest tests/ -v                                # Run tests
 ruff check app/ --fix                          # Lint + fix
 alembic upgrade head                           # Run migrations
@@ -40,7 +40,7 @@ alembic revision --autogenerate -m "message"  # New migration (needs local PG ru
 ### Frontend
 ```bash
 cd frontend
-npm run dev                                    # Dev server (port 5173)
+npm run dev                                    # Dev server (port 4100)
 npm test                                       # Vitest
 npm run typecheck                             # TypeScript check
 npm run lint                                  # ESLint
