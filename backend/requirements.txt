@@ -1,7 +1,7 @@
 # Core FastAPI dependencies
 fastapi==0.109.1
 uvicorn==0.27.0
-python-multipart==0.0.27
+python-multipart==0.0.31
 slowapi==0.1.9
 email-validator==2.1.0.post1
 
