@@ -436,7 +436,7 @@ Session 10 covered 5 major work phases, solving 36 distinct problems across 95 f
 - `~/.claude/rules/no-shortcuts.md` -- Updated: override context budget checks unconditionally
 - `~/.claude/rules/pass-cli.md` -- Updated: performance patterns, Pass-Query recommendation
 - `~/.claude/.claude-oauth-token` -- 1-year token for GitHub Actions (from `claude setup-token`)
-- `~/.claude/projects/C--Users-elzai/memory/automation-reference.md` -- Updated: GitHub Actions Management section
+- `~/.claude/projects/C--Users-USER/memory/automation-reference.md` -- Updated: GitHub Actions Management section
 - `~/.local/bin/setup-claude-repo.sh` -- Shell script version
 
 ### Spike Tests
